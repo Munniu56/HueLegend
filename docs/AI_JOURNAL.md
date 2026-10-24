@@ -241,3 +241,25 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
    - Khi người dùng nhấp chọn 1 trong 4 vai trò nêu trên trong Popup, hệ thống lập tức lưu góc nhìn vai trò tương ứng và tự động gọi yêu cầu kích hoạt ví MetaMask (`eth_requestAccounts`) để hoàn tất kết nối Sepolia Testnet.
 3. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi chép nhật ký công việc vào tệp `/docs/AI_JOURNAL.md`.
+
+---
+
+## 12. Phiên làm việc Lab 16: Tắt Tự Động Kết Nối Ví & Bổ Sung Modal Thông Số Ví Kết Nối
+
+### 12.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"không tự đăng nhập mỗi lần vào thì sẽ phải đăng nhập lại, sau khi kết nối ví thì khi bấm vào ví đã kết nối thì sẽ có hiện các thông số cơ bản và nút ngắt kết nối"*
+
+### 12.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ Tự động Đăng nhập (`Auto-connect on load`):**
+   - Đã gỡ bỏ đoạn mã tự động gọi `provider.listAccounts()` trong `useEffect` khi tải trang/làm mới trang tại `App.tsx`.
+   - Mỗi lần người dùng F5 hoặc truy cập lại hệ thống, ứng dụng luôn ở trạng thái "Chưa kết nối ví", đảm bảo tính riêng tư và bảo mật theo chuẩn Web3 dApp.
+2. **Xây dựng Modal Chi Tiết Thông Số Ví (`WalletDetailsModal.tsx`):**
+   - Khi người dùng đã kết nối thành công, nhấp vào nút ví trên Header (`0x...3C6b`) sẽ mở Modal hiển thị chi tiết các thông số:
+     - **Địa chỉ ví đầy đủ & Nút liên kết Etherscan Sepolia**
+     - **Thông số mạng lưới:** Mạng Sepolia Testnet (Chain ID: 11155111)
+     - **Vai trò đã xác thực:** Tương ứng với vai trò đã chọn
+     - **Số dư ký quỹ Producer:** Đọc thời gian thực từ Smart Contract
+     - **Nút "Ngắt Kết Nối Ví" (Disconnect Wallet):** Cho phép đăng xuất ví thủ công chỉ với một nhấp.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép đầy đủ tiến trình nâng cấp vào nhật ký AI_JOURNAL.md.
+

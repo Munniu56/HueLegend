@@ -19,6 +19,7 @@ import { AdminTab } from './components/AdminTab';
 import { ToastContainer } from './components/ToastContainer';
 import { QRStampModal } from './components/QRStampModal';
 import { RoleConnectModal } from './components/RoleConnectModal';
+import { WalletDetailsModal } from './components/WalletDetailsModal';
 
 export const App: React.FC = () => {
   // Global State
@@ -27,6 +28,7 @@ export const App: React.FC = () => {
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
   const [qrStampBatch, setQrStampBatch] = useState<Batch | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [isWalletDetailsModalOpen, setIsWalletDetailsModalOpen] = useState(false);
 
   // Web3 Connection State
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
@@ -211,15 +213,21 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open Modal First when clicking connect wallet
+  // Open Modal or Wallet Details depending on connection status
   const handleOpenRoleConnectModal = () => {
     if (currentAccount) {
-      // Already connected, disconnect or switch
-      setCurrentAccount(null);
-      addToast('Đã Ngắt Kết Nối Ví', 'Đã đăng xuất tài khoản ví MetaMask.', 'info');
+      // Already connected -> Open Wallet Details Modal with parameters & disconnect button
+      setIsWalletDetailsModalOpen(true);
     } else {
       setIsRoleModalOpen(true);
     }
+  };
+
+  // Disconnect Wallet Handler
+  const handleDisconnectWallet = () => {
+    setCurrentAccount(null);
+    setIsWalletDetailsModalOpen(false);
+    addToast('Đã Ngắt Kết Nối Ví', 'Đã ngắt kết nối với ví MetaMask thành công.', 'info');
   };
 
   // Role Selection in Modal -> Connect MetaMask
@@ -238,19 +246,10 @@ export const App: React.FC = () => {
     await executeMetaMaskConnect();
   };
 
-  // Auto connect or listen to account changes
+  // Listen for account changes (Do NOT auto-connect on page load/refresh)
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      provider.listAccounts().then((accounts) => {
-        if (accounts.length > 0) {
-          const addr = accounts[0].address;
-          setCurrentAccount(addr);
-          fetchContractData(addr);
-        }
-      }).catch(console.error);
-
-      (window as any).ethereum.on('accountsChanged', (accounts: string[]) => {
+      const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
           setCurrentAccount(accounts[0]);
           fetchContractData(accounts[0]);
@@ -258,7 +257,15 @@ export const App: React.FC = () => {
           setCurrentAccount(null);
           setBatches({});
         }
-      });
+      };
+
+      (window as any).ethereum.on('accountsChanged', handleAccountsChanged);
+
+      return () => {
+        if ((window as any).ethereum.removeListener) {
+          (window as any).ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        }
+      };
     }
   }, [fetchContractData]);
 
@@ -622,6 +629,22 @@ export const App: React.FC = () => {
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
         onSelectRoleAndConnect={handleRoleSelectAndConnect}
+      />
+
+      {/* Connected Wallet Details Modal */}
+      <WalletDetailsModal
+        isOpen={isWalletDetailsModalOpen}
+        onClose={() => setIsWalletDetailsModalOpen(false)}
+        account={currentAccount || ''}
+        roleTitle={getRoleTitle(
+          simulatedRole === 'ADMIN' ? ROLE_HASHES.ROLE_ADMIN :
+          simulatedRole === 'PRODUCER' ? ROLE_HASHES.ROLE_PRODUCER :
+          simulatedRole === 'LOGISTICS' ? ROLE_HASHES.ROLE_LOGISTICS :
+          simulatedRole === 'RETAILER' ? ROLE_HASHES.ROLE_RETAILER :
+          simulatedRole === 'INSPECTOR' ? ROLE_HASHES.ROLE_INSPECTOR : ''
+        )}
+        producerStakeBalance={producerStakeBalance}
+        onDisconnect={handleDisconnectWallet}
       />
 
       {/* QR Stamp Printable Modal */}
