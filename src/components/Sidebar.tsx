@@ -3,9 +3,10 @@ import {
   LayoutDashboard,
   QrCode,
   PlusCircle,
-  Truck,
   ShieldCheck,
   Store,
+  Tag,
+  Settings,
   Award,
   Sparkles,
   ExternalLink,
@@ -34,16 +35,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       icon: QrCode,
     },
     {
+      id: 'store',
+      label: 'Cửa Hàng Đặc Sản',
+      sublabel: 'Mua hàng bằng Sepolia ETH',
+      icon: Store,
+    },
+    {
       id: 'create-batch',
       label: 'Tạo Lô Hàng',
       sublabel: 'Dành cho cơ sở sản xuất',
       icon: PlusCircle,
-    },
-    {
-      id: 'checkpoint',
-      label: 'Ghi Chặng Supply Chain',
-      sublabel: 'Chế biến, kho & vận chuyển',
-      icon: Truck,
     },
     {
       id: 'inspector',
@@ -52,10 +53,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       icon: ShieldCheck,
     },
     {
-      id: 'store',
-      label: 'Cửa Hàng Đặc Sản',
-      sublabel: 'Phân phối & đại lý bán lẻ',
-      icon: Store,
+      id: 'retailer',
+      label: 'Quản Lý Niêm Yết',
+      sublabel: 'Nhập kho & niêm yết bán lẻ',
+      icon: Tag,
+    },
+    {
+      id: 'admin',
+      label: 'Quản Trị Hệ Thống',
+      sublabel: 'Phân quyền RBAC & đổi phí',
+      icon: Settings,
     },
   ];
 

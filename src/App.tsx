@@ -17,6 +17,7 @@ import { CheckpointTab } from './components/CheckpointTab';
 import { InspectorTab } from './components/InspectorTab';
 import { AdminTab } from './components/AdminTab';
 import { StoreTab } from './components/StoreTab';
+import { RetailerTab } from './components/RetailerTab';
 import { ToastContainer } from './components/ToastContainer';
 import { QRStampModal } from './components/QRStampModal';
 import { RoleConnectModal } from './components/RoleConnectModal';
@@ -149,7 +150,9 @@ export const App: React.FC = () => {
               currentStage:
                 checkpoints.length > 0
                   ? checkpoints[checkpoints.length - 1].action
-                  : 'Xưởng sản xuất',
+                  : batchData.isVerified
+                  ? 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
+                  : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
               checkpoints
             };
           } catch (e) {
@@ -632,6 +635,13 @@ export const App: React.FC = () => {
             <StoreTab
               batches={batches}
               onNavigateToLookup={(code) => handleNavigateTab('lookup', code)}
+            />
+          )}
+
+          {activeTab === 'retailer' && (
+            <RetailerTab
+              batches={batches}
+              onAddCheckpoint={handleAddCheckpoint}
             />
           )}
 

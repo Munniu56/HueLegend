@@ -331,6 +331,76 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 2. **Cập nhật AI_JOURNAL.md:**
    - Đã lưu nhật ký đầy đủ cho bước tinh gọn giao diện vào `AI_JOURNAL.md`.
 
+---
+
+## 17. Phiên làm việc Lab 21: Tối Ưu Luồng Trạng Thái & Tinh Gọn Sidebar DApp HueLegend
+
+### 17.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Hãy cập nhật lại giao diện Sidebar và Smart Contract flow cho DApp HueLegend để bỏ bớt bước 'Ghi Chặng Supply Chain':
+> 1. Xóa/Ẩn mục 'Ghi Chặng Supply Chain' khỏi Menu Sidebar.
+> 2. Danh sách Menu Sidebar thu gọn:
+>    - Tổng Quan Hệ Thống (Dashboard)
+>    - Tra Cứu Tem QR (Public Trace)
+>    - Cửa Hàng Đặc Sản (Mua hàng bằng Sepolia ETH)
+>    - Tạo Lô Hàng (Producer)
+>    - Kiểm Định OCOP (Inspector)
+>    - Quản Lý Niêm Yết (Retailer)
+>    - Quản Trị Hệ Thống (Admin)
+> 3. Tối ưu luồng trạng thái (State Transition): Sau khi Inspector bấm 'Kiểm Định OCOP', lô hàng sẽ chuyển thẳng sang trạng thái sẵn sàng để Retailer nhập kho/niêm yết giá bán (InRetail)."*
+
+### 17.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ bước "Ghi Chặng Supply Chain" khỏi Sidebar (`Sidebar.tsx`):**
+   - Đã xóa hoàn toàn mục "Ghi Chặng Supply Chain" (`checkpoint`) khỏi thanh điều hướng Sidebar.
+   - Thu gọn danh sách menu gồm đầy đủ các vai trò tương tác chính:
+     - 📊 **Tổng Quan Hệ Thống** (`overview`)
+     - 🔍 **Tra Cứu Tem QR** (`lookup`)
+     - 🏪 **Cửa Hàng Đặc Sản** (`store`)
+     - 📦 **Tạo Lô Hàng** (`create-batch`)
+     - 🛡️ **Kiểm Định OCOP** (`inspector`)
+     - 🏷️ **Quản Lý Niêm Yết** (`retailer`)
+     - ⚙️ **Quản Trị Hệ Thống** (`admin`)
+2. **Xây dựng Màn hình "Quản Lý Niêm Yết (Retailer)" (`RetailerTab.tsx`):**
+   - Tạo mới giao diện `RetailerTab.tsx` dành cho đại lý bán lẻ nhập kho, thiết lập giá niêm yết On-Chain bằng Sepolia ETH và cập nhật trạng thái bán.
+3. **Tối ưu Luồng Trạng Thái (State Transition `InRetail`):**
+   - Sau khi Kiểm định viên (`Inspector`) thẩm định OCOP, lô hàng tự động chuyển thẳng sang trạng thái sẵn sàng niêm yết `InRetail` ("Sẵn sàng Niêm Yết tại Cửa Hàng").
+4. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi lại nhật ký toàn bộ quá trình tối ưu luồng nghiệp vụ DApp vào `AI_JOURNAL.md`.
+
+---
+
+## 18. Phiên làm việc Lab 22: Loại Bỏ Chữ Tiếng Anh Vai Trò Trên Thanh Chức Năng Sidebar
+
+### 18.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"xoá chữ (Producer), (Inspector), (Retailer), (Admin) ở thanh chức năng"*
+
+### 18.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ nhãn tiếng Anh mở ngoặc trong Sidebar (`Sidebar.tsx`):**
+   - Đã gỡ bỏ các cụm từ tiếng Anh `(Producer)`, `(Inspector)`, `(Retailer)`, `(Admin)` trong phần mô tả phụ (`sublabel`) của danh sách điều hướng.
+   - Giúp giao diện tiếng Việt trở nên nhất quán, gọn gàng và thuần Việt 100%:
+     - **Tạo Lô Hàng**: "Dành cho cơ sở sản xuất"
+     - **Kiểm Định OCOP**: "Thẩm định & cấp chứng nhận"
+     - **Quản Lý Niêm Yết**: "Nhập kho & niêm yết bán lẻ"
+     - **Quản Trị Hệ Thống**: "Phân quyền RBAC & đổi phí"
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép nhật ký đầy đủ cho bước tinh chỉnh giao diện tiếng Việt vào `AI_JOURNAL.md`.
+
+---
+
+## 19. Phiên làm việc Lab 23: Tinh Gọn Màn Hình Tạo Lô Hàng (Xóa Phần Tiền Ký Quỹ Producer)
+
+### 19.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"xoá phần Tiền Ký Quỹ Producer trong phần Tạo Lô Hàng"*
+
+### 19.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Gỡ bỏ khối giao diện "Tiền Ký Quỹ Producer" (`CreateBatchTab.tsx`):**
+   - Đã loại bỏ hoàn toàn thẻ hiển thị "Tiền Ký Quỹ Producer", khung số dư cọc ký quỹ, ô nhập tiền đặt cọc thêm và nút "Rút Ký Quỹ" khỏi tab Tạo Lô Hàng.
+   - Chuyển giao diện biểu mẫu "Khai Báo Lô Hàng On-Chain" sang bố cục căn giữa gọn gàng (`max-w-3xl mx-auto`), giúp quy trình khởi tạo lô hàng tập trung và trực quan hơn.
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã lưu nhật ký cho bước tối giản màn hình Tạo Lô Hàng vào `AI_JOURNAL.md`.
+
+
+
+
 
 
 
