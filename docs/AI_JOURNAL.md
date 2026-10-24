@@ -220,29 +220,16 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 
 ---
 
-## 10. Phiên làm việc Lab 15: Chuyển đổi ứng dụng sang React + Vite + TypeScript & Tích hợp On-Chain Sepolia
+## 10. Phiên làm việc Lab 15: Cố định Thanh Sidebar (Sticky Screen) & Loại bỏ khoảng trống thừa
 
 ### 10.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
-> *"1. Chuyển đổi toàn bộ dự án DApp sang framework React + Vite + TypeScript.
-> 2. Đổi nguồn dữ liệu sang đọc & ghi trực tiếp từ Smart Contract trên Ethereum Sepolia Testnet (0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b) bằng Ethers.js v6. Xóa bỏ hoàn toàn dữ liệu mẫu mock data.
-> 3. Tinh chỉnh phông chữ Hoàng Gia Cố Đô Huế: Sử dụng Playfair Display cho tiêu đề và Be Vietnam Pro cho văn bản nội dung.
-> 4. Rút gọn toàn bộ các đoạn văn mô tả rườm rà, loại bỏ chữ không cần thiết trên tất cả các tab.
-> 5. Cập nhật đầy đủ tiến trình vào nhật ký AI_JOURNAL.md."*
+> *"Thanh bên trái để cố định và sắp xếp lại cho nó không bị thừa khoảng trắng."*
 
 ### 10.2. Phân tích của Trợ lý AI và Kết quả triển khai:
-1. **Kiến trúc Framework mới:**
-   - Chuyển đổi giao diện sang React 18 SPA sử dụng Vite bundler và Tailwind CSS v4.
-   - Xây dựng cấu trúc component mô-đun hóa: `Header.tsx`, `Sidebar.tsx`, `OverviewTab.tsx`, `LookupTab.tsx`, `CreateBatchTab.tsx`, `CheckpointTab.tsx`, `InspectorTab.tsx`, `AdminTab.tsx`, `ToastContainer.tsx`, `QRStampModal.tsx`.
-2. **Nguồn dữ liệu Blockchain Sepolia Thật:**
-   - Loại bỏ hoàn toàn mảng `DEFAULT_SAMPLE_BATCHES` viết cứng.
-   - Khi chưa kết nối ví hoặc contract chưa có lô hàng, hiển thị khung giao diện sạch sẽ với thông báo: *"Chưa có sản phẩm nào trên Blockchain"*.
-   - Mọi hàm ghi dữ liệu (`createBatch`, `addCheckpoint`, `verifyBatch`, `revokeBatchVerification`, `depositStake`, `withdrawStake`, `setBatchCreationFee`) đều kích hoạt ví MetaMask, chờ xác nhận khối on-chain (`tx.wait()`) trước khi reload dữ liệu mới.
-3. **Nâng cấp Typography & Khoảng cách:**
-   - Áp dụng cặp phông chữ Cố Đô Huế: **Playfair Display** (Thẻ tiêu đề, Banner) + **Be Vietnam Pro** (Nội dung, Nút bấm).
-   - Tối ưu hóa khoảng cách chữ (`tracking-tight` cho tiêu đề lớn, `tracking-wide` cho nhãn mã QR) và giãn dòng `line-height: 1.6`.
-   - Loại bỏ các đoạn chữ mô tả rườm rà, giữ nguyên 100% bố cục và cấu trúc các nút/form.
-4. **Đồng bộ triệt để Font-Serif & Font-Sans (Cập nhật mới):**
-   - Đã áp dụng `font-serif !important` (`Playfair Display`) cho tất cả các thẻ tiêu đề `h1`, `h2`, `h3`, `h4`, tên đặc sản trên thẻ sản phẩm, tên chặng trên timeline, và tiêu đề modal.
-   - Áp dụng `font-sans !important` (`Be Vietnam Pro`) cho toàn bộ thông số, nhãn form, nút bấm và badge trạng thái.
-5. **Biên dịch & Xác minh:**
-   - Chạy lệnh `compile_applet` đạt kết quả `Build succeeded` (0 lỗi TypeScript / Vite).
+1. **Cố định Thanh Sidebar (Sticky Position):**
+   - Thiết lập `sticky top-0 h-screen overflow-y-auto` giúp thanh Sidebar đứng yên cố định ở góc trái màn hình trong suốt quá trình cuộn trang main content.
+2. **Loại bỏ Khoảng trống Thừa:**
+   - Sắp xếp các cụm thông tin theo luồng liên tục: `Brand Logo & Title` $\to$ `Danh mục Quản trị` $\to$ `Thẻ OCOP Huế` $\to$ `Thẻ Smart Contract` $\to$ `Footer Badge`.
+   - Tạo nhịp độ hiển thị hợp lý với `space-y-5`, đảm bảo không xuất hiện bất kỳ khoảng trống rỗng nào khi hiển thị trên màn hình lớn.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép nhật ký công việc vào tệp `/docs/AI_JOURNAL.md`.
