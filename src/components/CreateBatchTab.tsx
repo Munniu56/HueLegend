@@ -14,10 +14,10 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   batchCreationFeeEth,
   onCreateBatch,
 }) => {
-  const [batchCode, setBatchCode] = useState(`HL-SPECIAL-${Date.now().toString().slice(-4)}`);
-  const [productName, setProductName] = useState('Mè Xửng Dừa Hoàng Gia Huế');
-  const [origin, setOrigin] = useState('Phường Hương Long, TP Huế, Thừa Thiên Huế');
-  const [metadataURI, setMetadataURI] = useState('ipfs://QmHueBatchProducerMetadataSample');
+  const [batchCode, setBatchCode] = useState('');
+  const [productName, setProductName] = useState('');
+  const [origin, setOrigin] = useState('');
+  const [metadataURI, setMetadataURI] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmitBatch = async (e: React.FormEvent) => {
@@ -59,7 +59,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               required
               value={batchCode}
               onChange={(e) => setBatchCode(e.target.value)}
-              placeholder="HL-MEXUNG-2026-001"
+              placeholder="Ví dụ: HL-MEXUNG-2026-001"
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
             />
           </div>
@@ -73,7 +73,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               required
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
-              placeholder="Mè Xửng Thiên Hương..."
+              placeholder="Ví dụ: Mè Xửng Dừa Hoàng Gia Huế..."
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
             />
           </div>
@@ -87,7 +87,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               required
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
-              placeholder="Phường Phú Hậu, TP Huế..."
+              placeholder="Ví dụ: Phường Hương Long, TP Huế, Thừa Thiên Huế..."
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
             />
           </div>
@@ -100,7 +100,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               type="text"
               value={metadataURI}
               onChange={(e) => setMetadataURI(e.target.value)}
-              placeholder="ipfs://Qm..."
+              placeholder="Ví dụ: ipfs://Qm... (Link tài liệu chứng minh nguồn gốc)"
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono focus:outline-none focus:border-[#264939]"
             />
           </div>

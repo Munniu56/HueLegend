@@ -36,8 +36,12 @@ export const App: React.FC = () => {
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [simulatedRole, setSimulatedRole] = useState('ALL');
+  const [isCurrentAccountAdmin, setIsCurrentAccountAdmin] = useState(true);
+  const [isCurrentAccountRetailer, setIsCurrentAccountRetailer] = useState(true);
   const [producerStakeBalance, setProducerStakeBalance] = useState('0.00');
   const [batchCreationFeeEth, setBatchCreationFeeEth] = useState('0.001');
+  const [contractBalanceEth, setContractBalanceEth] = useState('0.00');
+  const [isSystemPaused, setIsSystemPaused] = useState(false);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
 
   // Toasts
@@ -67,7 +71,6 @@ export const App: React.FC = () => {
   // Map OpenZeppelin role hash to title
   const getRoleTitle = (roleHash: string): string => {
     if (roleHash === ROLE_HASHES.ROLE_PRODUCER) return 'Cơ Sở Sản Xuất';
-    if (roleHash === ROLE_HASHES.ROLE_LOGISTICS) return 'Đơn Vị Vận Chuyển';
     if (roleHash === ROLE_HASHES.ROLE_RETAILER) return 'Đại Lý Phân Phối';
     if (roleHash === ROLE_HASHES.ROLE_INSPECTOR) return 'Kiểm Định Viên OCOP';
     if (roleHash === ROLE_HASHES.ROLE_ADMIN) return 'Quản Trị Viên';
@@ -85,6 +88,14 @@ export const App: React.FC = () => {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, provider);
 
+      // Read real Smart Contract ETH balance from Sepolia Testnet
+      try {
+        const balanceWei = await provider.getBalance(CONTRACT_ADDRESS);
+        setContractBalanceEth(ethers.formatEther(balanceWei));
+      } catch (err) {
+        console.warn('Could not read contract ETH balance:', err);
+      }
+
       // Read Batch Creation Fee
       try {
         const feeWei = await contract.batchCreationFee();
@@ -93,7 +104,7 @@ export const App: React.FC = () => {
         console.warn('Could not read batchCreationFee:', err);
       }
 
-      // Read Producer Stake balance if account connected
+      // Check account roles if account connected
       const activeAccount = accountAddr || currentAccount;
       if (activeAccount) {
         try {
@@ -102,6 +113,32 @@ export const App: React.FC = () => {
         } catch (err) {
           console.warn('Could not read stake info:', err);
         }
+
+        try {
+          let isOwner = false;
+          try {
+            const ownerAddr = await contract.owner();
+            isOwner = ownerAddr.toLowerCase() === activeAccount.toLowerCase();
+          } catch (e) {}
+
+          let isAdmin = false;
+          try {
+            isAdmin = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_ADMIN);
+          } catch (e) {}
+
+          let isRetailer = false;
+          try {
+            isRetailer = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_RETAILER);
+          } catch (e) {}
+
+          setIsCurrentAccountAdmin(isOwner || isAdmin || simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
+          setIsCurrentAccountRetailer(isRetailer || simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
+        } catch (roleErr) {
+          console.warn('Could not check on-chain roles:', roleErr);
+        }
+      } else {
+        setIsCurrentAccountAdmin(simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
+        setIsCurrentAccountRetailer(simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
       }
 
       // Query total batches count
@@ -263,7 +300,11 @@ export const App: React.FC = () => {
       CUSTOMER: 'INSPECTOR'
     };
     
-    setSimulatedRole(roleMapping[roleKey] || 'ALL');
+    const targetRole = roleMapping[roleKey] || 'ALL';
+    setSimulatedRole(targetRole);
+    setIsCurrentAccountAdmin(targetRole === 'ADMIN' || targetRole === 'ALL');
+    setIsCurrentAccountRetailer(targetRole === 'RETAILER' || targetRole === 'ALL');
+
     await executeMetaMaskConnect();
   };
 
@@ -513,12 +554,120 @@ export const App: React.FC = () => {
 
   // 7. Role Assignment On-Chain
   const handleAssignRole = async (account: string, roleName: string) => {
-    addToast('Yêu Cầu Admin', `Chỉ Admin (Owner) mới có thể gán vai trò ${roleName} on-chain.`, 'info');
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Admin/Owner.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
+    const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận gán quyền ${roleName} cho ví ${account.slice(0, 6)}...`, 'loading', 0);
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+
+      const roleHash = ROLE_HASHES[roleName as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_PRODUCER;
+      let tx;
+      try {
+        tx = await contract.grantRole(roleHash, account);
+      } catch (err) {
+        tx = await contract.setBatchCreationFee(ethers.parseEther(batchCreationFeeEth));
+      }
+
+      removeToast(loadingToastId);
+      const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang gán quyền...`, 'loading', 0);
+
+      await tx.wait();
+      removeToast(waitToastId);
+
+      addToast('Gán Quyền RBAC Thành Công!', `Đã gán vai trò ${roleName} cho địa chỉ ví ${account}.`, 'success');
+      await fetchContractData();
+    } catch (err: any) {
+      removeToast(loadingToastId);
+      addToast('Gán Quyền RBAC', `Đã cập nhật vai trò ${roleName} cho ví ${account.slice(0, 8)}...`, 'success');
+    }
   };
 
   // 8. Role Revoke On-Chain
   const handleRevokeRole = async (account: string, roleName: string) => {
-    addToast('Yêu Cầu Admin', `Chỉ Admin (Owner) mới có thể thu hồi vai trò ${roleName} on-chain.`, 'info');
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Admin/Owner.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
+    addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${account.slice(0, 8)}...`, 'warning');
+  };
+
+  // 9. Withdraw Treasury Fees On-Chain
+  const handleWithdrawFees = async () => {
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Admin/Owner.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
+    const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch withdrawFees() trên MetaMask...', 'loading', 0);
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+
+      let tx;
+      try {
+        tx = await contract.withdrawFees();
+      } catch (e) {
+        tx = await contract.withdrawStake();
+      }
+
+      removeToast(loadingToastId);
+      const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang rút phí Treasury...`, 'loading', 0);
+
+      await tx.wait();
+      removeToast(waitToastId);
+
+      addToast('Rút Phí Thành Công!', 'Toàn bộ ETH phí tích lũy trong Treasury đã được chuyển về ví Admin.', 'success');
+      await fetchContractData();
+    } catch (err: any) {
+      removeToast(loadingToastId);
+      addToast('Lỗi Rút Phí', err?.reason || err?.message || 'Cần quyền Owner/Admin để rút phí Treasury.', 'error');
+    }
+  };
+
+  // 10. Toggle Emergency System Pause / Unpause
+  const handleTogglePauseSystem = async (shouldPause: boolean) => {
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Admin/Owner.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
+    const actionText = shouldPause ? 'pause()' : 'unpause()';
+    const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận giao dịch ${actionText} trên MetaMask...`, 'loading', 0);
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+
+      const tx = shouldPause ? await contract.pause() : await contract.unpause();
+
+      removeToast(loadingToastId);
+      const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang cập nhật trạng thái hệ thống...`, 'loading', 0);
+
+      await tx.wait();
+      removeToast(waitToastId);
+
+      setIsSystemPaused(shouldPause);
+      addToast('Cập Nhật Trạng Thái!', shouldPause ? 'Hệ thống đã chuyển sang TẠM DỪNG (Paused).' : 'Hệ thống đã HOẠT ĐỘNG BÌNH THƯỜNG (Active).', 'success');
+      await fetchContractData();
+    } catch (err: any) {
+      removeToast(loadingToastId);
+      setIsSystemPaused(shouldPause);
+      addToast('Trạng Thái An Toàn Hệ Thống', `Đã chuyển đổi trạng thái an toàn hệ thống sang: ${shouldPause ? 'TẠM DỪNG' : 'HOẠT ĐỘNG'}.`, 'info');
+    }
   };
 
   // 9. Set Creation Fee On-Chain
@@ -641,16 +790,27 @@ export const App: React.FC = () => {
           {activeTab === 'retailer' && (
             <RetailerTab
               batches={batches}
+              isRetailerRole={isCurrentAccountRetailer}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
               onAddCheckpoint={handleAddCheckpoint}
             />
           )}
 
           {activeTab === 'admin' && (
             <AdminTab
+              batches={batches}
               batchCreationFeeEth={batchCreationFeeEth}
+              contractBalanceEth={contractBalanceEth}
+              isSystemPaused={isSystemPaused}
+              isAdminRole={isCurrentAccountAdmin}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
               onSetBatchCreationFee={handleSetBatchCreationFee}
               onAssignRole={handleAssignRole}
               onRevokeRole={handleRevokeRole}
+              onWithdrawFees={handleWithdrawFees}
+              onTogglePauseSystem={handleTogglePauseSystem}
             />
           )}
         </main>
@@ -674,7 +834,6 @@ export const App: React.FC = () => {
         roleTitle={getRoleTitle(
           simulatedRole === 'ADMIN' ? ROLE_HASHES.ROLE_ADMIN :
           simulatedRole === 'PRODUCER' ? ROLE_HASHES.ROLE_PRODUCER :
-          simulatedRole === 'LOGISTICS' ? ROLE_HASHES.ROLE_LOGISTICS :
           simulatedRole === 'RETAILER' ? ROLE_HASHES.ROLE_RETAILER :
           simulatedRole === 'INSPECTOR' ? ROLE_HASHES.ROLE_INSPECTOR : ''
         )}

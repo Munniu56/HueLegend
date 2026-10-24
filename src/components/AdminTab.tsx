@@ -1,29 +1,158 @@
 import React, { useState } from 'react';
-import { Settings, UserPlus, UserMinus, Coins, RefreshCw } from 'lucide-react';
+import {
+  Settings,
+  UserPlus,
+  UserMinus,
+  Coins,
+  RefreshCw,
+  ShieldAlert,
+  Wallet,
+  ShieldCheck,
+  PauseCircle,
+  PlayCircle,
+  Activity,
+  ExternalLink,
+  Users,
+  Search,
+  Download
+} from 'lucide-react';
+import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS } from '../constants';
+
+import { Batch, Checkpoint } from '../types';
+
+export interface GrantedWallet {
+  address: string;
+  role: string;
+  roleTitle: string;
+  grantedAt: string;
+  status: string;
+}
+
+export interface EventLog {
+  id: string;
+  type: string;
+  batchCode: string;
+  actor: string;
+  role: string;
+  fee: string;
+  timestamp: string;
+  txHash?: string;
+}
 
 interface AdminTabProps {
+  batches?: Record<string, Batch>;
   batchCreationFeeEth: string;
+  contractBalanceEth?: string;
+  isSystemPaused?: boolean;
+  isAdminRole: boolean;
+  currentAccount: string | null;
+  onConnectWallet: () => void;
   onSetBatchCreationFee: (newFeeEth: string) => Promise<void>;
   onAssignRole: (account: string, roleName: string) => Promise<void>;
   onRevokeRole: (account: string, roleName: string) => Promise<void>;
+  onWithdrawFees?: () => Promise<void>;
+  onTogglePauseSystem?: (shouldPause: boolean) => Promise<void>;
 }
 
 export const AdminTab: React.FC<AdminTabProps> = ({
+  batches = {},
   batchCreationFeeEth,
+  contractBalanceEth = '0.00',
+  isSystemPaused = false,
+  isAdminRole,
+  currentAccount,
+  onConnectWallet,
   onSetBatchCreationFee,
   onAssignRole,
   onRevokeRole,
+  onWithdrawFees,
+  onTogglePauseSystem,
 }) => {
-  const [accountAddress, setAccountAddress] = useState('0x82d022a704706B2f144863D619D7418F8a0f19A7');
+  const [accountAddress, setAccountAddress] = useState('');
   const [roleSelect, setRoleSelect] = useState('ROLE_PRODUCER');
-  const [newFee, setNewFee] = useState(batchCreationFeeEth);
+  const [newFee, setNewFee] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchRoleQuery, setSearchRoleQuery] = useState('');
+
+  // Live granted wallets list initialized empty (zero hardcoded mock data)
+  const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
+
+  // Derive production event logs dynamically from live Sepolia batch data
+  const recentEventLogs: EventLog[] = React.useMemo(() => {
+    const logs: EventLog[] = [];
+    const batchList = Object.values(batches);
+
+    batchList.forEach((b: Batch) => {
+      // 1. Batch creation event
+      logs.push({
+        id: `evt-create-${b.batchCode}`,
+        type: 'BatchCreated',
+        batchCode: b.batchCode,
+        actor: b.producer || '0x...',
+        role: 'Cơ Sở Sản Xuất',
+        fee: `${batchCreationFeeEth} ETH`,
+        timestamp: b.createdAt ? new Date(b.createdAt * 1000).toLocaleString('vi-VN') : 'Theo thời gian tạo',
+      });
+
+      // 2. OCOP Verification event
+      if (b.isVerified || b.inspectorNote) {
+        logs.push({
+          id: `evt-verify-${b.batchCode}`,
+          type: 'BatchVerified',
+          batchCode: b.batchCode,
+          actor: 'Kiểm Định Viên OCOP',
+          role: 'Kiểm Định Viên OCOP',
+          fee: '0.00 ETH',
+          timestamp: 'Đã Thẩm Định OCOP',
+        });
+      }
+
+      // 3. Checkpoints events
+      if (b.checkpoints && b.checkpoints.length > 0) {
+        b.checkpoints.forEach((chk: Checkpoint, idx: number) => {
+          logs.push({
+            id: `evt-chk-${b.batchCode}-${idx}`,
+            type: 'CheckpointAdded',
+            batchCode: b.batchCode,
+            actor: chk.location || 'Trạm Vận Hành',
+            role: chk.roleTitle || 'Cung Ứng & Vận Hành',
+            fee: '0.00 ETH',
+            timestamp: chk.timestamp ? new Date(chk.timestamp * 1000).toLocaleString('vi-VN') : 'Mới cập nhật',
+            txHash: chk.txHash
+          });
+        });
+      }
+    });
+
+    return logs;
+  }, [batches, batchCreationFeeEth]);
 
   const handleAssign = async () => {
     if (!accountAddress) return;
     setIsSubmitting(true);
     try {
       await onAssignRole(accountAddress, roleSelect);
+
+      // Add to local list for immediate UI feedback
+      const roleTitles: Record<string, string> = {
+        ROLE_ADMIN: 'Quản Trị Viên',
+        ROLE_PRODUCER: 'Chủ Cơ Sở Sản Xuất',
+        ROLE_RETAILER: 'Đại Lý Phân Phối',
+        ROLE_INSPECTOR: 'Kiểm Định Viên OCOP'
+      };
+
+      setGrantedWallets((prev) => [
+        {
+          address: accountAddress,
+          role: roleSelect,
+          roleTitle: roleTitles[roleSelect] || roleSelect,
+          grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+          status: 'Active'
+        },
+        ...prev.filter((w) => !(w.address.toLowerCase() === accountAddress.toLowerCase() && w.role === roleSelect))
+      ]);
+
+      setAccountAddress('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -31,11 +160,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
     }
   };
 
-  const handleRevoke = async () => {
-    if (!accountAddress) return;
+  const handleRevokeWallet = async (targetAddress: string, roleName: string) => {
     setIsSubmitting(true);
     try {
-      await onRevokeRole(accountAddress, roleSelect);
+      await onRevokeRole(targetAddress, roleName);
+      setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === targetAddress.toLowerCase() && w.role === roleName)));
     } catch (err) {
       console.error(err);
     } finally {
@@ -55,106 +184,383 @@ export const AdminTab: React.FC<AdminTabProps> = ({
     }
   };
 
+  const filteredWallets = grantedWallets.filter(
+    (w) =>
+      w.address.toLowerCase().includes(searchRoleQuery.toLowerCase()) ||
+      w.roleTitle.toLowerCase().includes(searchRoleQuery.toLowerCase()) ||
+      w.role.toLowerCase().includes(searchRoleQuery.toLowerCase())
+  );
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans">
-      {/* RBAC Role Assignment Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
-          <div>
-            <h2 className="text-xl font-serif font-extrabold text-[#264939]">
-              Phân Quyền Vai Trò RBAC
-            </h2>
+    <div className="space-y-6 font-sans">
+      {/* Header Title Banner */}
+      <div className="bg-gradient-to-r from-[#264939] via-[#1c372b] to-[#264939] text-white p-6 rounded-3xl shadow-md flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-200 text-xs font-semibold backdrop-blur-xs">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#C29B38]" />
+            <span>Trung Tâm Quản Trị Hệ Thống HueLegend</span>
           </div>
-          <Settings className="w-5 h-5 text-[#264939]" />
+          <h2 className="font-serif font-extrabold text-2xl text-amber-100">
+            Trang Quản Trị Hệ Thống On-Chain
+          </h2>
+          <p className="text-xs text-emerald-100/90">
+            Phân quyền RBAC, quản lý mức phí khai báo, rút tiền Quỹ Treasury và giám sát trạng thái an toàn Smart Contract.
+          </p>
         </div>
 
-        <div className="space-y-4 font-sans">
-          <div>
-            <label className="block text-xs font-bold text-[#1A2820] mb-1">
-              Địa Chỉ Ví Ethereum *
-            </label>
-            <input
-              type="text"
-              required
-              value={accountAddress}
-              onChange={(e) => setAccountAddress(e.target.value)}
-              placeholder="0x..."
-              className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-[#1A2820] mb-1">
-              Chọn Vai Trò *
-            </label>
-            <select
-              value={roleSelect}
-              onChange={(e) => setRoleSelect(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
-            >
-              <option value="ROLE_PRODUCER">ROLE_PRODUCER (Chủ Cơ Sở)</option>
-              <option value="ROLE_LOGISTICS">ROLE_LOGISTICS (Đơn Vị Vận Chuyển)</option>
-              <option value="ROLE_RETAILER">ROLE_RETAILER (Đại Lý Phân Phối)</option>
-              <option value="ROLE_INSPECTOR">ROLE_INSPECTOR (Kiểm Định Viên OCOP)</option>
-            </select>
-          </div>
-
-          <div className="pt-2 flex gap-3">
-            <button
-              onClick={handleAssign}
-              disabled={isSubmitting}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#264939] text-white font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs disabled:opacity-50"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Gán Vai Trò</span>
-            </button>
-
-            <button
-              onClick={handleRevoke}
-              disabled={isSubmitting}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-2xs disabled:opacity-50"
-            >
-              <UserMinus className="w-4 h-4" />
-              <span>Thu Hồi Quyền</span>
-            </button>
+        <div className="flex items-center gap-3">
+          <div className="bg-white/10 p-3 rounded-2xl border border-white/20 text-right backdrop-blur-xs">
+            <span className="text-[10px] text-emerald-200 uppercase font-bold block">
+              Trạng Thái Hệ Thống
+            </span>
+            <span className={`text-xs font-bold inline-flex items-center gap-1.5 mt-0.5 ${isSystemPaused ? 'text-amber-300' : 'text-emerald-300'}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${isSystemPaused ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+              <span>{isSystemPaused ? 'TẠM DỪNG (Paused)' : 'HOẠT ĐỘNG (Active)'}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Contract Fee Config Panel */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
-          <div>
-            <h2 className="text-xl font-serif font-extrabold text-[#264939]">
-              Cấu Hình Phí Khai Báo
-            </h2>
+      {/* RBAC Warning Banner for non-Admin wallets */}
+      {!isAdminRole && (
+        <div className="bg-red-50 border-2 border-red-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-red-950 font-sans shadow-2xs">
+          <div className="flex items-center gap-3">
+            <ShieldAlert className="w-6 h-6 text-red-600 shrink-0" />
+            <div>
+              <span className="font-bold block text-sm text-red-950 font-serif">Yêu Cầu Quyền Quản Trị Hệ Thống (Owner / Admin)</span>
+              <span className="text-red-900 font-medium">
+                Vui lòng kết nối ví Quản trị viên (Owner / Admin) đã được phân quyền để thực hiện gán quyền, cấu hình phí và quản lý Treasury.
+              </span>
+            </div>
           </div>
-          <Coins className="w-5 h-5 text-[#C29B38]" />
+          <button
+            onClick={onConnectWallet}
+            className="px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs shrink-0"
+          >
+            Chuyển Ví / Chọn Admin
+          </button>
+        </div>
+      )}
+
+      {/* 5 Production Feature Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column (2 cols): RBAC Management & Granted Wallets Table */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Feature 1: Grant Role Panel */}
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-[#264939]" />
+                <h3 className="font-serif font-extrabold text-lg text-[#264939]">
+                  1. Gán Quyền Vai Trò (Grant Role)
+                </h3>
+              </div>
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
+                AccessControl
+              </span>
+            </div>
+
+            <div className="space-y-4 font-sans">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#1A2820] mb-1">
+                    Địa Chỉ Ví Ethereum Cần Phân Quyền *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={accountAddress}
+                    onChange={(e) => setAccountAddress(e.target.value)}
+                    placeholder="Ví dụ: 0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1A2820] mb-1">
+                    Chọn Vai Trò RBAC *
+                  </label>
+                  <select
+                    value={roleSelect}
+                    onChange={(e) => setRoleSelect(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
+                  >
+                    <option value="ROLE_PRODUCER">ROLE_PRODUCER (Chủ Cơ Sở Sản Xuất)</option>
+                    <option value="ROLE_RETAILER">ROLE_RETAILER (Đại Lý Phân Phối / Retailer)</option>
+                    <option value="ROLE_INSPECTOR">ROLE_INSPECTOR (Kiểm Định Viên OCOP)</option>
+                    <option value="ROLE_ADMIN">ROLE_ADMIN (Quản Trị Viên Hệ Thống)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={handleAssign}
+                  disabled={isSubmitting || !isAdminRole || !accountAddress}
+                  className="inline-flex items-center gap-2 py-2.5 px-5 rounded-xl bg-[#264939] text-white font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs disabled:opacity-50"
+                >
+                  <UserPlus className="w-4 h-4 text-[#C29B38]" />
+                  <span>Xác Nhận Gán Quyền On-Chain</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 1 Continued: Granted Wallets Table with Revoke Button */}
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#264939]" />
+                <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                  Danh Sách Ví Đã Cấp Quyền RBAC
+                </h3>
+              </div>
+
+              <div className="relative w-48">
+                <input
+                  type="text"
+                  value={searchRoleQuery}
+                  onChange={(e) => setSearchRoleQuery(e.target.value)}
+                  placeholder="Tìm theo ví / role..."
+                  className="w-full pl-8 pr-3 py-1.5 rounded-xl border border-[#E6E1D7] text-[11px] focus:outline-none focus:border-[#264939]"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+              </div>
+            </div>
+
+            {filteredWallets.length === 0 ? (
+              <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-2">
+                <Users className="w-8 h-8 text-[#8A9D92] mx-auto opacity-60" />
+                <p className="text-xs font-bold text-[#1A2820]">Chưa Có Ví Được Phân Quyền On-Chain</p>
+                <p className="text-[11px] text-[#5E7166] max-w-sm mx-auto">
+                  Sử dụng biểu mẫu "Gán Quyền Vai Trò" ở trên để cấp quyền cho địa chỉ ví Nhà sản xuất, Kiểm định viên OCOP hoặc Đại lý.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-[#FAF9F5] border-b border-[#E6E1D7] text-[#8A9D92] font-bold uppercase text-[10px] tracking-wider">
+                      <th className="py-2.5 px-3">Địa Chỉ Ví</th>
+                      <th className="py-2.5 px-3">Tên Vai Trò / Đơn Vị</th>
+                      <th className="py-2.5 px-3">Thời Gian Gán</th>
+                      <th className="py-2.5 px-3 text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EDE9E0]">
+                    {filteredWallets.map((wallet) => (
+                      <tr key={`${wallet.address}-${wallet.role}`} className="hover:bg-[#FAF9F5]/80 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-[#1A2820]">
+                          {wallet.address.slice(0, 8)}...{wallet.address.slice(-4)}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-[#264939] block text-xs">{wallet.roleTitle}</span>
+                          <span className="text-[10px] font-mono text-gray-500">{wallet.role}</span>
+                        </td>
+                        <td className="py-3 px-3 text-gray-500 text-[11px]">
+                          {wallet.grantedAt}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            onClick={() => handleRevokeWallet(wallet.address, wallet.role)}
+                            disabled={isSubmitting || !isAdminRole || wallet.role === 'ROLE_ADMIN'}
+                            className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-[11px] font-bold transition-all disabled:opacity-40 inline-flex items-center gap-1"
+                          >
+                            <UserMinus className="w-3 h-3" />
+                            <span>Thu Hồi</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Feature 4: Event Logs Table with Sepolia Etherscan Links */}
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-[#264939]" />
+                <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                  4. Nhật Ký Sự Kiện Giao Dịch On-Chain
+                </h3>
+              </div>
+              <a
+                href={`${ETHERSCAN_BASE_URL}/address/${CONTRACT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-[#264939] hover:underline flex items-center gap-1"
+              >
+                <span>Mở Etherscan</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+
+            {recentEventLogs.length === 0 ? (
+              <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-2">
+                <Activity className="w-8 h-8 text-[#8A9D92] mx-auto opacity-60" />
+                <p className="text-xs font-bold text-[#1A2820]">Chưa Có Sự Kiện Giao Dịch On-Chain</p>
+                <p className="text-[11px] text-[#5E7166] max-w-sm mx-auto">
+                  Các sự kiện khởi tạo lô hàng, thẩm định OCOP và niêm yết từ Sepolia Testnet sẽ tự động hiển thị tại đây.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="bg-[#FAF9F5] border-b border-[#E6E1D7] text-[#8A9D92] font-bold uppercase text-[10px] tracking-wider">
+                      <th className="py-2.5 px-3">Mã Lô / Mục</th>
+                      <th className="py-2.5 px-3">Sự Kiện</th>
+                      <th className="py-2.5 px-3">Ví Thực Hiện</th>
+                      <th className="py-2.5 px-3">Thời Gian</th>
+                      <th className="py-2.5 px-3 text-right">Etherscan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#EDE9E0]">
+                    {recentEventLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-[#FAF9F5]/80 transition-colors">
+                        <td className="py-3 px-3 font-mono font-bold text-[#264939]">
+                          {log.batchCode}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-mono text-[10px] font-bold border border-emerald-200">
+                            {log.type}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="font-mono text-xs block text-[#1A2820]">
+                            {log.actor.slice(0, 8)}...
+                          </span>
+                          <span className="text-[10px] text-gray-500">{log.role}</span>
+                        </td>
+                        <td className="py-3 px-3 text-gray-500 text-[11px]">
+                          {log.timestamp}
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          {log.txHash ? (
+                            <a
+                              href={`${ETHERSCAN_BASE_URL}/tx/${log.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg bg-[#FAF9F5] hover:bg-[#E0ECE4] text-[#264939] inline-flex items-center gap-1 transition-colors text-[11px] font-bold"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Chi Tiết</span>
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 font-mono text-[10px]">On-Chain</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
 
-        <form onSubmit={handleUpdateFee} className="space-y-4 font-sans">
-          <div>
-            <label className="block text-xs font-bold text-[#1A2820] mb-1">
-              Phí Hiện Tại On-Chain: <span className="text-[#264939] font-mono font-bold">{batchCreationFeeEth} ETH</span>
-            </label>
-            <input
-              type="number"
-              step="0.0001"
-              value={newFee}
-              onChange={(e) => setNewFee(e.target.value)}
-              className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939]"
-            />
+        {/* Right Column (1 col): Treasury & Emergency Control */}
+        <div className="space-y-6 font-sans">
+          {/* Feature 2: Treasury Fee Config & Withdraw Panel */}
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <Coins className="w-5 h-5 text-[#C29B38]" />
+                <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                  2. Quản Lý Phí & Treasury
+                </h3>
+              </div>
+              <Wallet className="w-4 h-4 text-[#264939]" />
+            </div>
+
+            {/* Treasury Balance Display Card */}
+            <div className="bg-gradient-to-br from-[#FAF9F5] to-[#E0ECE4]/40 p-4 rounded-2xl border border-[#CCD8CF] space-y-2">
+              <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider block">
+                Số Dư ETH Tích Lũy Trong Smart Contract
+              </span>
+              <div className="text-2xl font-extrabold font-mono text-[#264939]">
+                {contractBalanceEth} ETH
+              </div>
+              <p className="text-[11px] text-[#5E7166]">
+                Nguồn phí nộp từ các cơ sở sản xuất khi khởi tạo lô hàng đặc sản on-chain.
+              </p>
+
+              <button
+                onClick={onWithdrawFees}
+                disabled={isSubmitting || !isAdminRole}
+                className="w-full mt-2 py-2.5 px-4 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
+              >
+                <Download className="w-4 h-4 text-[#C29B38]" />
+                <span>Rút Phí Về Ví Admin (withdrawFees)</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateFee} className="space-y-3 pt-2 border-t border-[#EDE9E0]">
+              <label className="block text-xs font-bold text-[#1A2820]">
+                Cấu Hình Mức Phí Tạo Lô (Sepolia ETH)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={newFee}
+                  onChange={(e) => setNewFee(e.target.value)}
+                  placeholder={`Mức phí hiện tại: ${batchCreationFeeEth} ETH`}
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939]"
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !isAdminRole || !newFee}
+                  className="px-4 py-2 bg-[#C29B38] text-[#FFFFFF] rounded-xl font-bold text-xs hover:bg-[#8C6D1F] transition-all shrink-0 disabled:opacity-50"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </form>
           </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-[#C29B38] text-white font-bold text-xs hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-50"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>Cập Nhật Mức Phí</span>
-          </button>
-        </form>
+          {/* Feature 3: Emergency Control (Pause / Unpause) */}
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+                <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                  3. An Toàn Hệ Thống (Emergency)
+                </h3>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isSystemPaused ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                {isSystemPaused ? 'Paused' : 'Active'}
+              </span>
+            </div>
+
+            <p className="text-xs text-[#5E7166] leading-relaxed">
+              Tính năng Tạm dừng khẩn cấp (Emergency Circuit Breaker). Cho phép Admin dừng các thao tác ghi dữ liệu mới khi phát hiện sự cố bảo mật hoặc kiểm toán hệ thống.
+            </p>
+
+            <div className="pt-1 flex gap-3">
+              <button
+                onClick={() => onTogglePauseSystem && onTogglePauseSystem(true)}
+                disabled={isSubmitting || !isAdminRole || isSystemPaused}
+                className="flex-1 py-2.5 px-3 bg-amber-600 text-white rounded-xl font-bold text-xs hover:bg-amber-700 transition-all flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-40"
+              >
+                <PauseCircle className="w-4 h-4" />
+                <span>Tạm Dừng (pause)</span>
+              </button>
+
+              <button
+                onClick={() => onTogglePauseSystem && onTogglePauseSystem(false)}
+                disabled={isSubmitting || !isAdminRole || !isSystemPaused}
+                className="flex-1 py-2.5 px-3 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-1.5 shadow-2xs disabled:opacity-40"
+              >
+                <PlayCircle className="w-4 h-4" />
+                <span>Kích Hoạt (unpause)</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

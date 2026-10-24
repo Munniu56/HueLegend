@@ -15,8 +15,8 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 }) => {
   const batchList = Object.values(batches);
   const [selectedBatchCode, setSelectedBatchCode] = useState(batchList[0]?.batchCode || '');
-  const [inspectorNote, setInspectorNote] = useState('Đạt chuẩn chất lượng OCOP Thừa Thiên Huế.');
-  const [certificateURI, setCertificateURI] = useState('ipfs://QmHueOCOPInspectionCertificate2026');
+  const [inspectorNote, setInspectorNote] = useState('');
+  const [certificateURI, setCertificateURI] = useState('');
   const [revokeReason, setRevokeReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,7 +94,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 rows={3}
                 value={inspectorNote}
                 onChange={(e) => setInspectorNote(e.target.value)}
-                placeholder="Ghi chú kiểm định..."
+                placeholder="Ví dụ: Đạt chuẩn chất lượng OCOP 4 sao tỉnh Thừa Thiên Huế. Đầy đủ tem nhãn và hồ sơ vệ sinh an toàn thực phẩm."
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
               />
             </div>
@@ -107,7 +107,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 type="text"
                 value={certificateURI}
                 onChange={(e) => setCertificateURI(e.target.value)}
-                placeholder="ipfs://Qm..."
+                placeholder="Ví dụ: ipfs://Qm... (Link giấy chứng nhận OCOP)"
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono focus:outline-none focus:border-[#264939]"
               />
             </div>

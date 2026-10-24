@@ -18,14 +18,12 @@ interface CheckpointTabProps {
 export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddCheckpoint }) => {
   const batchList = Object.keys(batches);
   const [selectedBatchCode, setSelectedBatchCode] = useState(batchList[0] || '');
-  const [role, setRole] = useState('ROLE_LOGISTICS');
-  const [stepName, setStepName] = useState('Chặng 2: Vận Chuyển Kho Lạnh Quốc Tế');
-  const [location, setLocation] = useState('Bưu chính Quốc Tế Huế - Ga Huế & Sân Bay Phú Bài');
-  const [action, setAction] = useState(
-    'Kiểm tra tem mã QR niêm phong, đóng gói thùng xốp bảo ôn, theo dõi cảm biến nhiệt độ liên tục.'
-  );
-  const [conditionNote, setConditionNote] = useState('Nhiệt độ bảo quản lạnh 15°C - 18°C, độ ẩm 45%.');
-  const [metadataURI, setMetadataURI] = useState('ipfs://QmHueSupplyChainLogisticsReceipt');
+  const [role, setRole] = useState('ROLE_PRODUCER');
+  const [stepName, setStepName] = useState('');
+  const [location, setLocation] = useState('');
+  const [action, setAction] = useState('');
+  const [conditionNote, setConditionNote] = useState('');
+  const [metadataURI, setMetadataURI] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentBatch = batches[selectedBatchCode];
@@ -90,7 +88,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                   required
                   value={stepName}
                   onChange={(e) => setStepName(e.target.value)}
-                  placeholder="Chặng 2: Vận Chuyển..."
+                  placeholder="Ví dụ: Chặng 2: Vận chuyển kho lạnh..."
                   className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
                 />
               </div>
@@ -105,7 +103,6 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                   className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
                 >
                   <option value="ROLE_PRODUCER">Cơ Sở Sản Xuất (Producer)</option>
-                  <option value="ROLE_LOGISTICS">Đơn Vị Vận Chuyển (Logistics)</option>
                   <option value="ROLE_RETAILER">Đại Lý Phân Phối (Retailer)</option>
                 </select>
               </div>
@@ -120,7 +117,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 required
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Kho trung chuyển Ga Huế, TP Huế..."
+                placeholder="Ví dụ: Bưu chính Quốc Tế Huế - Ga Huế & Sân Bay Phú Bài..."
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
               />
             </div>
@@ -134,7 +131,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 rows={3}
                 value={action}
                 onChange={(e) => setAction(e.target.value)}
-                placeholder="Mô tả quá trình chế biến, niêm phong hoặc giao nhận..."
+                placeholder="Ví dụ: Kiểm tra tem mã QR niêm phong, đóng gói thùng xốp bảo ôn, theo dõi cảm biến..."
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
               />
             </div>
@@ -147,7 +144,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 type="text"
                 value={conditionNote}
                 onChange={(e) => setConditionNote(e.target.value)}
-                placeholder="Nhiệt độ, độ ẩm, niêm phong..."
+                placeholder="Ví dụ: Nhiệt độ bảo quản lạnh 15°C - 18°C, độ ẩm 45%..."
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
               />
             </div>
@@ -160,7 +157,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 type="text"
                 value={metadataURI}
                 onChange={(e) => setMetadataURI(e.target.value)}
-                placeholder="ipfs://Qm..."
+                placeholder="Ví dụ: ipfs://Qm... (Link hóa đơn hoặc biên bản giao nhận)"
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono focus:outline-none focus:border-[#264939]"
               />
             </div>

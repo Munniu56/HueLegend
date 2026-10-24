@@ -60,11 +60,16 @@ export const PROJECT_CORE_ABI = [
   "function hasRole(address account, bytes32 role) view returns (bool)",
   "function owner() view returns (address)",
   "function producerStake(address) view returns (uint256)",
-  "function producerUnlockTime(address) view returns (uint256)",
   "function setBatchCreationFee(uint256 newFee)",
   "function verifyBatch(string batchCode, string inspectorNote, string certificateURI)",
   "function revokeBatchVerification(string batchCode, string reason)",
-  "function withdrawStake()"
+  "function withdrawStake()",
+  "function grantRole(bytes32 role, address account)",
+  "function revokeRole(bytes32 role, address account)",
+  "function pause()",
+  "function unpause()",
+  "function paused() view returns (bool)",
+  "function withdrawFees()"
 ];
 
 // Zero hardcoded mock products. Live data is read directly from Sepolia Smart Contract.

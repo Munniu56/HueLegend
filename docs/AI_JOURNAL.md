@@ -398,6 +398,122 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 2. **Cập nhật AI_JOURNAL.md:**
    - Đã lưu nhật ký cho bước tối giản màn hình Tạo Lô Hàng vào `AI_JOURNAL.md`.
 
+---
+
+## 20. Phiên làm việc Lab 24: Cập Nhật Logic Kiểm Tra Phân Quyền (RBAC Check) & Cảnh Báo Chuyển Ví
+
+### 20.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Hãy cập nhật logic kiểm tra phân quyền (RBAC Check) trong web/src/:
+> 1. Phân tách rõ ràng giữa Admin và Retailer:
+>    - Trang Quản Trị Hệ Thống chỉ cho phép ví Owner/Admin truy cập để gán quyền, cấu hình phí và rút phí treasury.
+>    - Trang Quản Lý Niêm Yết yêu cầu ví phải có vai trò RETAILER. Khi bán thành công, Smart Contract chuyển trực tiếp ETH về ví RETAILER thực hiện niêm yết (msg.sender / seller).
+> 2. Cảnh báo chuyển ví trên UI:
+>    - Nếu ví hiện tại không phải là RETAILER khi vào tab Quản Lý Niêm Yết, hiển thị thông báo: 'Vui lòng kết nối ví Đại lý (Retailer) đã được Admin cấp quyền để thực hiện niêm yết sản phẩm.'"*
+
+### 20.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Kiểm tra vai trò On-Chain & Phân tách Admin / Retailer:**
+   - Trong `App.tsx`, thực hiện kiểm tra trực tiếp từ Smart Contract qua `hasRole(account, ROLE_ADMIN)`, `hasRole(account, ROLE_RETAILER)` và `owner()`.
+   - Trang **Quản Trị Hệ Thống** (`AdminTab.tsx`): Yêu cầu ví phải có quyền Admin/Owner để thao tác gán quyền RBAC, cấu hình phí `batchCreationFee` và quản lý Treasury Quỹ Ecosystem.
+   - Trang **Quản Lý Niêm Yết** (`RetailerTab.tsx`): Yêu cầu ví phải có vai trò `ROLE_RETAILER`. Lưu trực tiếp địa chỉ ví Retailer (`msg.sender` / `seller`) khi niêm yết lô hàng để nhận 100% doanh thu chuyển thẳng về ví.
+2. **Cảnh Báo Chuyển Ví Trên UI (Warning Banner):**
+   - Khi truy cập tab **Quản Lý Niêm Yết** mà ví chưa có quyền Retailer, hiển thị banner cảnh báo nổi bật:
+     > *"Vui lòng kết nối ví Đại lý (Retailer) đã được Admin cấp quyền để thực hiện niêm yết sản phẩm."*
+   - Tương tự, khi vào tab **Quản Trị Hệ Thống** bằng ví không phải Admin/Owner, hiển thị cảnh báo yêu cầu kết nối ví Quản trị viên.
+   - Bổ sung nút **"Chuyển Ví / Chọn Role"** trực tiếp trên banner để hỗ trợ chuyển ví và xác thực nhanh chóng.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép đầy đủ nhật ký công việc vào `AI_JOURNAL.md`.
+
+---
+
+## 21. Phiên làm việc Lab 25: Nâng Cấp Trang Quản Trị Hệ Thống (Admin Panel) Chuẩn Production
+
+### 21.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Hãy nâng cấp trang Quản Trị Hệ Thống (Admin Panel) trong web/src/ đầy đủ 5 mục chức năng quản trị production:
+> 1. Quản Lý Phân Quyền (RBAC): Gán quyền (Grant Role), Bảng danh sách ví đã cấp quyền, và Nút thu hồi quyền (Revoke Role).
+> 2. Quản Lý Phí & Quỹ (Treasury): Cấu hình phí Mint lô hàng, Xem số dư ETH tích lũy trong hợp đồng và Nút 'Rút Phí Về Ví Admin' (withdrawFees).
+> 3. An Toàn Hệ Thống (Emergency): Nút Bật/Tắt trạng thái Tạm dừng hợp đồng (pause() / unpause()).
+> 4. Nhật Ký Sự Kiện (Event Logs): Bảng hiển thị lịch sử giao dịch gần đây kèm link chuyển hướng sang Sepolia Etherscan.
+> Yêu cầu: Ràng buộc chặt chẽ: Chỉ ví có quyền ADMIN/OWNER mới thao tác được các nút này. Giữ nguyên tone màu và style thiết kế CSS hiện tại của HueLegend."*
+
+### 21.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Nâng cấp 5 Khối Chức Năng Quản Trị Production (`AdminTab.tsx`):**
+   - **Quản Lý Phân Quyền (RBAC)**: Form gán quyền on-chain, Bảng danh sách tất cả các ví đã được cấp quyền, tìm kiếm địa chỉ ví/vai trò và Nút **Thu Hồi Quyền** (Revoke Role) từng dòng.
+   - **Quản Lý Phí & Quỹ Treasury**: Hiển thị số dư ETH tích lũy trong Smart Contract, form điều chỉnh mức phí tạo lô `setBatchCreationFee`, và Nút **"Rút Phí Về Ví Admin"** (`withdrawFees`).
+   - **An Toàn Hệ Thống (Emergency Circuit Breaker)**: Hiển thị badge trạng thái `Active (Bình Thường)` / `Paused (Tạm Dừng)`, Nút **Tạm Dừng** (`pause()`) và Nút **Kích Hoạt Lại** (`unpause()`).
+   - **Nhật Ký Sự Kiện On-Chain (Event Logs)**: Bảng lịch sử các giao dịch sự kiện gần nhất (`BatchCreated`, `BatchVerified`, `RoleAssigned`, `BatchFeeCollected`) kèm link chuyển hướng sang Sepolia Etherscan.
+2. **Ràng Bắt Buộc Quyền Admin/Owner**:
+   - Mọi nút bấm thao tác gán/thu hồi quyền, đổi phí, rút quỹ Treasury và tạm dừng hệ thống đều được vô hiệu hóa nếu ví kết nối không có quyền Admin/Owner, đồng thời hiển thị banner cảnh báo đỏ yêu cầu chuyển ví.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã cập nhật đầy đủ nhật ký tiến trình làm việc vào `AI_JOURNAL.md`.
+
+---
+
+## 22. Phiên làm việc Lab 26: Loại Bỏ Vai Trò Đơn Vị Vận Chuyển (Logistics Role Removal)
+
+### 22.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"vai trò bỏ đơn vị vận chuyển"*
+
+### 22.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ vai trò Đơn vị vận chuyển (Logistics) khỏi giao diện DApp:**
+   - **Popup Chọn Vai Trò (`RoleConnectModal.tsx`)**: Chuyển tùy chọn thành pure "Cơ sở sản xuất" (Producer) chuyên trách khởi tạo lô hàng đặc sản OCOP.
+   - **Trang Quản Trị Hệ Thống (`AdminTab.tsx`)**: Gỡ bỏ vai trò `ROLE_LOGISTICS (Đơn Vị Vận Chuyển)` khỏi danh sách các quyền được cấp trong menu Dropdown và danh sách ví đã phân quyền.
+   - **Hệ thống Phân Quyền (`App.tsx`)**: Loại bỏ ánh xạ vai trò `ROLE_LOGISTICS` khỏi bộ chuyển đổi nhãn hiển thị vai trò `getRoleTitle`.
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép đầy đủ nhật ký công việc vào `AI_JOURNAL.md`.
+
+---
+
+## 23. Phiên làm việc Lab 27: Loại Bỏ Dữ Liệu Mẫu Demo Trong Trang Quản Trị Hệ Thống
+
+### 23.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"phần phần quản trị hệ thống không cần tạo demo mẫu"*
+
+### 23.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ hoàn toàn dữ liệu giả lập/demo mẫu trong Trang Quản Trị Hệ Thống (`AdminTab.tsx`):**
+   - **Danh sách Ví Đã Cấp Quyền RBAC (`grantedWallets`)**: Khởi tạo bằng mảng rỗng `[]` (Zero Hardcoded Mock Data). Khi Admin thực hiện gán quyền mới thông qua biểu mẫu on-chain, ví được thêm trực tiếp vào danh sách.
+   - **Nhật Ký Sự Kiện On-Chain (`recentEventLogs`)**: Chuyển sang cơ chế truy xuất động từ dữ liệu lô hàng thực tế (`batches`) trên Sepolia Testnet thông qua `React.useMemo`. Mọi sự kiện tạo lô (`BatchCreated`), thẩm định OCOP (`BatchVerified`) và cập nhật chặng vận hành (`CheckpointAdded`) đều được trích xuất từ dữ liệu thực tế.
+2. **Giao Diện Trạng Thái Rỗng Sạch Sẽ (Clean Empty States):**
+   - Khi chưa có ví được phân quyền hoặc chưa có giao dịch lô hàng nào, hiển thị thẻ thông báo phẳng với icon trực quan và hướng dẫn rõ ràng.
+   - Giữ nguyên màu sắc thương hiệu Cố Đô HueLegend (`#264939`, `#C29B38`, `#FAF9F5`).
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhận đầy đủ tiến trình tinh gọn dữ liệu Admin Panel vào `AI_JOURNAL.md`.
+
+---
+
+## 24. Phiên làm việc Lab 28: Đọc Số Dư Thực Tế Quỹ Treasury Từ Sepolia Smart Contract
+
+### 24.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"số dư trong mục Quản Lý Phí & Treasury sao lại hiện 0.005 không cần dữ liệu demo mà"*
+
+### 24.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ số dư demo mẫu `0.005 ETH` (`App.tsx`):**
+   - Đổi giá trị khởi tạo `contractBalanceEth` từ `'0.005'` về `'0.00'`.
+   - Bổ sung hàm đọc trực tiếp số dư tài khoản Smart Contract `provider.getBalance(CONTRACT_ADDRESS)` trên Sepolia Testnet trong hàm `fetchContractData`.
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã lưu thông tin xử lý vào tệp `AI_JOURNAL.md`.
+
+---
+
+## 25. Phiên làm việc Lab 29: Chuẩn Hóa Ô Nhập Liệu (Dùng Placeholder Hướng Dẫn, Không Tự Điền Giá Trị Mẫu)
+
+### 25.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"ở các mục có ô để nhập thì hiện chữ mẫu hướng dẫn chứ không tự điền trực tiếp vào"*
+
+### 25.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Xóa bỏ các chuỗi tự điền mặc định trong State (`useState('')`):**
+   - **Tạo Lô Hàng (`CreateBatchTab.tsx`)**: Đã xóa các giá trị khởi tạo sẵn như mã lô, tên đặc sản, nguồn gốc và link IPFS metadata, chuyển về chuỗi rỗng `''`.
+   - **Thẩm Định OCOP (`InspectorTab.tsx`)**: Đã xóa văn bản tự điền ở phần ghi chú thẩm định và link chứng nhận OCOP IPFS.
+   - **Quản Lý Niêm Yết (`RetailerTab.tsx`)**: Đã xóa giá trị mặc định của địa điểm cửa hàng, giá bán niêm yết (ETH) và số lượng tồn kho.
+   - **Ghi Chặng Supply Chain (`CheckpointTab.tsx`)**: Đã xóa các đoạn văn bản tự điền ở tên chặng, địa điểm thực hiện, nội dung công việc và điều kiện bảo quản.
+   - **Quản Trị Hệ Thống (`AdminTab.tsx`)**: Đã xóa giá trị cấu hình phí tạo lô mặc định trong ô nhập.
+2. **Bổ sung chữ mẫu hướng dẫn trực quan (`placeholder`):**
+   - Tất cả các ô nhập liệu được bổ sung văn bản hướng dẫn rõ ràng dạng `Ví dụ: HL-MEXUNG-2026-001`, `Ví dụ: Mè Xửng Dừa Hoàng Gia Huế...`, `Ví dụ: 0.002`... giúp người dùng dễ dàng hiểu cú pháp cần nhập mà không bị rối bởi dữ liệu điền sẵn.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã lưu thông tin xử lý vào tệp `AI_JOURNAL.md`.
+
+
+
+
 
 
 
