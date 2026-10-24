@@ -16,7 +16,7 @@ import {
   Search,
   Download
 } from 'lucide-react';
-import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS } from '../constants';
+import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress } from '../constants';
 
 import { Batch, Checkpoint } from '../types';
 
@@ -128,10 +128,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   }, [batches, batchCreationFeeEth]);
 
   const handleAssign = async () => {
-    if (!accountAddress) return;
+    if (!accountAddress.trim()) return;
+    const normalizedAddr = safeGetAddress(accountAddress.trim());
     setIsSubmitting(true);
     try {
-      await onAssignRole(accountAddress, roleSelect);
+      await onAssignRole(normalizedAddr, roleSelect);
 
       // Add to local list for immediate UI feedback
       const roleTitles: Record<string, string> = {
@@ -143,13 +144,13 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
       setGrantedWallets((prev) => [
         {
-          address: accountAddress,
+          address: normalizedAddr,
           role: roleSelect,
           roleTitle: roleTitles[roleSelect] || roleSelect,
           grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
           status: 'Active'
         },
-        ...prev.filter((w) => !(w.address.toLowerCase() === accountAddress.toLowerCase() && w.role === roleSelect))
+        ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAddr.toLowerCase() && w.role === roleSelect))
       ]);
 
       setAccountAddress('');
@@ -161,10 +162,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   };
 
   const handleRevokeWallet = async (targetAddress: string, roleName: string) => {
+    const normalizedAddr = safeGetAddress(targetAddress.trim());
     setIsSubmitting(true);
     try {
-      await onRevokeRole(targetAddress, roleName);
-      setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === targetAddress.toLowerCase() && w.role === roleName)));
+      await onRevokeRole(normalizedAddr, roleName);
+      setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === normalizedAddr.toLowerCase() && w.role === roleName)));
     } catch (err) {
       console.error(err);
     } finally {

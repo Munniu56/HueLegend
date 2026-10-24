@@ -1,13 +1,24 @@
+import { ethers } from 'ethers';
 import { Batch } from './types';
 
+// Ham chuan hoa dia chi vi EIP-55 bang ethers.getAddress
+export const safeGetAddress = (address: string): string => {
+  if (!address || typeof address !== 'string') return address;
+  try {
+    return ethers.getAddress(address.trim());
+  } catch (err) {
+    return address.trim();
+  }
+};
+
 // Cau hinh hop dong va mang Sepolia
-export const CONTRACT_ADDRESS = "0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b";
+export const CONTRACT_ADDRESS = safeGetAddress("0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b");
 export const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111
 export const SEPOLIA_DECIMAL_ID = 11155111;
 export const ETHERSCAN_BASE_URL = "https://sepolia.etherscan.io";
 
 // Vi quan tri vien mac dinh
-export const DEFAULT_ADMIN_ADDRESS = "0x82d022a704706B2f144863D619D7418F8a0f19A7";
+export const DEFAULT_ADMIN_ADDRESS = safeGetAddress("0x82d022a704706B2f144863D619D7418F8a0f19A7");
 
 export const ROLE_HASHES = {
   ROLE_ADMIN: "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42",

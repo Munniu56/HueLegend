@@ -7,7 +7,8 @@ import {
   SEPOLIA_CHAIN_ID,
   ROLE_HASHES,
   ETHERSCAN_BASE_URL,
-  DEFAULT_ADMIN_ADDRESS
+  DEFAULT_ADMIN_ADDRESS,
+  safeGetAddress
 } from './constants';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -87,12 +88,13 @@ export const App: React.FC = () => {
 
     setIsLoadingContract(true);
     try {
+      const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
       const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, provider);
+      const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, provider);
 
       // Read real Smart Contract ETH balance from Sepolia Testnet
       try {
-        const balanceWei = await provider.getBalance(CONTRACT_ADDRESS);
+        const balanceWei = await provider.getBalance(normalizedContractAddr);
         setContractBalanceEth(ethers.formatEther(balanceWei));
       } catch (err) {
         console.warn('Could not read contract ETH balance:', err);
@@ -109,8 +111,9 @@ export const App: React.FC = () => {
       // Check account roles if account connected
       const activeAccount = accountAddr || currentAccount;
       if (activeAccount) {
+        const normalizedActiveAccount = safeGetAddress(activeAccount);
         try {
-          const stakeInfo = await contract.getStakeInfo(activeAccount);
+          const stakeInfo = await contract.getStakeInfo(normalizedActiveAccount);
           setProducerStakeBalance(ethers.formatEther(stakeInfo.balance));
         } catch (err) {
           console.warn('Could not read stake info:', err);
@@ -120,27 +123,27 @@ export const App: React.FC = () => {
           let isOwner = false;
           try {
             const ownerAddr = await contract.owner();
-            isOwner = ownerAddr.toLowerCase() === activeAccount.toLowerCase();
+            isOwner = safeGetAddress(ownerAddr).toLowerCase() === normalizedActiveAccount.toLowerCase();
           } catch (e) {}
 
           let isAdmin = false;
           try {
-            isAdmin = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_ADMIN);
+            isAdmin = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_ADMIN);
           } catch (e) {}
 
           let isRetailer = false;
           try {
-            isRetailer = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_RETAILER);
+            isRetailer = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_RETAILER);
           } catch (e) {}
 
           let isInspector = false;
           try {
-            isInspector = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_INSPECTOR);
+            isInspector = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_INSPECTOR);
           } catch (e) {}
 
           // Chi dia chi vi Admin mac dinh moi duoc cap quyen Admin
           const isSpecifiedAdmin = Boolean(
-            activeAccount && activeAccount.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase()
+            normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase()
           );
 
           setIsCurrentAccountAdmin(isSpecifiedAdmin);
@@ -456,7 +459,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const feeWei = await contract.batchCreationFee();
       const inspectionFeeWei = ethers.parseEther('0.002');
@@ -512,7 +515,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const roleHash = ROLE_HASHES[role as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_LOGISTICS;
       const fullActionText = conditionNote ? `${action} (Ghi chú: ${conditionNote})` : action;
@@ -552,7 +555,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const fullNoteWithStars = `[Xếp hạng: OCOP ${starRating} Sao] ${inspectorNote}`;
       const tx = await contract.verifyBatch(batchCode, fullNoteWithStars, certificateURI);
@@ -603,7 +606,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const tx = await contract.revokeBatchVerification(batchCode, reason);
 
@@ -634,7 +637,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const valueWei = ethers.parseEther(amountEth);
       const tx = await contract.depositStake({ value: valueWei });
@@ -666,7 +669,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const tx = await contract.withdrawStake();
 
@@ -692,17 +695,18 @@ export const App: React.FC = () => {
       return;
     }
 
-    const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận gán quyền ${roleName} cho ví ${account.slice(0, 6)}...`, 'loading', 0);
+    const normalizedAccount = safeGetAddress(account);
+    const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận gán quyền ${roleName} cho ví ${normalizedAccount.slice(0, 6)}...`, 'loading', 0);
 
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const roleHash = ROLE_HASHES[roleName as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_PRODUCER;
       let tx;
       try {
-        tx = await contract.grantRole(roleHash, account);
+        tx = await contract.grantRole(roleHash, normalizedAccount);
       } catch (err) {
         tx = await contract.setBatchCreationFee(ethers.parseEther(batchCreationFeeEth));
       }
@@ -713,7 +717,7 @@ export const App: React.FC = () => {
       await tx.wait();
       removeToast(waitToastId);
 
-      addToast('Gán Quyền RBAC Thành Công!', `Đã gán vai trò ${roleName} cho địa chỉ ví ${account}.`, 'success');
+      addToast('Gán Quyền RBAC Thành Công!', `Đã gán vai trò ${roleName} cho địa chỉ ví ${normalizedAccount}.`, 'success');
       await fetchContractData();
     } catch (err: any) {
       removeToast(loadingToastId);
@@ -729,7 +733,8 @@ export const App: React.FC = () => {
       return;
     }
 
-    addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${account.slice(0, 8)}...`, 'warning');
+    const normalizedAccount = safeGetAddress(account);
+    addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
   };
 
   // 9. Withdraw Treasury Fees On-Chain
@@ -745,7 +750,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       let tx;
       try {
@@ -782,7 +787,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const tx = shouldPause ? await contract.pause() : await contract.unpause();
 
@@ -815,7 +820,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const newFeeWei = ethers.parseEther(newFeeEth);
       const tx = await contract.setBatchCreationFee(newFeeWei);
