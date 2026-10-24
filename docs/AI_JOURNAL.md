@@ -2,7 +2,7 @@
 
 Dự án: **HueLegend — Nền tảng Truy xuất Đặc sản Huế trên Blockchain**  
 Học phần: **ECO2432 — Tiền điện tử & Hợp đồng thông minh**  
-Trợ lý AI: **Antigravity IDE (Gemini 3.8 Flash)**
+Trợ lý AI: **Google AI Studio Engine (Gemini 3.6 Flash / Antigravity Agent)**
 
 ---
 
@@ -220,29 +220,26 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 
 ---
 
-## 10. Phiên làm việc Lab 15: Hoàn thiện DApp Web3 công khai, Tích hợp Ethers.js v6 & Kịch bản thuyết trình
+## 10. Phiên làm việc Lab 15: Chuyển đổi ứng dụng sang React + Vite + TypeScript & Tích hợp On-Chain Sepolia
 
 ### 10.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
-> *"Tiến hành hoàn thiện bài Lab 15 (Giao diện Web và đưa sản phẩm lên mạng):
-> 1. Nối giao diện web với hợp đồng ProjectCore.sol đã triển khai trên Sepolia (0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b), trích xuất và tích hợp compact ABI 50 định nghĩa vào CONTRACT_ABI.
-> 2. Lập bảng ánh xạ kết nối 4 thành phần theo đúng yêu cầu đề bài và bổ sung vào README.md.
-> 3. Cài đặt cơ chế bắt lỗi try/catch thông minh trên giao diện Web3, dịch tên các custom error (UnauthorizedCaller, InsufficientBatchFee, BatchAlreadyExists, StringTooLong, StillLocked) sang tiếng Việt người dùng dễ hiểu.
-> 4. Tinh chỉnh giao diện mobile-responsive theo phong cách Cố Đô Huế hoàng gia (Huế Royal Purple & Golden Lotus), có nút chuyển mạng tự động sang Sepolia (Chain ID 11155111) và hiệu ứng loading rõ ràng.
-> 5. Soạn thảo kịch bản trình bày docs/PRESENTATION_PLAN.md chuẩn 5 phút, phân vai 2:30 cho từng thành viên, mỗi người gắn chặt với một artifact chuyên trách."*
+> *"1. Chuyển đổi toàn bộ dự án DApp sang framework React + Vite + TypeScript.
+> 2. Đổi nguồn dữ liệu sang đọc & ghi trực tiếp từ Smart Contract trên Ethereum Sepolia Testnet (0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b) bằng Ethers.js v6. Xóa bỏ hoàn toàn dữ liệu mẫu mock data.
+> 3. Tinh chỉnh phông chữ Hoàng Gia Cố Đô Huế: Sử dụng Playfair Display cho tiêu đề và Be Vietnam Pro cho văn bản nội dung.
+> 4. Rút gọn toàn bộ các đoạn văn mô tả rườm rà, loại bỏ chữ không cần thiết trên tất cả các tab.
+> 5. Cập nhật đầy đủ tiến trình vào nhật ký AI_JOURNAL.md."*
 
-### 10.2. Phân tích của Trợ lý AI và Kết quả tiếp thu của Nhóm:
-1. **Phân tích kết nối Web3 và Khắc phục bẫy thường gặp:**
-   - Trợ lý AI chỉ rõ bẫy phổ biến nhất là người dùng mở DApp bằng ví đang kết nối mạng khác (Mainnet hoặc testnet khác). Giải pháp: Bổ sung đoạn mã kiểm tra `network.chainId === 11155111`, nếu sai sẽ hiển thị banner cảnh báo và kích hoạt `wallet_switchEthereumChain` sang Sepolia.
-   - Bẫy thứ hai là người dùng xem link trên điện thoại chưa có MetaMask: Bổ sung chế độ **Interactive Demo Engine / Read-only RPC Fallback** để bất kỳ ai mở link công khai cũng tra cứu và trải nghiệm trọn vẹn luồng sản phẩm mà không bị crash.
-2. **Chi tiết bắt lỗi người dùng (Custom Error Translation):**
-   - Không hiển thị chuỗi JSON RPC hay stack trace phức tạp. Sử dụng `error.shortMessage || error.message` để ánh xạ chính xác:
-     + `UnauthorizedCaller` $\to$ Cảnh báo lỗi phân quyền, thiếu vai trò hợp lệ.
-     + `InsufficientBatchFee` $\to$ Nhắc nhở nộp đủ mức phí 0.001 ETH quy định.
-     + `BatchAlreadyExists` $\to$ Cảnh báo mã lô đã tồn tại trên chuỗi.
-     + `StringTooLong` $\to$ Cảnh báo dữ liệu vượt quá độ dài trần chống spam gas.
-3. **Kịch bản phân vai 5 phút:**
-   - Ngô Thị Thuỷ Vân phụ trách `docs/SPEC.md` và Live Demo DApp trên điện thoại qua GitHub Pages.
-   - Ngô Quỳnh Trang phụ trách `contracts/ProjectCore.sol`, `docs/AUDIT_REPORT.md` và đối soát giao dịch Sepolia.
-4. **Đóng gói sản phẩm:**
-   - Triển khai công khai tại GitHub Pages: `https://munniu56.github.io/hce-web3-starter/HueLegend/web/`.
-   - Tạo tag phát hành: `v0.1-demo` và commit nộp bài: `lab-15: public dapp va presentation plan`.
+### 10.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Kiến trúc Framework mới:**
+   - Chuyển đổi giao diện sang React 18 SPA sử dụng Vite bundler và Tailwind CSS v4.
+   - Xây dựng cấu trúc component mô-đun hóa: `Header.tsx`, `Sidebar.tsx`, `OverviewTab.tsx`, `LookupTab.tsx`, `CreateBatchTab.tsx`, `CheckpointTab.tsx`, `InspectorTab.tsx`, `AdminTab.tsx`, `ToastContainer.tsx`, `QRStampModal.tsx`.
+2. **Nguồn dữ liệu Blockchain Sepolia Thật:**
+   - Loại bỏ hoàn toàn mảng `DEFAULT_SAMPLE_BATCHES` viết cứng.
+   - Khi chưa kết nối ví hoặc contract chưa có lô hàng, hiển thị khung giao diện sạch sẽ với thông báo: *"Chưa có sản phẩm nào trên Blockchain"*.
+   - Mọi hàm ghi dữ liệu (`createBatch`, `addCheckpoint`, `verifyBatch`, `revokeBatchVerification`, `depositStake`, `withdrawStake`, `setBatchCreationFee`) đều kích hoạt ví MetaMask, chờ xác nhận khối on-chain (`tx.wait()`) trước khi reload dữ liệu mới.
+3. **Nâng cấp Typography & Khoảng cách:**
+   - Áp dụng cặp phông chữ Cố Đô Huế: **Playfair Display** (Thẻ tiêu đề, Banner) + **Be Vietnam Pro** (Nội dung, Nút bấm).
+   - Tối ưu hóa khoảng cách chữ (`tracking-tight` cho tiêu đề lớn, `tracking-wide` cho nhãn mã QR) và giãn dòng `line-height: 1.6`.
+   - Loại bỏ các đoạn chữ mô tả rườm rà, giữ nguyên 100% bố cục và cấu trúc các nút/form.
+4. **Biên dịch & Xác minh:**
+   - Chạy lệnh `compile_applet` đạt kết quả `Build succeeded` (0 lỗi TypeScript / Vite).
