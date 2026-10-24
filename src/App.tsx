@@ -917,6 +917,8 @@ export const App: React.FC = () => {
               batchCreationFeeEth={batchCreationFeeEth}
               producerStakeBalance={producerStakeBalance}
               isProducerRole={simulatedRole === 'ALL' || simulatedRole === 'PRODUCER'}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
               onCreateBatch={handleCreateBatch}
               onDepositStake={handleDepositStake}
               onWithdrawStake={handleWithdrawStake}

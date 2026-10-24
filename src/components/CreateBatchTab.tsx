@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Wallet, AlertTriangle } from 'lucide-react';
 
 interface CreateBatchTabProps {
   batchCreationFeeEth: string;
   producerStakeBalance?: string;
   isProducerRole?: boolean;
+  currentAccount?: string | null;
+  onConnectWallet?: () => void;
   onCreateBatch: (batchCode: string, productName: string, origin: string, metadataURI: string) => Promise<void>;
   onDepositStake?: (amountEth: string) => Promise<void>;
   onWithdrawStake?: () => Promise<void>;
@@ -12,6 +14,8 @@ interface CreateBatchTabProps {
 
 export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   batchCreationFeeEth,
+  currentAccount,
+  onConnectWallet,
   onCreateBatch,
 }) => {
   const [batchCode, setBatchCode] = useState('');
@@ -49,6 +53,10 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
 
   const handleSubmitBatch = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentAccount) {
+      if (onConnectWallet) onConnectWallet();
+      return;
+    }
     if (!batchCode.trim() || !productName.trim() || !origin.trim()) return;
 
     setIsSubmitting(true);
@@ -66,7 +74,30 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto font-sans">
+    <div className="max-w-3xl mx-auto font-sans space-y-4">
+      {/* Banner hien thi khi chua ket noi vi */}
+      {!currentAccount && (
+        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs font-sans">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold block text-sm font-serif text-amber-950">Vui lòng kết nối ví MetaMask trước khi tạo lô hàng</span>
+              <span className="text-amber-900 font-medium">Địa chỉ ví sản xuất sẽ tự động trích xuất trực tiếp từ tài khoản MetaMask đang hoạt động.</span>
+            </div>
+          </div>
+          {onConnectWallet && (
+            <button
+              type="button"
+              onClick={onConnectWallet}
+              className="px-4 py-2 bg-[#264939] text-white font-bold rounded-xl hover:bg-[#1c372b] transition-all shadow-xs shrink-0 flex items-center gap-2"
+            >
+              <Wallet className="w-4 h-4" />
+              <span>Kết Nối Ví MetaMask</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-5">
         <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
           <div>
