@@ -168,13 +168,15 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, selectedLookupBatch]);
 
-  // Connect Wallet Procedure
+  // Connect Wallet Procedure with explicit MetaMask Popup Login
   const executeMetaMaskConnect = async () => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       try {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         
-        // Ensure network is Sepolia (Chain ID: 11155111 / 0xaa36a7)
+        addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận đăng nhập trên cửa sổ MetaMask...', 'loading', 3000);
+
+        // 1. Ensure network is Sepolia (Chain ID: 11155111 / 0xaa36a7)
         try {
           await (window as any).ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -197,19 +199,34 @@ export const App: React.FC = () => {
           }
         }
 
+        // 2. Force MetaMask popup to prompt account login & permission approval
+        try {
+          await (window as any).ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }]
+          });
+        } catch (permErr: any) {
+          if (permErr?.code === 4001) {
+            throw new Error('Bạn đã hủy đăng nhập trên cửa sổ MetaMask.');
+          }
+        }
+
+        // 3. Request accounts after permission prompt
         const accounts = await provider.send('eth_requestAccounts', []);
         if (accounts.length > 0) {
           const connectedAddr = accounts[0];
           setCurrentAccount(connectedAddr);
           setIsDemoMode(false);
-          addToast('Kết Nối Thành Công', `Ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
+          addToast('Đăng Nhập Thành Công', `Đã kết nối ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);
+        } else {
+          addToast('Đăng Nhập Thất Bại', 'Không thể lấy địa chỉ ví từ MetaMask.', 'warning');
         }
       } catch (err: any) {
-        addToast('Lỗi Kết Nối Ví', err?.message || 'Không thể kết nối MetaMask', 'error');
+        addToast('Lỗi Đăng Nhập Ví', err?.message || 'Không thể đăng nhập qua MetaMask', 'error');
       }
     } else {
-      addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension để tương tác với Sepolia Blockchain.', 'warning');
+      addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension trên trình duyệt để đăng nhập Web3.', 'warning');
     }
   };
 
