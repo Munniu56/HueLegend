@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+}
+
 @layer base {
   :root {
     --primary: #264939;
@@ -27,10 +32,18 @@
     letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, .font-serif {
-    font-family: 'Playfair Display', Georgia, serif;
+  h1, h2, h3, h4, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif !important;
     letter-spacing: -0.02em;
   }
+}
+
+.font-serif {
+  font-family: 'Playfair Display', Georgia, serif !important;
+}
+
+.font-sans {
+  font-family: 'Be Vietnam Pro', sans-serif !important;
 }
 
 /* Typography Utility Classes */

@@ -241,5 +241,8 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
    - Áp dụng cặp phông chữ Cố Đô Huế: **Playfair Display** (Thẻ tiêu đề, Banner) + **Be Vietnam Pro** (Nội dung, Nút bấm).
    - Tối ưu hóa khoảng cách chữ (`tracking-tight` cho tiêu đề lớn, `tracking-wide` cho nhãn mã QR) và giãn dòng `line-height: 1.6`.
    - Loại bỏ các đoạn chữ mô tả rườm rà, giữ nguyên 100% bố cục và cấu trúc các nút/form.
-4. **Biên dịch & Xác minh:**
+4. **Đồng bộ triệt để Font-Serif & Font-Sans (Cập nhật mới):**
+   - Đã áp dụng `font-serif !important` (`Playfair Display`) cho tất cả các thẻ tiêu đề `h1`, `h2`, `h3`, `h4`, tên đặc sản trên thẻ sản phẩm, tên chặng trên timeline, và tiêu đề modal.
+   - Áp dụng `font-sans !important` (`Be Vietnam Pro`) cho toàn bộ thông số, nhãn form, nút bấm và badge trạng thái.
+5. **Biên dịch & Xác minh:**
    - Chạy lệnh `compile_applet` đạt kết quả `Build succeeded` (0 lỗi TypeScript / Vite).
