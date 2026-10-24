@@ -18,6 +18,7 @@ import { InspectorTab } from './components/InspectorTab';
 import { AdminTab } from './components/AdminTab';
 import { ToastContainer } from './components/ToastContainer';
 import { QRStampModal } from './components/QRStampModal';
+import { RoleConnectModal } from './components/RoleConnectModal';
 
 export const App: React.FC = () => {
   // Global State
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
   const [qrStampBatch, setQrStampBatch] = useState<Batch | null>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   // Web3 Connection State
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
@@ -164,8 +166,8 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, selectedLookupBatch]);
 
-  // Connect Wallet
-  const connectWallet = async () => {
+  // Connect Wallet Procedure
+  const executeMetaMaskConnect = async () => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       try {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -177,7 +179,6 @@ export const App: React.FC = () => {
             params: [{ chainId: SEPOLIA_CHAIN_ID }]
           });
         } catch (switchError: any) {
-          // If chain not added, prompt user
           if (switchError.code === 4902) {
             await (window as any).ethereum.request({
               method: 'wallet_addEthereumChain',
@@ -208,6 +209,33 @@ export const App: React.FC = () => {
     } else {
       addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension để tương tác với Sepolia Blockchain.', 'warning');
     }
+  };
+
+  // Open Modal First when clicking connect wallet
+  const handleOpenRoleConnectModal = () => {
+    if (currentAccount) {
+      // Already connected, disconnect or switch
+      setCurrentAccount(null);
+      addToast('Đã Ngắt Kết Nối Ví', 'Đã đăng xuất tài khoản ví MetaMask.', 'info');
+    } else {
+      setIsRoleModalOpen(true);
+    }
+  };
+
+  // Role Selection in Modal -> Connect MetaMask
+  const handleRoleSelectAndConnect = async (roleKey: string) => {
+    setIsRoleModalOpen(false);
+    
+    // Map role selection
+    const roleMapping: Record<string, string> = {
+      ADMIN: 'ADMIN',
+      SUPPLY_CHAIN: 'PRODUCER',
+      COMMERCE: 'RETAILER',
+      CUSTOMER: 'INSPECTOR'
+    };
+    
+    setSimulatedRole(roleMapping[roleKey] || 'ALL');
+    await executeMetaMaskConnect();
   };
 
   // Auto connect or listen to account changes
@@ -250,8 +278,8 @@ export const App: React.FC = () => {
     metadataURI: string
   ) => {
     if (!currentAccount) {
-      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask trước khi tạo lô hàng.', 'warning');
-      await connectWallet();
+      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask trước khi tạo lô hàng.', 'warning');
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -293,8 +321,8 @@ export const App: React.FC = () => {
     conditionNote: string
   ) => {
     if (!currentAccount) {
-      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask trước khi ghi chặng.', 'warning');
-      await connectWallet();
+      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask.', 'warning');
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -333,7 +361,7 @@ export const App: React.FC = () => {
   ) => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask với quyền ROLE_INSPECTOR.', 'warning');
-      await connectWallet();
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -365,7 +393,7 @@ export const App: React.FC = () => {
   const handleRevokeVerification = async (batchCode: string, reason: string) => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask.', 'warning');
-      await connectWallet();
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -396,7 +424,7 @@ export const App: React.FC = () => {
   const handleDepositStake = async (amountEth: string) => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask.', 'warning');
-      await connectWallet();
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -428,7 +456,7 @@ export const App: React.FC = () => {
   const handleWithdrawStake = async () => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask.', 'warning');
-      await connectWallet();
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -469,7 +497,7 @@ export const App: React.FC = () => {
   const handleSetBatchCreationFee = async (newFeeEth: string) => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask.', 'warning');
-      await connectWallet();
+      setIsRoleModalOpen(true);
       return;
     }
 
@@ -508,7 +536,7 @@ export const App: React.FC = () => {
           currentAccount={currentAccount}
           isDemoMode={isDemoMode}
           simulatedRole={simulatedRole}
-          onConnectWallet={connectWallet}
+          onConnectWallet={handleOpenRoleConnectModal}
           onToggleDemoMode={() => {
             setIsDemoMode(!isDemoMode);
             addToast('Chuyển Chế Độ', !isDemoMode ? 'Đã bật chế độ xem trước' : 'Đã bật chế độ Web3 Thật', 'info');
@@ -521,16 +549,16 @@ export const App: React.FC = () => {
 
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {!currentAccount && (
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs">
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs font-sans">
               <div>
-                <span className="font-bold block text-sm text-amber-950">Chưa Kết Nối Ví Sepolia Testnet</span>
-                <span>Vui lòng kết nối MetaMask để load danh sách sản phẩm và thực hiện giao dịch thật từ Smart Contract.</span>
+                <span className="font-bold block text-sm text-amber-950 font-serif">Chưa Kết Nối Ví Sepolia Testnet</span>
+                <span>Vui lòng chọn vai trò tham gia và kết nối MetaMask để tương tác từ Smart Contract.</span>
               </div>
               <button
-                onClick={connectWallet}
+                onClick={handleOpenRoleConnectModal}
                 className="px-4 py-2 bg-[#264939] text-white font-bold rounded-xl hover:bg-[#1c372b] transition-all shadow-xs shrink-0"
               >
-                Kết Nối Ví MetaMask Ngay
+                Chọn Vai Trò & Kết Nối Ví
               </button>
             </div>
           )}
@@ -588,6 +616,13 @@ export const App: React.FC = () => {
 
       {/* Global Toast Alerts */}
       <ToastContainer toasts={toasts} onClose={removeToast} />
+
+      {/* Role Selection Modal Before Connecting MetaMask */}
+      <RoleConnectModal
+        isOpen={isRoleModalOpen}
+        onClose={() => setIsRoleModalOpen(false)}
+        onSelectRoleAndConnect={handleRoleSelectAndConnect}
+      />
 
       {/* QR Stamp Printable Modal */}
       <QRStampModal batch={qrStampBatch} onClose={() => setQrStampBatch(null)} />

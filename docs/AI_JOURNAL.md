@@ -220,16 +220,24 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 
 ---
 
-## 10. Phiên làm việc Lab 15: Cố định Thanh Sidebar (Sticky Screen) & Loại bỏ khoảng trống thừa
+## 11. Phiên làm việc Lab 15: Tích hợp Popup Chọn Vai Trò trước khi Kết nối MetaMask
 
-### 10.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
-> *"Thanh bên trái để cố định và sắp xếp lại cho nó không bị thừa khoảng trắng."*
+### 11.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Khi bấm vào kết nối ví thì sẽ hiện popup:
+> 👑 Quản trị hệ thống
+> 📦 Chuỗi cung ứng & Vận hành
+> 🏪 Thương mại & Bán hàng
+> 🔍 Khách hàng
+> Khi bấm vào 1 trong 4 cái thì mới hiện liên kết qua MetaMask."*
 
-### 10.2. Phân tích của Trợ lý AI và Kết quả triển khai:
-1. **Cố định Thanh Sidebar (Sticky Position):**
-   - Thiết lập `sticky top-0 h-screen overflow-y-auto` giúp thanh Sidebar đứng yên cố định ở góc trái màn hình trong suốt quá trình cuộn trang main content.
-2. **Loại bỏ Khoảng trống Thừa:**
-   - Sắp xếp các cụm thông tin theo luồng liên tục: `Brand Logo & Title` $\to$ `Danh mục Quản trị` $\to$ `Thẻ OCOP Huế` $\to$ `Thẻ Smart Contract` $\to$ `Footer Badge`.
-   - Tạo nhịp độ hiển thị hợp lý với `space-y-5`, đảm bảo không xuất hiện bất kỳ khoảng trống rỗng nào khi hiển thị trên màn hình lớn.
+### 11.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Xây dựng Modal Chọn Vai Trò (`RoleConnectModal.tsx`):**
+   - Khi người dùng nhấn nút *"Kết Nối Ví MetaMask"* hoặc *"Chọn Vai Trò & Kết Nối Ví"*, ứng dụng sẽ hiển thị ngay một Popup modal đẹp mắt với 4 lựa chọn vai trò chính chủ:
+     - 👑 **Quản trị hệ thống** (`ADMIN` - Quản trị viên & Ban quản lý OCOP)
+     - 📦 **Chuỗi cung ứng & Vận hành** (`SUPPLY_CHAIN` - Producer & Logistics)
+     - 🏪 **Thương mại & Bán hàng** (`COMMERCE` - Retailer)
+     - 🔍 **Khách hàng / Quét QR** (`CUSTOMER` - Khách hàng & Inspector)
+2. **Kích hoạt MetaMask theo luồng chọn vai trò:**
+   - Khi người dùng nhấp chọn 1 trong 4 vai trò nêu trên trong Popup, hệ thống lập tức lưu góc nhìn vai trò tương ứng và tự động gọi yêu cầu kích hoạt ví MetaMask (`eth_requestAccounts`) để hoàn tất kết nối Sepolia Testnet.
 3. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi chép nhật ký công việc vào tệp `/docs/AI_JOURNAL.md`.
