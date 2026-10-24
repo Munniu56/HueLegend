@@ -251,6 +251,23 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                     </a>
                   </div>
                 </div>
+
+                {activeBatch.txHash && (
+                  <div className="flex items-start gap-2.5">
+                    <ExternalLink className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-[#1A2820]">Mã Băm Giao Dịch (Tx Hash):</span>
+                      <a
+                        href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
+                      >
+                        {activeBatch.txHash}
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -27,6 +27,7 @@ export interface Batch {
   currentStage?: string;
   inspectorNote?: string;
   certificateURI?: string;
+  txHash?: string;
   checkpoints: Checkpoint[];
 }
 

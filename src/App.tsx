@@ -149,6 +149,23 @@ export const App: React.FC = () => {
         console.warn('Could not read totalBatches from contract getters:', err);
       }
 
+      // Query BatchCreated events to extract txHash
+      const eventTxHashes: Record<string, string> = {};
+      try {
+        const events = await contract.queryFilter(contract.filters.BatchCreated());
+        events.forEach((evt: any) => {
+          if (evt.args && evt.args.batchCode && evt.transactionHash) {
+            eventTxHashes[evt.args.batchCode] = evt.transactionHash;
+          }
+        });
+      } catch (e) {
+        console.warn('Could not query BatchCreated events:', e);
+      }
+
+      const localTxHashes = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}')
+        : {};
+
       const fetchedBatches: Record<string, Batch> = {};
 
       if (total > 0n) {
@@ -171,6 +188,8 @@ export const App: React.FC = () => {
               conditionNote: 'Niêm phong Blockchain nguyên vẹn.'
             }));
 
+            const txHash = eventTxHashes[batchCode] || localTxHashes[batchCode] || undefined;
+
             fetchedBatches[batchCode] = {
               batchCode: batchData.batchCode,
               productName: batchData.productName,
@@ -190,6 +209,7 @@ export const App: React.FC = () => {
                   : batchData.isVerified
                   ? 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
+              txHash,
               checkpoints
             };
           } catch (e) {
@@ -364,13 +384,23 @@ export const App: React.FC = () => {
         value: feeWei
       });
 
+      if (typeof window !== 'undefined') {
+        try {
+          const savedHashes = JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}');
+          savedHashes[batchCode] = tx.hash;
+          localStorage.setItem('hl_batch_txhashes', JSON.stringify(savedHashes));
+        } catch (e) {
+          console.warn('Could not save txHash to localStorage:', e);
+        }
+      }
+
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chờ xác nhận trên Blockchain...`, 'loading', 0);
 
       await tx.wait();
       removeToast(waitToastId);
 
-      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${batchCode} đã được ghi nhận vào Smart Contract Sepolia.`, 'success');
+      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${batchCode} đã được ghi nhận vào Smart Contract Sepolia (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {

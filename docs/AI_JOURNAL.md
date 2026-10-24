@@ -511,6 +511,49 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 3. **Cập nhật AI_JOURNAL.md:**
    - Đã lưu thông tin xử lý vào tệp `AI_JOURNAL.md`.
 
+---
+
+## 26. Phiên làm việc Lab 30: Tối Ưu Trang Tạo Lô Hàng & Tự Động Sinh IPFS Metadata URI Kèm Lưu Mã Băm Giao Dịch (Tx Hash)
+
+### 26.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Hãy cập nhật trang Tạo Lô Hàng (Create Batch) trong web/src/:
+> 1. Xóa ô nhập liệu Metadata IPFS URI: Xóa bỏ hoàn toàn ô input Metadata IPFS URI khỏi giao diện HTML/JSX. Khi gọi hàm Smart Contract, tự động sinh ra chuỗi Metadata URI theo dạng: ipfs://huelegend/batch/${maLoHang} để truyền vào tham số contract.
+> 2. Lưu Mã Băm Giao Dịch (Tx Hash): Sau khi giao dịch MetaMask thành công (tx.wait()), lấy txHash của Sepolia Testnet. Lưu txHash này cùng với Lô Hàng để hiển thị đường link Etherscan trên trang Tra Cứu Tem QR.
+> 3. Giữ nguyên 3 ô nhập liệu chính: Mã Lô Hàng, Tên Đặc Sản, Địa Danh / Nguồn Gốc."*
+
+### 26.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Gỡ bỏ ô nhập liệu Metadata IPFS URI (`CreateBatchTab.tsx`):**
+   - Đã xóa hoàn toàn ô input `Metadata IPFS URI` và state `metadataURI` khỏi biểu mẫu HTML/JSX.
+   - Bố cục trang giữ nguyên 3 ô nhập liệu chính cốt lõi: **Mã Lô Hàng** (`batchCode`), **Tên Đặc Sản** (`productName`), **Địa Danh / Nguồn Gốc** (`origin`).
+2. **Tự Động Sinh Chuỗi Metadata URI On-Chain:**
+   - Trong `handleSubmitBatch`, ứng dụng tự động xây dựng chuỗi Metadata URI chuẩn theo cú pháp: `ipfs://huelegend/batch/${batchCode.trim()}` trước khi truyền vào hàm `createBatch` của Smart Contract.
+3. **Lưu & Truy Xuất Mã Băm Giao Dịch Sepolia (`txHash`):**
+   - Sau khi giao dịch MetaMask được phát hành (`tx.hash`) và xác nhận khối thành công (`tx.wait()`), `txHash` được ghi nhận trực tiếp vào state lô hàng cũng như bộ lưu trữ `localStorage` (`hl_batch_txhashes`).
+   - Trong `fetchContractData` (`App.tsx`), hệ thống truy vấn các sự kiện `BatchCreated` on-chain để trích xuất chính xác `transactionHash` Sepolia của từng lô hàng.
+4. **Hiển thị Link Etherscan trên Màn hình "Tra Cứu Tem QR" (`LookupTab.tsx`):**
+   - Thêm khối hiển thị **Mã Băm Giao Dịch (Tx Hash)** tại thông tin chi tiết lô hàng kèm liên kết trực tiếp tới Etherscan Sepolia (`https://sepolia.etherscan.io/tx/${txHash}`) với biểu tượng `ExternalLink` và font monospace font-mono.
+5. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhật ký chi tiết quá trình nâng cấp vào tệp `AI_JOURNAL.md`.
+
+---
+
+## 27. Phiên làm việc Lab 31: Tự Động Sinh Mã Lô Hàng Dựa Trên Tên Đặc Sản
+
+### 27.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Sau khi nhập Tên Đặc Sản thì dựa vào tên đặc sản để tạo Mã Lô Hàng chứ không tự nhập Mã Lô Hàng"*
+
+### 27.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Thuật toán Tự Động Sinh Mã Lô Hàng (`generateBatchCodeFromProductName`):**
+   - Loại bỏ dấu tiếng Việt (NFD normalization + regex stripping).
+   - Trích xuất 3 từ viết tắt / từ khóa đầu tiên của tên đặc sản (ví dụ: "Mè Xửng Dừa Hoàng Gia Huế" -> `MEXUNGDUA`).
+   - Tự động ghép thành mã định danh lô hàng chuẩn On-Chain: `HL-${prefix}-${năm}-001` (ví dụ: `HL-MEXUNGDUA-2026-001`).
+2. **Khóa Ô Nhập Mã Lô Hàng (`readOnly`):**
+   - Chuyển ô input "Mã Lô Hàng On-Chain" sang chế độ chỉ đọc `readOnly` với huy hiệu thông báo `⚡ Tự động tạo từ Tên Đặc Sản`.
+   - Ngay khi người dùng nhập thông tin ở ô **Tên Đặc Sản**, ô Mã Lô Hàng sẽ tự động được điền mã phù hợp mà không cần thao tác gõ thủ công.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhật ký chi tiết bước cập nhật vào tệp `AI_JOURNAL.md`.
+
+
 
 
 
