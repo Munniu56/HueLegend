@@ -12,10 +12,10 @@ import {
   CheckCircle2,
   Clock,
   UserCheck,
-  FileText,
   AlertTriangle,
   Camera,
-  Layers
+  Layers,
+  Package
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ETHERSCAN_BASE_URL } from '../constants';
@@ -28,17 +28,23 @@ interface LookupTabProps {
 
 export const LookupTab: React.FC<LookupTabProps> = ({
   batches,
-  selectedBatchCode = 'HL-MEXUNG-2026-001',
+  selectedBatchCode = '',
   onOpenQRStampModal,
 }) => {
-  const [searchCode, setSearchCode] = useState(selectedBatchCode);
-  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[selectedBatchCode] || null);
+  const batchKeys = Object.keys(batches);
+  const initialCode = selectedBatchCode || batchKeys[0] || '';
+
+  const [searchCode, setSearchCode] = useState(initialCode);
+  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[initialCode] || null);
   const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (selectedBatchCode && batches[selectedBatchCode]) {
       setSearchCode(selectedBatchCode);
       setActiveBatch(batches[selectedBatchCode]);
+    } else if (batchKeys.length > 0 && !activeBatch) {
+      setSearchCode(batchKeys[0]);
+      setActiveBatch(batches[batchKeys[0]]);
     }
   }, [selectedBatchCode, batches]);
 
@@ -64,12 +70,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               Tra Cứu & Xác Thực Nguồn Gốc Đặc Sản
             </h2>
             <p className="text-xs text-[#5E7166] mt-1">
-              Nhập mã định danh lô hàng (ví dụ: HL-MEXUNG-2026-001) hoặc quét mã tem QR niêm phong.
+              Nhập mã định danh lô hàng hoặc quét mã tem QR niêm phong để đọc nhật ký từ Sepolia Testnet.
             </p>
           </div>
 
           <button
-            onClick={() => onOpenQRStampModal(activeBatch?.batchCode || 'HL-MEXUNG-2026-001')}
+            onClick={() => onOpenQRStampModal(activeBatch?.batchCode || '')}
             disabled={!activeBatch}
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C29B38] text-white text-xs font-bold hover:bg-[#8C6D1F] transition-all shadow-xs disabled:opacity-50"
           >
@@ -86,7 +92,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchCode)}
-              placeholder="HL-MEXUNG-2026-001, HL-TOMCHUA-2026-002..."
+              placeholder="Nhập mã lô đặc sản..."
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-sm font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
             />
           </div>
@@ -108,22 +114,24 @@ export const LookupTab: React.FC<LookupTabProps> = ({
         </div>
 
         {/* Quick Batch Suggestion Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#EDE9E0]">
-          <span className="text-[11px] font-bold text-[#8A9D92]">Gợi ý mẫu:</span>
-          {Object.keys(batches).map((code) => (
-            <button
-              key={code}
-              onClick={() => handleSearch(code)}
-              className={`text-xs font-mono px-2.5 py-1 rounded-lg border transition-all ${
-                searchCode === code
-                  ? 'bg-[#264939] text-white border-[#264939] font-bold'
-                  : 'bg-[#FAF9F5] text-[#3B4D43] border-[#E6E1D7] hover:border-[#264939]'
-              }`}
-            >
-              {code}
-            </button>
-          ))}
-        </div>
+        {batchKeys.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#EDE9E0]">
+            <span className="text-[11px] font-bold text-[#8A9D92]">Lô trên Blockchain:</span>
+            {batchKeys.map((code) => (
+              <button
+                key={code}
+                onClick={() => handleSearch(code)}
+                className={`text-xs font-mono px-2.5 py-1 rounded-lg border transition-all ${
+                  searchCode === code
+                    ? 'bg-[#264939] text-white border-[#264939] font-bold'
+                    : 'bg-[#FAF9F5] text-[#3B4D43] border-[#E6E1D7] hover:border-[#264939]'
+                }`}
+              >
+                {code}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Camera Simulator panel if toggled */}
         {isScanning && (
@@ -132,22 +140,26 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               <QrCode className="w-6 h-6 animate-pulse" />
             </div>
             <p className="text-xs text-emerald-200">
-              Đang giả lập Camera quét QR Code... Vui lòng chọn lô mẫu bên dưới để nhận diện lập tức:
+              {batchKeys.length > 0
+                ? 'Đang giả lập Camera quét QR Code... Vui lòng chọn lô bên dưới để nhận diện lập tức:'
+                : 'Chưa có sản phẩm nào trên Blockchain để quét.'}
             </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {Object.keys(batches).map((code) => (
-                <button
-                  key={code}
-                  onClick={() => {
-                    handleSearch(code);
-                    setIsScanning(false);
-                  }}
-                  className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs font-mono font-bold text-white transition-all"
-                >
-                  Nhận diện {code}
-                </button>
-              ))}
-            </div>
+            {batchKeys.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                {batchKeys.map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => {
+                      handleSearch(code);
+                      setIsScanning(false);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs font-mono font-bold text-white transition-all"
+                  >
+                    Nhận diện {code}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -197,7 +209,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   includeMargin={true}
                 />
                 <span className="text-[10px] text-[#8A9D92] font-mono">
-                  Quét bằng điện thoại để xem chứng nhận
+                  Quét bằng điện thoại để xem chứng nhận Sepolia
                 </span>
               </div>
 
@@ -223,7 +235,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
-                    <p className="text-[#5E7166]">{activeBatch.quantity || 'Không ghi nhận'}</p>
+                    <p className="text-[#5E7166]">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
                   </div>
                 </div>
 
@@ -242,19 +254,6 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   </div>
                 </div>
               </div>
-
-              {/* Inspector Note Card if verified */}
-              {activeBatch.isVerified && activeBatch.inspectorNote && (
-                <div className="bg-amber-50/80 p-4 rounded-xl border border-amber-200 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D1F]">
-                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-                    <span>Ghi Chú Kiểm Định Viên OCOP:</span>
-                  </div>
-                  <p className="text-xs text-amber-900 leading-relaxed italic">
-                    "{activeBatch.inspectorNote}"
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
@@ -267,7 +266,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                     Nhật Ký Hành Trình Supply Chain On-Chain
                   </h3>
                   <p className="text-xs text-[#5E7166]">
-                    Tất cả dữ liệu chặng được mã hóa và không thể sửa đổi sau khi ghi nhận.
+                    Tất cả dữ liệu chặng được mã hóa và lưu trữ trên Blockchain Sepolia.
                   </p>
                 </div>
                 <span className="text-xs font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF]">
@@ -316,7 +315,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                           {cp.conditionNote && (
                             <div className="text-[11px] text-[#5E7166] flex items-center gap-1.5 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>Độ chuẩn bảo quản: {cp.conditionNote}</span>
+                              <span>{cp.conditionNote}</span>
                             </div>
                           )}
                         </div>
@@ -327,12 +326,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                             Địa chỉ ghi: {cp.recorder}
                           </div>
                           <a
-                            href={`${ETHERSCAN_BASE_URL}/tx/${cp.txHash}`}
+                            href={`${ETHERSCAN_BASE_URL}/address/${cp.recorder}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline"
                           >
-                            <span>Etherscan Tx</span>
+                            <span>Etherscan</span>
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         </div>
@@ -345,13 +344,15 @@ export const LookupTab: React.FC<LookupTabProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white p-12 rounded-2xl border border-dashed border-red-200 text-center space-y-3">
-          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+        <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-3">
+          <Package className="w-12 h-12 text-gray-300 mx-auto" />
           <h3 className="text-base font-bold text-[#1A2820]">
-            Không Tìm Thấy Mã Lô Hàng: {searchCode}
+            Chưa có sản phẩm nào trên Blockchain
           </h3>
           <p className="text-xs text-[#5E7166] max-w-md mx-auto">
-            Vui lòng kiểm tra lại mã lô hàng hoặc quét mã tem QR niêm phong chính hãng.
+            {searchCode
+              ? `Không tìm thấy lô hàng "${searchCode}" trên Smart Contract Sepolia.`
+              : 'Hãy kết nối ví MetaMask và tạo lô hàng đặc sản đầu tiên.'}
           </p>
         </div>
       )}

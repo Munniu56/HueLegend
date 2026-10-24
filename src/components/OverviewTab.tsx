@@ -9,14 +9,13 @@ import {
   Search,
   Filter,
   ArrowRight,
-  ExternalLink,
   QrCode,
   Sparkles,
   MapPin,
   Calendar,
-  Building2
+  Building2,
+  PlusCircle
 } from 'lucide-react';
-import { ETHERSCAN_BASE_URL } from '../constants';
 
 interface OverviewTabProps {
   batches: Record<string, Batch>;
@@ -76,7 +75,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           <p className="text-emerald-100/90 text-sm leading-relaxed">
             Số hóa minh bạch 100% từng chặng chăn nuôi, chế biến, vận chuyển kho lạnh và phân phối OCOP.
-            Bảo vệ thương hiệu di sản và quyền lợi tiêu dùng trên Blockchain Sepolia.
+            Dữ liệu đọc & ghi trực tiếp từ Smart Contract trên Ethereum Sepolia Testnet.
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
@@ -84,7 +83,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               onClick={() => onNavigateTab('create-batch')}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C29B38] text-white font-bold text-xs hover:bg-[#8C6D1F] transition-all shadow-md"
             >
-              <span>+ Tạo Lô Hàng Mới</span>
+              <span>+ Tạo Lô Hàng Mới On-Chain</span>
               <ArrowRight className="w-4 h-4" />
             </button>
             <button
@@ -107,7 +106,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <div className="text-xs font-bold text-[#8A9D92] uppercase">Tổng Lô Hàng On-Chain</div>
             <div className="text-2xl font-extrabold text-[#264939] mt-0.5">{totalBatches}</div>
-            <div className="text-[11px] text-[#5E7166] mt-0.5">Lô đặc sản đã tạo</div>
+            <div className="text-[11px] text-[#5E7166] mt-0.5">Lô đặc sản từ Sepolia</div>
           </div>
         </div>
 
@@ -131,7 +130,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <div className="text-xs font-bold text-[#8A9D92] uppercase">Tiền Ký Quỹ Producer</div>
             <div className="text-2xl font-extrabold text-[#264939] mt-0.5">{producerStakeBalance} ETH</div>
-            <div className="text-[11px] text-emerald-600 font-medium mt-0.5">Đã đặt cọc đảm bảo uy tín</div>
+            <div className="text-[11px] text-emerald-600 font-medium mt-0.5">Số dư cọc thực tế ví</div>
           </div>
         </div>
 
@@ -142,7 +141,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           <div>
             <div className="text-xs font-bold text-[#8A9D92] uppercase">Tổng Chặng Ghi Nhận</div>
             <div className="text-2xl font-extrabold text-[#1A2820] mt-0.5">{totalCheckpoints}</div>
-            <div className="text-[11px] text-[#5E7166] mt-0.5">Nhật ký chuỗi cung ứng</div>
+            <div className="text-[11px] text-[#5E7166] mt-0.5">Nhật ký chặng Sepolia</div>
           </div>
         </div>
       </div>
@@ -155,7 +154,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Mã lô (HL-...), Tên đặc sản, hoặc Địa danh..."
+            placeholder="Tìm theo Mã lô, Tên đặc sản, hoặc Địa danh..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-sm focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
           />
         </div>
@@ -287,13 +286,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         })}
       </div>
 
+      {/* Empty State when no batches are found or contract is empty */}
       {filteredBatches.length === 0 && (
-        <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-3">
+        <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-4">
           <Package className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="text-base font-bold text-[#1A2820]">Không Tìm Thấy Lô Hàng Phù Hợp</h3>
-          <p className="text-xs text-[#5E7166]">
-            Hãy thử tìm bằng từ khóa khác hoặc bấm nút Tạo Lô Hàng mới.
+          <h3 className="text-lg font-extrabold text-[#1A2820]">
+            Chưa có sản phẩm nào trên Blockchain
+          </h3>
+          <p className="text-xs text-[#5E7166] max-w-md mx-auto leading-relaxed">
+            Hệ thống đang được kết nối trực tiếp với Smart Contract trên Ethereum Sepolia Testnet. Bạn có thể sử dụng nút bên dưới để khởi tạo lô hàng đầu tiên lên Blockchain.
           </p>
+          <button
+            onClick={() => onNavigateTab('create-batch')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#264939] text-white font-bold text-xs hover:bg-[#1c372b] transition-all shadow-md"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Tạo Lô Hàng Đầu Tiên On-Chain</span>
+          </button>
         </div>
       )}
     </div>
