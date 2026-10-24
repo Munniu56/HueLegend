@@ -459,6 +459,7 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
+      const signerAddr = safeGetAddress(await signer.getAddress());
       const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const feeWei = await contract.batchCreationFee();
