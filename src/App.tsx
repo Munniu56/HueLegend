@@ -459,16 +459,33 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
-      const signerAddr = safeGetAddress(await signer.getAddress());
-      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
-      const feeWei = await contract.batchCreationFee();
+      // Chuan hoa dia chi vi nguoi dung va hop dong bang ethers.getAddress EIP-55 checksum
+      const rawUserAddr = await signer.getAddress();
+      const cleanUserAddress = ethers.getAddress(rawUserAddr);
+      const cleanContractAddress = ethers.getAddress(CONTRACT_ADDRESS);
+
+      const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+
+      let feeWei = ethers.parseEther('0.001');
+      try {
+        feeWei = await contract.batchCreationFee();
+      } catch (feeErr) {
+        console.warn('Cannot read batchCreationFee on-chain, using fallback 0.001 ETH:', feeErr);
+      }
+
       const inspectionFeeWei = ethers.parseEther('0.002');
       const totalFeeWei = feeWei + inspectionFeeWei;
 
-      const tx = await contract.createBatch(batchCode, productName, origin, metadataURI, {
-        value: totalFeeWei
-      });
+      const tx = await contract.createBatch(
+        batchCode.trim(),
+        productName.trim(),
+        origin.trim(),
+        metadataURI.trim(),
+        {
+          value: totalFeeWei
+        }
+      );
 
       if (typeof window !== 'undefined') {
         try {
@@ -487,7 +504,7 @@ export const App: React.FC = () => {
       removeToast(waitToastId);
 
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${batchCode} đã được ghi nhận vào Smart Contract Sepolia (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
-      await fetchContractData();
+      await fetchContractData(cleanUserAddress);
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
       removeToast(loadingToastId);
