@@ -39,9 +39,9 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
     {
       id: 'CUSTOMER',
       icon: '🔍',
-      title: 'Khách hàng & Kiểm định',
-      description: 'Dành cho Du khách, Người tiêu dùng & Kiểm định viên OCOP',
-      badge: 'Customer & Inspector'
+      title: 'Khách hàng',
+      description: 'Dành cho Du khách, Người tiêu dùng & Khách tham quan tra cứu nguồn gốc',
+      badge: 'Khách hàng / Customer'
     }
   ];
 

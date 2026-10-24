@@ -280,4 +280,26 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 2. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi nhận đầy đủ bước tối giản giao diện vào nhật ký công việc `AI_JOURNAL.md`.
 
+---
+
+## 14. Phiên làm việc Lab 18: Chuẩn Hóa 4 Vai Trò Đăng Nhập Ví Trong Popup
+
+### 14.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Khi hiện popup khi bấm kết nối ví sửa lại có 4 vai trò:
+> 👑 Quản trị hệ thống
+> 📦 Chuỗi cung ứng & Vận hành
+> 🏪 Thương mại & Bán hàng
+> 🔍 Khách hàng"*
+
+### 14.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Chuẩn hóa nhãn 4 vai trò trong Modal (`RoleConnectModal.tsx`):**
+   - Đã đồng bộ chính xác nhãn tiêu đề 4 vai trò đăng nhập trong Popup theo đúng yêu cầu:
+     - 👑 **Quản trị hệ thống**
+     - 📦 **Chuỗi cung ứng & Vận hành**
+     - 🏪 **Thương mại & Bán hàng**
+     - 🔍 **Khách hàng**
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhận đầy đủ bước chuẩn hóa tiêu đề vai trò vào tệp `AI_JOURNAL.md`.
+
+
 
