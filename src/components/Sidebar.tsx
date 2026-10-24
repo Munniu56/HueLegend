@@ -17,10 +17,11 @@ import { CONTRACT_ADDRESS, ETHERSCAN_BASE_URL } from '../constants';
 
 interface SidebarProps {
   activeTab: string;
+  userRole?: string;
   onTabChange: (tab: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', onTabChange }) => {
   const navItems = [
     {
       id: 'overview',
@@ -66,6 +67,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
     },
   ];
 
+  // Loc cac muc menu theo vai tro nguoi dung
+  const filteredNavItems = navItems.filter((item) => {
+    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+      return ['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(item.id);
+    }
+    if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
+      return ['overview', 'lookup', 'store', 'retailer'].includes(item.id);
+    }
+    if (userRole === 'INSPECTOR') {
+      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+    }
+    if (userRole === 'CUSTOMER') {
+      return ['overview', 'lookup', 'store'].includes(item.id);
+    }
+    return true; // ADMIN hoac ALL
+  });
+
   return (
     <aside className="w-72 bg-[#FAF9F5] border-r border-[#E6E1D7] flex flex-col justify-between p-5 h-screen sticky top-0 shrink-0 overflow-y-auto font-sans">
       {/* Background Subtle Watermark */}
@@ -110,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
           </div>
 
           <nav className="flex flex-col gap-1.5">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (

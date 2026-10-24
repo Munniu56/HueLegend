@@ -3,8 +3,7 @@ import { Batch } from '../types';
 import {
   Package,
   ShieldCheck,
-  Coins,
-  CheckCircle2,
+  Store,
   Clock,
   Search,
   Filter,
@@ -19,14 +18,13 @@ import {
 
 interface OverviewTabProps {
   batches: Record<string, Batch>;
-  producerStakeBalance: string;
+  producerStakeBalance?: string;
   onNavigateTab: (tab: string, batchCodeSelect?: string) => void;
   onSelectBatchForQR: (batchCode: string) => void;
 }
 
 export const OverviewTab: React.FC<OverviewTabProps> = ({
   batches,
-  producerStakeBalance,
   onNavigateTab,
   onSelectBatchForQR,
 }) => {
@@ -37,7 +35,25 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   const totalBatches = batchList.length;
   const verifiedCount = batchList.filter((b) => b.isVerified).length;
   const verifiedRatio = totalBatches > 0 ? Math.round((verifiedCount / totalBatches) * 100) : 0;
-  const totalCheckpoints = batchList.reduce((acc, b) => acc + (b.checkpoints?.length || 0), 0);
+
+  // Dem so dai ly phan phoi ghi nhan tren he thong from checkpoints / listings
+  const recordedAgentsSet = new Set<string>();
+  batchList.forEach((b) => {
+    b.checkpoints?.forEach((chk) => {
+      if (
+        chk.role === 'ROLE_RETAILER' ||
+        chk.role === 'RETAILER' ||
+        chk.roleTitle?.toLowerCase().includes('đại lý') ||
+        chk.stepName?.toLowerCase().includes('bán lẻ') ||
+        chk.stepName?.toLowerCase().includes('đại lý') ||
+        chk.action?.toLowerCase().includes('niêm yết')
+      ) {
+        if (chk.location) recordedAgentsSet.add(chk.location.trim().toLowerCase());
+        else if (chk.recorder) recordedAgentsSet.add(chk.recorder.trim().toLowerCase());
+      }
+    });
+  });
+  const totalRecordedAgents = recordedAgentsSet.size;
 
   const filteredBatches = batchList.filter((batch) => {
     const matchesSearch =
@@ -97,7 +113,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-[#E0ECE4] text-[#264939] flex items-center justify-center shrink-0">
             <Package className="w-6 h-6" />
@@ -123,24 +139,13 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-            <Coins className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-xs font-sans font-bold text-[#8A9D92] uppercase tracking-wider">TIỀN KÝ QUỸ PRODUCER</div>
-            <div className="text-2xl font-serif font-extrabold text-[#264939] mt-0.5">{producerStakeBalance} ETH</div>
-            <div className="text-[11px] font-sans text-emerald-600 font-medium">Số dư cọc thực tế ví</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 border border-blue-100">
-            <CheckCircle2 className="w-6 h-6" />
+            <Store className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-xs font-sans font-bold text-[#8A9D92] uppercase tracking-wider">TỔNG CHẶNG GHI NHẬN</div>
-            <div className="text-2xl font-serif font-extrabold text-[#1A2820] mt-0.5">{totalCheckpoints}</div>
-            <div className="text-[11px] font-sans text-[#5E7166]">Nhật ký chặng Sepolia</div>
+            <div className="text-xs font-sans font-bold text-[#8A9D92] uppercase tracking-wider">SỐ ĐẠI LÝ GHI NHẬN</div>
+            <div className="text-2xl font-serif font-extrabold text-[#1A2820] mt-0.5">{totalRecordedAgents}</div>
+            <div className="text-[11px] font-sans text-[#5E7166]">Đại lý phân phối OCOP</div>
           </div>
         </div>
       </div>

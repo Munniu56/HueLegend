@@ -349,22 +349,34 @@ export const App: React.FC = () => {
     addToast('Đã Ngắt Kết Nối Ví', 'Đã xoá phiên đăng nhập. Lần đăng nhập tới sẽ yêu cầu mở cửa sổ MetaMask mới.', 'info');
   };
 
-  // Role Selection in Modal -> Connect MetaMask
+  // Chon vai tro trong Modal -> Ket noi vi MetaMask
   const handleRoleSelectAndConnect = async (roleKey: string) => {
     setIsRoleModalOpen(false);
     
-    // Map role selection
+    // Anh xa vai tro duoc chon
     const roleMapping: Record<string, string> = {
       ADMIN: 'ADMIN',
       SUPPLY_CHAIN: 'PRODUCER',
       COMMERCE: 'RETAILER',
-      CUSTOMER: 'INSPECTOR'
+      INSPECTOR: 'INSPECTOR',
+      CUSTOMER: 'CUSTOMER'
     };
     
     const targetRole = roleMapping[roleKey] || 'ALL';
     setSimulatedRole(targetRole);
     setIsCurrentAccountAdmin(targetRole === 'ADMIN' || targetRole === 'ALL');
     setIsCurrentAccountRetailer(targetRole === 'RETAILER' || targetRole === 'ALL');
+
+    // Kiem tra tab hien tai co hop le voi vai tro moi hay khong, neu khong thi chuyen ve overview
+    if ((targetRole === 'PRODUCER' || targetRole === 'SUPPLY_CHAIN') && !['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(activeTab)) {
+      setActiveTab('overview');
+    } else if ((targetRole === 'RETAILER' || targetRole === 'COMMERCE') && !['overview', 'lookup', 'store', 'retailer'].includes(activeTab)) {
+      setActiveTab('overview');
+    } else if (targetRole === 'INSPECTOR' && !['overview', 'lookup', 'store', 'inspector'].includes(activeTab)) {
+      setActiveTab('overview');
+    } else if (targetRole === 'CUSTOMER' && !['overview', 'lookup', 'store'].includes(activeTab)) {
+      setActiveTab('overview');
+    }
 
     await executeMetaMaskConnect();
   };
@@ -799,7 +811,7 @@ export const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#F4F1EA] text-[#1A2820]">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} onTabChange={(tab) => handleNavigateTab(tab)} />
+      <Sidebar activeTab={activeTab} userRole={simulatedRole} onTabChange={(tab) => handleNavigateTab(tab)} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
