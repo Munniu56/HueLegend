@@ -266,3 +266,18 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 4. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi chép đầy đủ tiến trình nâng cấp vào nhật ký AI_JOURNAL.md.
 
+---
+
+## 13. Phiên làm việc Lab 17: Tối Giản Giao Diện Thanh Header
+
+### 13.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Ẩn 2 phần này (Hình ảnh đính kèm chọn vai trò giả lập & nút chuyển đổi Chế độ Xem Trước / Web3 Thật)"*
+
+### 13.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ Thanh chọn Vai trò Giả lập (`Role Simulator`) & Nút Chuyển Chế độ (`Demo Toggle`):**
+   - Đã ẩn/gỡ bỏ 2 thành phần điều khiển dư thừa khỏi tệp `src/components/Header.tsx`.
+   - Giúp giao diện thanh tiêu đề (Header) gọn gàng, tinh tế và tập trung hoàn toàn vào trạng thái kết nối Sepolia Testnet cùng Nút kích hoạt ví MetaMask.
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhận đầy đủ bước tối giản giao diện vào nhật ký công việc `AI_JOURNAL.md`.
+
+

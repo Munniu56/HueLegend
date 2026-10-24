@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, ShieldCheck, Cpu, RefreshCw } from 'lucide-react';
+import { Wallet, ShieldCheck } from 'lucide-react';
 
 interface HeaderProps {
   currentAccount: string | null;
@@ -39,36 +39,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls */}
       <div className="flex flex-wrap items-center gap-2.5 ml-auto">
-        {/* Role Simulator */}
-        <div className="flex items-center gap-1.5 bg-white border border-[#E6E1D7] rounded-lg px-2.5 py-1 text-xs shadow-2xs">
-          <Cpu className="w-3.5 h-3.5 text-[#264939]" />
-          <select
-            value={simulatedRole}
-            onChange={(e) => onSimulatedRoleChange(e.target.value)}
-            className="bg-transparent font-bold text-[#264939] focus:outline-none cursor-pointer text-xs"
-          >
-            <option value="ALL">Tất cả vai trò</option>
-            <option value="PRODUCER">Chủ cơ sở (Producer)</option>
-            <option value="LOGISTICS">Vận chuyển (Logistics)</option>
-            <option value="RETAILER">Đại lý (Retailer)</option>
-            <option value="INSPECTOR">Kiểm định viên (Inspector)</option>
-            <option value="ADMIN">Quản trị viên (Admin)</option>
-          </select>
-        </div>
-
-        {/* Demo Toggle */}
-        <button
-          onClick={onToggleDemoMode}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all border ${
-            isDemoMode
-              ? 'bg-[#E0ECE4] text-[#264939] border-[#CCD8CF]'
-              : 'bg-amber-50 text-amber-800 border-amber-200'
-          }`}
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>{isDemoMode ? 'Xem Trước' : 'Web3 Thật'}</span>
-        </button>
-
         {/* Connect Wallet Button */}
         <button
           onClick={onConnectWallet}
