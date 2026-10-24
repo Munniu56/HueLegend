@@ -5,7 +5,7 @@ import {
   PlusCircle,
   Truck,
   ShieldCheck,
-  Settings,
+  Store,
   Award,
   Sparkles,
   ExternalLink,
@@ -52,10 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
       icon: ShieldCheck,
     },
     {
-      id: 'admin',
-      label: 'Quản Trị Hệ Thống',
-      sublabel: 'Phân quyền RBAC & đổi phí',
-      icon: Settings,
+      id: 'store',
+      label: 'Cửa Hàng Đặc Sản',
+      sublabel: 'Phân phối & đại lý bán lẻ',
+      icon: Store,
     },
   ];
 

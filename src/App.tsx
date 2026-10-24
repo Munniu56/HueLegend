@@ -16,6 +16,7 @@ import { CreateBatchTab } from './components/CreateBatchTab';
 import { CheckpointTab } from './components/CheckpointTab';
 import { InspectorTab } from './components/InspectorTab';
 import { AdminTab } from './components/AdminTab';
+import { StoreTab } from './components/StoreTab';
 import { ToastContainer } from './components/ToastContainer';
 import { QRStampModal } from './components/QRStampModal';
 import { RoleConnectModal } from './components/RoleConnectModal';
@@ -624,6 +625,13 @@ export const App: React.FC = () => {
               batches={batches}
               onVerifyBatch={handleVerifyBatch}
               onRevokeVerification={handleRevokeVerification}
+            />
+          )}
+
+          {activeTab === 'store' && (
+            <StoreTab
+              batches={batches}
+              onNavigateToLookup={(code) => handleNavigateTab('lookup', code)}
             />
           )}
 

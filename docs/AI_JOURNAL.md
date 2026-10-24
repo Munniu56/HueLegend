@@ -301,5 +301,37 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 2. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi nhận đầy đủ bước chuẩn hóa tiêu đề vai trò vào tệp `AI_JOURNAL.md`.
 
+---
+
+## 15. Phiên làm việc Lab 19: Bổ Sung "Cửa Hàng Đặc Sản" & Ẩn "Quản Trị Hệ Thống" Trên Thanh Bên
+
+### 15.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Thanh bên trái phần chức năng quản trị bổ sung thêm Cửa Hàng Đặc Sản và ẩn mục Quản Trị Hệ Thống"*
+
+### 15.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Bổ sung mục "Cửa Hàng Đặc Sản" (`StoreTab.tsx` & `Sidebar.tsx`):**
+   - Đã tạo giao diện `StoreTab.tsx` phục vụ kênh đại lý phân phối, cửa hàng OCOP Cố Đô Huế (xem các cửa hàng đại lý, tra cứu danh sách lô hàng đặc sản đang phân phối on-chain, nút quét QR trực tiếp).
+   - Thêm nút chuyển tab `Cửa Hàng Đặc Sản` vào danh sách `navItems` trên thanh Sidebar.
+2. **Ẩn mục "Quản Trị Hệ Thống":**
+   - Đã ẩn/gỡ bỏ mục `Quản Trị Hệ Thống` khỏi danh sách điều hướng thanh bên trái theo đúng chỉ đạo.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhật ký chi tiết bước cập nhật thanh điều hướng Sidebar vào `AI_JOURNAL.md`.
+
+---
+
+## 16. Phiên làm việc Lab 20: Tinh Gọn Mục "Cửa Hàng Đặc Sản" (Bỏ Demo Mẫu Cửa Hàng)
+
+### 16.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Ở Mục Cửa Hàng Đặc Sản không cần demo mẫu cửa hàng"*
+
+### 16.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại bỏ thẻ mẫu cửa hàng demo (`StoreTab.tsx`):**
+   - Đã gỡ bỏ khối danh sách thẻ mẫu cửa hàng demo khỏi màn hình `StoreTab.tsx`.
+   - Giúp màn hình Cửa Hàng Đặc Sản tập trung hoàn toàn vào việc hiển thị danh sách các lô hàng đặc sản OCOP đang được kệ phân phối On-Chain thực tế trên Sepolia Testnet.
+2. **Cập nhật AI_JOURNAL.md:**
+   - Đã lưu nhật ký đầy đủ cho bước tinh gọn giao diện vào `AI_JOURNAL.md`.
+
+
+
 
 
