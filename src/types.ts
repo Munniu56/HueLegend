@@ -21,6 +21,7 @@ export interface Batch {
   producer: string;
   isVerified: boolean;
   exists: boolean;
+  starRating?: string;
   ocopStandard?: string;
   certificationNo?: string;
   quantity?: string;
@@ -28,6 +29,8 @@ export interface Batch {
   inspectorNote?: string;
   certificateURI?: string;
   txHash?: string;
+  verifyTxHash?: string;
+  inspectionFeePaid?: string;
   checkpoints: Checkpoint[];
 }
 

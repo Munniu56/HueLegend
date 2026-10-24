@@ -13,7 +13,9 @@ import {
   UserCheck,
   Camera,
   Layers,
-  Package
+  Package,
+  Star,
+  Award
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ETHERSCAN_BASE_URL } from '../constants';
@@ -181,7 +183,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 {activeBatch.isVerified ? (
                   <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-extrabold shadow-2xs">
                     <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-                    <span>ĐẠT OCOP</span>
+                    <span>ĐẠT OCOP {activeBatch.starRating || '4'} SAO</span>
                   </span>
                 ) : (
                   <span className="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-bold">
@@ -197,6 +199,31 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 </h3>
                 <p className="text-xs font-sans text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
               </div>
+
+              {/* OCOP Star Badge Card if verified */}
+              {activeBatch.isVerified && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50/40 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Number(activeBatch.starRating || '4') }).map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-[#C29B38] text-[#C29B38]" />
+                      ))}
+                    </div>
+                    <span className="text-[11px] font-bold text-[#8C6D1F] bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                      Hạng {activeBatch.starRating || '4'} Sao OCOP
+                    </span>
+                  </div>
+                  {activeBatch.inspectorNote && (
+                    <p className="text-xs text-[#1A2820] italic font-serif leading-relaxed">
+                      "{activeBatch.inspectorNote}"
+                    </p>
+                  )}
+                  <div className="text-[10px] text-[#8C6D1F] flex items-center gap-1 pt-1 font-sans border-t border-amber-200/60">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>Phí thẩm định 0.002 ETH đã được Cơ sở sản xuất chi trả.</span>
+                  </div>
+                </div>
+              )}
 
               {/* QR Code Graphic Box */}
               <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
@@ -256,7 +283,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   <div className="flex items-start gap-2.5">
                     <ExternalLink className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-bold text-[#1A2820]">Mã Băm Giao Dịch (Tx Hash):</span>
+                      <span className="font-bold text-[#1A2820]">Mã Băm Tạo Lô (Tx Hash):</span>
                       <a
                         href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
                         target="_blank"
@@ -264,6 +291,23 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                         className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
                       >
                         {activeBatch.txHash}
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {activeBatch.verifyTxHash && (
+                  <div className="flex items-start gap-2.5">
+                    <Award className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-[#1A2820]">Mã Băm Thẩm Định (Verify Tx):</span>
+                      <a
+                        href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
+                      >
+                        {activeBatch.verifyTxHash}
                       </a>
                     </div>
                   </div>

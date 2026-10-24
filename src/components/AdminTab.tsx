@@ -494,7 +494,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 className="w-full mt-2 py-2.5 px-4 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
               >
                 <Download className="w-4 h-4 text-[#C29B38]" />
-                <span>Rút Phí Về Ví Admin (withdrawFees)</span>
+                <span>Rút Phí Về Ví Admin</span>
               </button>
             </div>
 

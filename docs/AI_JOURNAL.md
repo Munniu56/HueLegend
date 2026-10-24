@@ -553,14 +553,43 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 3. **Cập nhật AI_JOURNAL.md:**
    - Đã ghi nhật ký chi tiết bước cập nhật vào tệp `AI_JOURNAL.md`.
 
+---
 
+## 28. Phiên làm việc Lab 32: Loại Bỏ Ô Nhập Liệu Certificate IPFS URI Trong Trang Thẩm Định OCOP
 
+### 28.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Xóa ô input Certificate IPFS URI"*
 
+### 28.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Loại Bỏ Ô Nhập Certificate IPFS URI (`InspectorTab.tsx`):**
+   - Đã gỡ bỏ hoàn toàn ô input "Certificate IPFS URI" và state `certificateURI` khỏi biểu mẫu thẩm định OCOP trong `InspectorTab.tsx`.
+2. **Tự Động Sinh Chuỗi Certificate IPFS URI On-Chain:**
+   - Trong hàm `handleVerify`, ứng dụng tự động sinh ra chuỗi Certificate URI chuẩn theo cú pháp: `ipfs://huelegend/cert/${selectedBatchCode}` trước khi gọi `onVerifyBatch`.
+3. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi nhật ký chi tiết bước cập nhật vào tệp `AI_JOURNAL.md`.
 
+---
 
+## 29. Phiên làm việc Lab 33: Nâng Cấp Logic Phí Thẩm Định OCOP & Trang Thẩm Định / Tra Cứu QR
 
+### 29.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
+> *"Hãy cập nhật logic Phí Thẩm Định (Inspection Fee) và giao diện trang Kiểm Định OCOP trong web/src/:
+> 1. Thu Phí Thẩm Định ở bước Tạo Lô Hàng (Producer): Phí Thẩm Định (0.002 ETH) do Nhà sản xuất chi trả gộp vào giao dịch Create Batch.
+> 2. Cập nhật Giao diện & Logic trang Kiểm Định OCOP (Inspector): Thêm ô chọn Hạng Sao OCOP (3 Sao, 4 Sao, 5 Sao); Dòng trạng thái minh bạch 'Trạng thái phí: Đã được Cơ sở sản xuất thanh toán (0.002 ETH)'; Ràng buộc RBAC Kiểm định viên; Người thẩm định KHÔNG TRẢ PHÍ (0 ETH), chỉ trả phí Gas Sepolia nhỏ; Tự động mã hóa chuỗi Metadata Certificate ngầm (ipfs://huelegend/cert/${batchId}).
+> 3. Đồng bộ QR Trace: Lưu Hạng sao, Ghi chú và Tx Hash thẩm định để hiển thị đầy đủ trên trang Tra Cứu Tem QR."*
 
-
-
-
+### 29.2. Phân tích của Trợ lý AI và Kết quả triển khai:
+1. **Thu Phí Thẩm Định Gộp Ở Bước Tạo Lô Hàng (`CreateBatchTab.tsx` & `App.tsx`):**
+   - Khi Cơ sở sản xuất (Producer) bấm Khởi Tạo Lô Hàng, giá trị giao dịch `createBatch` bao gồm cả Phí Tạo Lô (0.001 ETH) + Phí Thẩm Định OCOP (0.002 ETH) = Tổng **0.003 ETH**.
+   - Bổ sung thẻ chi tiết phí minh bạch trên biểu mẫu để Nhà sản xuất dễ dàng theo dõi.
+2. **Nâng Cấp Màn Hình Thẩm Định OCOP (`InspectorTab.tsx`):**
+   - **Xếp Hạng Sao OCOP**: Bổ sung bộ chọn hạng sao OCOP trực quan: ⭐ 3 Sao (Cấp Tỉnh), ⭐⭐ 4 Sao (Chất Lượng Cao Tỉnh), ⭐⭐⭐ 5 Sao (Cấp Quốc Gia).
+   - **Trạng Thái Phí Minh Bạch**: Hiển thị thẻ báo xanh *"Trạng thái phí thẩm định: Đã được Cơ sở sản xuất thanh toán (0.002 ETH)"*.
+   - **Ràng Bắt Buộc RBAC & Cảnh Báo Chuyển Ví**: Hiển thị banner cảnh báo nếu ví hiện tại chưa có quyền `ROLE_INSPECTOR` kèm nút hỗ trợ chuyển ví nhanh.
+   - **Miễn Phí Cho Người Thẩm Định**: Kiểm định viên không cần gửi kèm ETH (`value: 0 ETH`), chỉ trả phí gas Sepolia nhỏ để ký chứng nhận.
+   - **Tự Động Mã Hóa Certificate URI**: Chuỗi `ipfs://huelegend/cert/${batchCode}` được tự động khởi tạo ngầm.
+3. **Đồng Bộ Dữ Liệu Tra Cứu Tem QR (`LookupTab.tsx`):**
+   - Khi tra cứu lô hàng đã thẩm định, giao diện hiển thị huy hiệu OCOP kèm số sao chính thức (⭐ 3-5 Sao), ghi chú đánh giá của Kiểm định viên, xác nhận phí đã thanh toán và **Mã Băm Giao Dịch Thẩm Định (Verify Tx Hash)** kết nối trực tiếp Sepolia Etherscan.
+4. **Cập nhật AI_JOURNAL.md:**
+   - Đã ghi chép nhật ký đầy đủ vào tệp `AI_JOURNAL.md`.
 

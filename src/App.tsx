@@ -38,6 +38,7 @@ export const App: React.FC = () => {
   const [simulatedRole, setSimulatedRole] = useState('ALL');
   const [isCurrentAccountAdmin, setIsCurrentAccountAdmin] = useState(true);
   const [isCurrentAccountRetailer, setIsCurrentAccountRetailer] = useState(true);
+  const [isCurrentAccountInspector, setIsCurrentAccountInspector] = useState(true);
   const [producerStakeBalance, setProducerStakeBalance] = useState('0.00');
   const [batchCreationFeeEth, setBatchCreationFeeEth] = useState('0.001');
   const [contractBalanceEth, setContractBalanceEth] = useState('0.00');
@@ -131,14 +132,21 @@ export const App: React.FC = () => {
             isRetailer = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_RETAILER);
           } catch (e) {}
 
+          let isInspector = false;
+          try {
+            isInspector = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_INSPECTOR);
+          } catch (e) {}
+
           setIsCurrentAccountAdmin(isOwner || isAdmin || simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
           setIsCurrentAccountRetailer(isRetailer || simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
+          setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
         } catch (roleErr) {
           console.warn('Could not check on-chain roles:', roleErr);
         }
       } else {
         setIsCurrentAccountAdmin(simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
         setIsCurrentAccountRetailer(simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
+        setIsCurrentAccountInspector(simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
       }
 
       // Query total batches count
@@ -162,8 +170,33 @@ export const App: React.FC = () => {
         console.warn('Could not query BatchCreated events:', e);
       }
 
+      // Query BatchVerified events to extract verifyTxHash
+      const eventVerifyTxHashes: Record<string, string> = {};
+      try {
+        const verifyEvents = await contract.queryFilter(contract.filters.BatchVerified());
+        verifyEvents.forEach((evt: any) => {
+          if (evt.args && evt.args.batchCode && evt.transactionHash) {
+            eventVerifyTxHashes[evt.args.batchCode] = evt.transactionHash;
+          }
+        });
+      } catch (e) {
+        console.warn('Could not query BatchVerified events:', e);
+      }
+
       const localTxHashes = typeof window !== 'undefined'
         ? JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}')
+        : {};
+
+      const localVerifyTxHashes = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('hl_verify_txhashes') || '{}')
+        : {};
+
+      const localStarRatings = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}')
+        : {};
+
+      const localInspectorNotes = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}')
         : {};
 
       const fetchedBatches: Record<string, Batch> = {};
@@ -189,6 +222,9 @@ export const App: React.FC = () => {
             }));
 
             const txHash = eventTxHashes[batchCode] || localTxHashes[batchCode] || undefined;
+            const verifyTxHash = eventVerifyTxHashes[batchCode] || localVerifyTxHashes[batchCode] || undefined;
+            const starRating = localStarRatings[batchCode] || (batchData.isVerified ? '4' : undefined);
+            const inspectorNote = localInspectorNotes[batchCode] || batchData.inspectorNote || (batchData.isVerified ? 'Đạt chuẩn chất lượng OCOP Thừa Thiên Huế.' : '');
 
             fetchedBatches[batchCode] = {
               batchCode: batchData.batchCode,
@@ -198,8 +234,10 @@ export const App: React.FC = () => {
               producer: batchData.producer,
               isVerified: batchData.isVerified,
               exists: batchData.exists,
+              starRating,
+              inspectorNote,
               ocopStandard: batchData.isVerified
-                ? 'Đạt Chuẩn OCOP Tỉnh Thừa Thiên Huế'
+                ? `Đạt Chuẩn OCOP ${starRating || '4'} Sao Tỉnh Thừa Thiên Huế`
                 : 'Chưa Thẩm Định OCOP',
               certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
               quantity: 'Sản lượng On-Chain',
@@ -209,7 +247,10 @@ export const App: React.FC = () => {
                   : batchData.isVerified
                   ? 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
+              certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
               txHash,
+              verifyTxHash,
+              inspectionFeePaid: '0.002 ETH',
               checkpoints
             };
           } catch (e) {
@@ -380,8 +421,11 @@ export const App: React.FC = () => {
       const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
 
       const feeWei = await contract.batchCreationFee();
+      const inspectionFeeWei = ethers.parseEther('0.002');
+      const totalFeeWei = feeWei + inspectionFeeWei;
+
       const tx = await contract.createBatch(batchCode, productName, origin, metadataURI, {
-        value: feeWei
+        value: totalFeeWei
       });
 
       if (typeof window !== 'undefined') {
@@ -456,7 +500,8 @@ export const App: React.FC = () => {
   const handleVerifyBatch = async (
     batchCode: string,
     inspectorNote: string,
-    certificateURI: string
+    certificateURI: string,
+    starRating: string = '4'
   ) => {
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask với quyền ROLE_INSPECTOR.', 'warning');
@@ -471,7 +516,26 @@ export const App: React.FC = () => {
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, PROJECT_CORE_ABI, signer);
 
-      const tx = await contract.verifyBatch(batchCode, inspectorNote, certificateURI);
+      const fullNoteWithStars = `[Xếp hạng: OCOP ${starRating} Sao] ${inspectorNote}`;
+      const tx = await contract.verifyBatch(batchCode, fullNoteWithStars, certificateURI);
+
+      if (typeof window !== 'undefined') {
+        try {
+          const verifyHashes = JSON.parse(localStorage.getItem('hl_verify_txhashes') || '{}');
+          verifyHashes[batchCode] = tx.hash;
+          localStorage.setItem('hl_verify_txhashes', JSON.stringify(verifyHashes));
+
+          const starRatings = JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}');
+          starRatings[batchCode] = starRating;
+          localStorage.setItem('hl_batch_starratings', JSON.stringify(starRatings));
+
+          const notes = JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}');
+          notes[batchCode] = inspectorNote;
+          localStorage.setItem('hl_batch_inspectornotes', JSON.stringify(notes));
+        } catch (e) {
+          console.warn('Could not save verify data to localStorage:', e);
+        }
+      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang thẩm định OCOP...`, 'loading', 0);
@@ -479,7 +543,7 @@ export const App: React.FC = () => {
       await tx.wait();
       removeToast(waitToastId);
 
-      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP chính thức on-chain.`, 'success');
+      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao chính thức on-chain.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
@@ -805,8 +869,10 @@ export const App: React.FC = () => {
           {activeTab === 'inspector' && (
             <InspectorTab
               batches={batches}
+              isInspectorRole={isCurrentAccountInspector}
               onVerifyBatch={handleVerifyBatch}
               onRevokeVerification={handleRevokeVerification}
+              onConnectWallet={handleOpenRoleConnectModal}
             />
           )}
 
