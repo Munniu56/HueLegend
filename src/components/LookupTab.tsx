@@ -1,0 +1,360 @@
+import React, { useState, useEffect } from 'react';
+import { Batch } from '../types';
+import {
+  Search,
+  QrCode,
+  ShieldCheck,
+  Building2,
+  MapPin,
+  Calendar,
+  ExternalLink,
+  Printer,
+  CheckCircle2,
+  Clock,
+  UserCheck,
+  FileText,
+  AlertTriangle,
+  Camera,
+  Layers
+} from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { ETHERSCAN_BASE_URL } from '../constants';
+
+interface LookupTabProps {
+  batches: Record<string, Batch>;
+  selectedBatchCode?: string;
+  onOpenQRStampModal: (batchCode: string) => void;
+}
+
+export const LookupTab: React.FC<LookupTabProps> = ({
+  batches,
+  selectedBatchCode = 'HL-MEXUNG-2026-001',
+  onOpenQRStampModal,
+}) => {
+  const [searchCode, setSearchCode] = useState(selectedBatchCode);
+  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[selectedBatchCode] || null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  useEffect(() => {
+    if (selectedBatchCode && batches[selectedBatchCode]) {
+      setSearchCode(selectedBatchCode);
+      setActiveBatch(batches[selectedBatchCode]);
+    }
+  }, [selectedBatchCode, batches]);
+
+  const handleSearch = (code: string) => {
+    const formatted = code.trim().toUpperCase();
+    setSearchCode(formatted);
+    if (batches[formatted]) {
+      setActiveBatch(batches[formatted]);
+    } else {
+      setActiveBatch(null);
+    }
+  };
+
+  const currentOriginUrl = window.location.href;
+
+  return (
+    <div className="space-y-6">
+      {/* Top Search & Camera Scan Bar */}
+      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-[#264939] font-serif">
+              Tra Cứu & Xác Thực Nguồn Gốc Đặc Sản
+            </h2>
+            <p className="text-xs text-[#5E7166] mt-1">
+              Nhập mã định danh lô hàng (ví dụ: HL-MEXUNG-2026-001) hoặc quét mã tem QR niêm phong.
+            </p>
+          </div>
+
+          <button
+            onClick={() => onOpenQRStampModal(activeBatch?.batchCode || 'HL-MEXUNG-2026-001')}
+            disabled={!activeBatch}
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C29B38] text-white text-xs font-bold hover:bg-[#8C6D1F] transition-all shadow-xs disabled:opacity-50"
+          >
+            <Printer className="w-4 h-4" />
+            <span>In Tem QR Niêm Phong</span>
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchCode)}
+              placeholder="HL-MEXUNG-2026-001, HL-TOMCHUA-2026-002..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-sm font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+            />
+          </div>
+
+          <button
+            onClick={() => handleSearch(searchCode)}
+            className="px-6 py-2.5 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all"
+          >
+            Tra Cứu
+          </button>
+
+          <button
+            onClick={() => setIsScanning(!isScanning)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#E0ECE4] text-[#264939] font-bold text-xs rounded-xl hover:bg-[#d0e2d5] transition-all border border-[#CCD8CF]"
+          >
+            <Camera className="w-4 h-4" />
+            <span>{isScanning ? 'Tắt Camera' : 'Quét Mã Camera'}</span>
+          </button>
+        </div>
+
+        {/* Quick Batch Suggestion Pills */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#EDE9E0]">
+          <span className="text-[11px] font-bold text-[#8A9D92]">Gợi ý mẫu:</span>
+          {Object.keys(batches).map((code) => (
+            <button
+              key={code}
+              onClick={() => handleSearch(code)}
+              className={`text-xs font-mono px-2.5 py-1 rounded-lg border transition-all ${
+                searchCode === code
+                  ? 'bg-[#264939] text-white border-[#264939] font-bold'
+                  : 'bg-[#FAF9F5] text-[#3B4D43] border-[#E6E1D7] hover:border-[#264939]'
+              }`}
+            >
+              {code}
+            </button>
+          ))}
+        </div>
+
+        {/* Camera Simulator panel if toggled */}
+        {isScanning && (
+          <div className="p-4 bg-emerald-950 text-white rounded-xl text-center space-y-3 animate-in fade-in">
+            <div className="w-12 h-12 rounded-full bg-emerald-800/50 flex items-center justify-center mx-auto text-emerald-300">
+              <QrCode className="w-6 h-6 animate-pulse" />
+            </div>
+            <p className="text-xs text-emerald-200">
+              Đang giả lập Camera quét QR Code... Vui lòng chọn lô mẫu bên dưới để nhận diện lập tức:
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {Object.keys(batches).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => {
+                    handleSearch(code);
+                    setIsScanning(false);
+                  }}
+                  className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs font-mono font-bold text-white transition-all"
+                >
+                  Nhận diện {code}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Result Display */}
+      {activeBatch ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Summary Card */}
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-xs space-y-5 relative overflow-hidden">
+              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+                <div>
+                  <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider">
+                    Mã Định Danh Lô Hàng
+                  </span>
+                  <div className="font-mono text-base font-extrabold text-[#264939]">
+                    {activeBatch.batchCode}
+                  </div>
+                </div>
+
+                {activeBatch.isVerified ? (
+                  <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-extrabold shadow-2xs">
+                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+                    <span>ĐẠT OCOP</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-bold">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <span>Chờ Kiểm Định</span>
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <h3 className="font-serif font-extrabold text-xl text-[#1A2820] leading-snug">
+                  {activeBatch.productName}
+                </h3>
+                <p className="text-xs text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
+              </div>
+
+              {/* QR Code Graphic Box */}
+              <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
+                <QRCodeSVG
+                  value={`${currentOriginUrl}?batch=${activeBatch.batchCode}`}
+                  size={140}
+                  level="H"
+                  includeMargin={true}
+                />
+                <span className="text-[10px] text-[#8A9D92] font-mono">
+                  Quét bằng điện thoại để xem chứng nhận
+                </span>
+              </div>
+
+              {/* Key Metadata Details */}
+              <div className="space-y-3 text-xs border-t border-[#EDE9E0] pt-4">
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
+                    <p className="text-[#5E7166]">{activeBatch.origin}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
+                    <p className="text-[#5E7166]">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
+                    <p className="text-[#5E7166]">{activeBatch.quantity || 'Không ghi nhận'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5">
+                  <UserCheck className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[#1A2820]">Địa Chỉ Chủ Cơ Sở (Producer):</span>
+                    <a
+                      href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
+                    >
+                      {activeBatch.producer}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inspector Note Card if verified */}
+              {activeBatch.isVerified && activeBatch.inspectorNote && (
+                <div className="bg-amber-50/80 p-4 rounded-xl border border-amber-200 space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6D1F]">
+                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+                    <span>Ghi Chú Kiểm Định Viên OCOP:</span>
+                  </div>
+                  <p className="text-xs text-amber-900 leading-relaxed italic">
+                    "{activeBatch.inspectorNote}"
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Supply Chain Timeline Column */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-xs space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+                <div>
+                  <h3 className="text-lg font-extrabold text-[#264939] font-serif">
+                    Nhật Ký Hành Trình Supply Chain On-Chain
+                  </h3>
+                  <p className="text-xs text-[#5E7166]">
+                    Tất cả dữ liệu chặng được mã hóa và không thể sửa đổi sau khi ghi nhận.
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF]">
+                  {activeBatch.checkpoints?.length || 0} Chặng Đã Khai Báo
+                </span>
+              </div>
+
+              {/* Timeline Items */}
+              <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#CCD8CF]">
+                {activeBatch.checkpoints?.map((cp, idx) => {
+                  const dateStr = new Date(cp.timestamp * 1000).toLocaleString('vi-VN');
+
+                  return (
+                    <div key={idx} className="relative group">
+                      {/* Circle Node Indicator */}
+                      <div className="absolute -left-6 top-0 w-5 h-5 rounded-full bg-[#264939] border-4 border-white shadow-sm flex items-center justify-center text-white text-[9px] font-bold">
+                        {idx + 1}
+                      </div>
+
+                      <div className="bg-[#FAF9F5] p-5 rounded-2xl border border-[#E6E1D7] space-y-3 hover:border-[#264939] transition-all shadow-2xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#EDE9E0]">
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C29B38]">
+                              {cp.roleTitle || cp.role}
+                            </span>
+                            <h4 className="font-extrabold text-base text-[#1A2820]">
+                              {cp.stepName}
+                            </h4>
+                          </div>
+                          <span className="text-[11px] font-medium text-[#8A9D92] bg-white px-2.5 py-1 rounded-lg border border-[#EDE9E0]">
+                            {dateStr}
+                          </span>
+                        </div>
+
+                        {/* Location & Action */}
+                        <div className="space-y-2 text-xs text-[#3B4D43]">
+                          <div className="flex items-center gap-2 text-[#264939] font-bold">
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span>{cp.location}</span>
+                          </div>
+
+                          <p className="leading-relaxed text-[#1A2820] bg-white p-3 rounded-xl border border-[#EDE9E0]">
+                            {cp.action}
+                          </p>
+
+                          {cp.conditionNote && (
+                            <div className="text-[11px] text-[#5E7166] flex items-center gap-1.5 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span>Độ chuẩn bảo quản: {cp.conditionNote}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* On-Chain Verification Footer */}
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
+                          <div className="font-mono truncate max-w-xs">
+                            Địa chỉ ghi: {cp.recorder}
+                          </div>
+                          <a
+                            href={`${ETHERSCAN_BASE_URL}/tx/${cp.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline"
+                          >
+                            <span>Etherscan Tx</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white p-12 rounded-2xl border border-dashed border-red-200 text-center space-y-3">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto" />
+          <h3 className="text-base font-bold text-[#1A2820]">
+            Không Tìm Thấy Mã Lô Hàng: {searchCode}
+          </h3>
+          <p className="text-xs text-[#5E7166] max-w-md mx-auto">
+            Vui lòng kiểm tra lại mã lô hàng hoặc quét mã tem QR niêm phong chính hãng.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
