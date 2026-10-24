@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { DEFAULT_ADMIN_ADDRESS } from '../constants';
 
 interface RoleConnectModalProps {
   isOpen: boolean;
@@ -19,8 +20,8 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
       id: 'ADMIN',
       icon: '👑',
       title: 'Quản trị hệ thống',
-      description: 'Dành cho Admin & Ban quản lý OCOP (Cấu hình phí, gán vai trò RBAC)',
-      badge: 'Admin / Owner'
+      description: `Chỉ dành riêng cho Ví Admin mặc định (${DEFAULT_ADMIN_ADDRESS.slice(0, 6)}...${DEFAULT_ADMIN_ADDRESS.slice(-4)})`,
+      badge: 'Admin Only'
     },
     {
       id: 'SUPPLY_CHAIN',

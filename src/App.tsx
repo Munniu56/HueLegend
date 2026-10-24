@@ -6,7 +6,8 @@ import {
   PROJECT_CORE_ABI,
   SEPOLIA_CHAIN_ID,
   ROLE_HASHES,
-  ETHERSCAN_BASE_URL
+  ETHERSCAN_BASE_URL,
+  DEFAULT_ADMIN_ADDRESS
 } from './constants';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -137,14 +138,19 @@ export const App: React.FC = () => {
             isInspector = await contract.hasRole(activeAccount, ROLE_HASHES.ROLE_INSPECTOR);
           } catch (e) {}
 
-          setIsCurrentAccountAdmin(isOwner || isAdmin || simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
+          // Chi dia chi vi Admin mac dinh moi duoc cap quyen Admin
+          const isSpecifiedAdmin = Boolean(
+            activeAccount && activeAccount.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase()
+          );
+
+          setIsCurrentAccountAdmin(isSpecifiedAdmin);
           setIsCurrentAccountRetailer(isRetailer || simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
           setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
         } catch (roleErr) {
           console.warn('Could not check on-chain roles:', roleErr);
         }
       } else {
-        setIsCurrentAccountAdmin(simulatedRole === 'ADMIN' || simulatedRole === 'ALL');
+        setIsCurrentAccountAdmin(false);
         setIsCurrentAccountRetailer(simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
         setIsCurrentAccountInspector(simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
       }
@@ -270,15 +276,15 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, selectedLookupBatch]);
 
-  // Connect Wallet Procedure with explicit MetaMask Popup Login
-  const executeMetaMaskConnect = async () => {
+  // Procedure ket noi vi MetaMask va xac thuc vai tro
+  const executeMetaMaskConnect = async (targetRole?: string) => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       try {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         
         addToast('Kích Hoạt MetaMask', 'Đang mở cửa sổ MetaMask, vui lòng chọn tài khoản và xác nhận đăng nhập...', 'loading', 4000);
 
-        // 1. Ensure network is Sepolia (Chain ID: 11155111 / 0xaa36a7)
+        // 1. dam bao mang Sepolia
         try {
           await (window as any).ethereum.request({
             method: 'wallet_switchEthereumChain',
@@ -301,7 +307,7 @@ export const App: React.FC = () => {
           }
         }
 
-        // 2. Force MetaMask popup to prompt account login & permission approval every time
+        // 2. Yeu cau cap quyen MetaMask
         try {
           await (window as any).ethereum.request({
             method: 'wallet_requestPermissions',
@@ -313,12 +319,34 @@ export const App: React.FC = () => {
           }
         }
 
-        // 3. Request accounts after explicit user permission approval
+        // 3. Lay dia chi vi sau khi chap thuan
         const accounts = await provider.send('eth_requestAccounts', []);
         if (accounts.length > 0) {
           const connectedAddr = accounts[0];
           setCurrentAccount(connectedAddr);
           setIsDemoMode(false);
+
+          const isDefaultAdmin = connectedAddr.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase();
+
+          let activeRole = targetRole || simulatedRole;
+
+          if (activeRole === 'ADMIN' && !isDefaultAdmin) {
+            addToast(
+              'Từ Chối Quyền Quản Trị Viên',
+              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} không phải ví Admin mặc định (0x82d0...19A7). Đã chuyển về vai trò Khách Hàng.`,
+              'warning',
+              7000
+            );
+            activeRole = 'CUSTOMER';
+            if (activeTab === 'admin') {
+              setActiveTab('overview');
+            }
+          }
+
+          setSimulatedRole(activeRole);
+          setIsCurrentAccountAdmin(isDefaultAdmin);
+          setIsCurrentAccountRetailer(activeRole === 'RETAILER' || activeRole === 'ALL');
+
           addToast('Đăng Nhập Thành Công', `Đã xác nhận ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);
         } else {
@@ -332,17 +360,16 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open Modal or Wallet Details depending on connection status
+  // Mo modal hoac xem chi tiet vi tuy theo trang thai
   const handleOpenRoleConnectModal = () => {
     if (currentAccount) {
-      // Already connected -> Open Wallet Details Modal with parameters & disconnect button
       setIsWalletDetailsModalOpen(true);
     } else {
       setIsRoleModalOpen(true);
     }
   };
 
-  // Disconnect Wallet Handler (Clear account completely)
+  // Ngat ket noi vi
   const handleDisconnectWallet = () => {
     setCurrentAccount(null);
     setIsWalletDetailsModalOpen(false);
@@ -362,12 +389,9 @@ export const App: React.FC = () => {
       CUSTOMER: 'CUSTOMER'
     };
     
-    const targetRole = roleMapping[roleKey] || 'ALL';
-    setSimulatedRole(targetRole);
-    setIsCurrentAccountAdmin(targetRole === 'ADMIN' || targetRole === 'ALL');
-    setIsCurrentAccountRetailer(targetRole === 'RETAILER' || targetRole === 'ALL');
+    const targetRole = roleMapping[roleKey] || 'CUSTOMER';
 
-    // Kiem tra tab hien tai co hop le voi vai tro moi hay khong, neu khong thi chuyen ve overview
+    // Kiem tra tab hien tai co hop le voi vai tro moi hay khong
     if ((targetRole === 'PRODUCER' || targetRole === 'SUPPLY_CHAIN') && !['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(activeTab)) {
       setActiveTab('overview');
     } else if ((targetRole === 'RETAILER' || targetRole === 'COMMERCE') && !['overview', 'lookup', 'store', 'retailer'].includes(activeTab)) {
@@ -376,9 +400,11 @@ export const App: React.FC = () => {
       setActiveTab('overview');
     } else if (targetRole === 'CUSTOMER' && !['overview', 'lookup', 'store'].includes(activeTab)) {
       setActiveTab('overview');
+    } else if (targetRole === 'ADMIN' && activeTab === 'admin') {
+      // Sẽ duoc kiem tra trong executeMetaMaskConnect neu dia chi vi khong fai admin mac dinh
     }
 
-    await executeMetaMaskConnect();
+    await executeMetaMaskConnect(targetRole);
   };
 
   // Listen for account changes ONLY if user is currently logged in (No auto-login)

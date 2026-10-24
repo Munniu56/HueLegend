@@ -221,15 +221,15 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
       </div>
 
-      {/* RBAC Warning Banner for non-Admin wallets */}
+      {/* Thong bao RBAC danh cho cac vi khong phai Admin mac dinh */}
       {!isAdminRole && (
         <div className="bg-red-50 border-2 border-red-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-red-950 font-sans shadow-2xs">
           <div className="flex items-center gap-3">
             <ShieldAlert className="w-6 h-6 text-red-600 shrink-0" />
             <div>
-              <span className="font-bold block text-sm text-red-950 font-serif">Yêu Cầu Quyền Quản Trị Hệ Thống (Owner / Admin)</span>
-              <span className="text-red-900 font-medium">
-                Vui lòng kết nối ví Quản trị viên (Owner / Admin) đã được phân quyền để thực hiện gán quyền, cấu hình phí và quản lý Treasury.
+              <span className="font-bold block text-sm text-red-950 font-serif">Yêu Cầu Quyền Quản Trị Hệ Thống (Ví Admin Mặc Định)</span>
+              <span className="text-red-900 font-medium block">
+                Chỉ ví Admin mặc định <code className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-950 font-bold border border-red-300">0x82d022a704706B2f144863D619D7418F8a0f19A7</code> mới được cấp quyền truy cập Quản trị viên.
               </span>
             </div>
           </div>

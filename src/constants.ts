@@ -6,6 +6,9 @@ export const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111
 export const SEPOLIA_DECIMAL_ID = 11155111;
 export const ETHERSCAN_BASE_URL = "https://sepolia.etherscan.io";
 
+// Vi quan tri vien mac dinh
+export const DEFAULT_ADMIN_ADDRESS = "0x82d022a704706B2f144863D619D7418F8a0f19A7";
+
 export const ROLE_HASHES = {
   ROLE_ADMIN: "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42",
   ROLE_PRODUCER: "0x2c0f20977a41ca739e03496033e64f7b605151ee67b93b827e8a946ad4ee2678",
