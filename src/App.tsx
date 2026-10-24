@@ -460,10 +460,10 @@ export const App: React.FC = () => {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
 
-      // Chuan hoa dia chi vi nguoi dung va hop dong bang ethers.getAddress EIP-55 checksum
+      // Chuan hoa dia chi vi nguoi dung va hop dong bang safeGetAddress EIP-55 checksum
       const rawUserAddr = await signer.getAddress();
-      const cleanUserAddress = ethers.getAddress(rawUserAddr);
-      const cleanContractAddress = ethers.getAddress(CONTRACT_ADDRESS);
+      const cleanUserAddress = safeGetAddress(rawUserAddr);
+      const cleanContractAddress = safeGetAddress(CONTRACT_ADDRESS);
 
       const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
 

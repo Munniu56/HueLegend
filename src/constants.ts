@@ -1,13 +1,16 @@
 import { ethers } from 'ethers';
 import { Batch } from './types';
 
-// Ham chuan hoa dia chi vi EIP-55 bang ethers.getAddress
+// Ham chuan hoa dia chi vi EIP-55 bang ethers.getAddress tu chuoi lowercased
 export const safeGetAddress = (address: string): string => {
   if (!address || typeof address !== 'string') return address;
+  const cleaned = address.trim();
+  if (!cleaned) return cleaned;
   try {
-    return ethers.getAddress(address.trim());
+    // Chuyen ve toLowerCase() de ethers.getAddress luon tinh lai checksum EIP-55 chinh xac va khong bi throw bad address checksum
+    return ethers.getAddress(cleaned.toLowerCase());
   } catch (err) {
-    return address.trim();
+    return cleaned;
   }
 };
 
