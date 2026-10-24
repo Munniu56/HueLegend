@@ -247,15 +247,15 @@ Nhóm đã triển khai kiểm thử toàn diện tại [`test/ProjectCore.test.
 ## 12. Phiên làm việc Lab 16: Tắt Tự Động Kết Nối Ví & Bổ Sung Modal Thông Số Ví Kết Nối
 
 ### 12.1. Câu lệnh (Prompt) đưa vào trợ lý AI:
-> *"không tự đăng nhập mỗi lần vào thì sẽ phải đăng nhập lại, sau khi kết nối ví thì khi bấm vào ví đã kết nối thì sẽ có hiện các thông số cơ bản và nút ngắt kết nối. khi bấm vào các 1 trong 4 vài trò thì sẽ dẫn tới MetaMask đăng nhập vào thì mới là đăng nhập thành công"*
+> *"không tự lưu tài khoản mỗi lần đăng nhập đều phải hiện cửa sổ MetaMask để đăng nhập"*
 
 ### 12.2. Phân tích của Trợ lý AI và Kết quả triển khai:
-1. **Loại bỏ Tự động Đăng nhập (`Auto-connect on load`):**
-   - Đã gỡ bỏ đoạn mã tự động gọi `provider.listAccounts()` trong `useEffect` khi tải trang/làm mới trang tại `App.tsx`.
-   - Mỗi lần người dùng F5 hoặc truy cập lại hệ thống, ứng dụng luôn ở trạng thái "Chưa kết nối ví", đảm bảo tính riêng tư và bảo mật theo chuẩn Web3 dApp.
-2. **Kích hoạt MetaMask Bắt Buộc Xác Nhận Đăng Nhập:**
-   - Khi bấm vào 1 trong 4 vai trò, hệ thống gửi lệnh `wallet_requestPermissions` mở cửa sổ MetaMask bật popup trực tiếp lên màn hình yêu cầu người dùng xác nhận cấp quyền đăng nhập.
-   - Chỉ khi người dùng đồng ý trong MetaMask thì hệ thống mới ghi nhận trạng thái đăng nhập thành công. Nếu người dùng hủy hoặc đóng MetaMask, trạng thái ví vẫn giữ nguyên không đăng nhập.
+1. **Loại bỏ Tự động Lưu & Tự động Đăng nhập:**
+   - Hoàn toàn không lưu địa chỉ ví vào `localStorage`, `sessionStorage` hay state kéo dài.
+   - Hàm lắng nghe `accountsChanged` chỉ được xử lý khi người dùng đã có phiên đăng nhập chủ động. Nếu đang ở trạng thái chưa kết nối (`currentAccount === null`), sự kiện thay đổi ví trên MetaMask sẽ không tự động kích hoạt đăng nhập dApp.
+2. **Ép Bật Cửa Sổ MetaMask (`wallet_requestPermissions`) mỗi lần Đăng nhập:**
+   - Mỗi lần bấm "Kết nối ví" và chọn 1 trong 4 vai trò, hệ thống gửi lệnh `wallet_requestPermissions` trực tiếp ép mở cửa sổ popup MetaMask yêu cầu chọn tài khoản & ủy quyền cấp phép.
+   - Chỉ khi người dùng bấm xác nhận trên cửa sổ MetaMask thì dApp mới chính thức thiết lập trạng thái `currentAccount`.
 3. **Xây dựng Modal Chi Tiết Thông Số Ví (`WalletDetailsModal.tsx`):**
    - Khi người dùng đã kết nối thành công, nhấp vào nút ví trên Header (`0x...3C6b`) sẽ mở Modal hiển thị chi tiết các thông số:
      - **Địa chỉ ví đầy đủ & Nút liên kết Etherscan Sepolia**

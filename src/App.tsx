@@ -174,7 +174,7 @@ export const App: React.FC = () => {
       try {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         
-        addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận đăng nhập trên cửa sổ MetaMask...', 'loading', 3000);
+        addToast('Kích Hoạt MetaMask', 'Đang mở cửa sổ MetaMask, vui lòng chọn tài khoản và xác nhận đăng nhập...', 'loading', 4000);
 
         // 1. Ensure network is Sepolia (Chain ID: 11155111 / 0xaa36a7)
         try {
@@ -199,7 +199,7 @@ export const App: React.FC = () => {
           }
         }
 
-        // 2. Force MetaMask popup to prompt account login & permission approval
+        // 2. Force MetaMask popup to prompt account login & permission approval every time
         try {
           await (window as any).ethereum.request({
             method: 'wallet_requestPermissions',
@@ -207,23 +207,23 @@ export const App: React.FC = () => {
           });
         } catch (permErr: any) {
           if (permErr?.code === 4001) {
-            throw new Error('Bạn đã hủy đăng nhập trên cửa sổ MetaMask.');
+            throw new Error('Bạn đã hủy thao tác đăng nhập trên cửa sổ MetaMask.');
           }
         }
 
-        // 3. Request accounts after permission prompt
+        // 3. Request accounts after explicit user permission approval
         const accounts = await provider.send('eth_requestAccounts', []);
         if (accounts.length > 0) {
           const connectedAddr = accounts[0];
           setCurrentAccount(connectedAddr);
           setIsDemoMode(false);
-          addToast('Đăng Nhập Thành Công', `Đã kết nối ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
+          addToast('Đăng Nhập Thành Công', `Đã xác nhận ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);
         } else {
-          addToast('Đăng Nhập Thất Bại', 'Không thể lấy địa chỉ ví từ MetaMask.', 'warning');
+          addToast('Đăng Nhập Thất Bại', 'Không thể lấy địa chỉ ví từ cửa sổ MetaMask.', 'warning');
         }
       } catch (err: any) {
-        addToast('Lỗi Đăng Nhập Ví', err?.message || 'Không thể đăng nhập qua MetaMask', 'error');
+        addToast('Đăng Nhập Thất Bại', err?.message || 'Không thể đăng nhập qua cửa sổ MetaMask', 'error');
       }
     } else {
       addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension trên trình duyệt để đăng nhập Web3.', 'warning');
@@ -240,11 +240,11 @@ export const App: React.FC = () => {
     }
   };
 
-  // Disconnect Wallet Handler
+  // Disconnect Wallet Handler (Clear account completely)
   const handleDisconnectWallet = () => {
     setCurrentAccount(null);
     setIsWalletDetailsModalOpen(false);
-    addToast('Đã Ngắt Kết Nối Ví', 'Đã ngắt kết nối với ví MetaMask thành công.', 'info');
+    addToast('Đã Ngắt Kết Nối Ví', 'Đã xoá phiên đăng nhập. Lần đăng nhập tới sẽ yêu cầu mở cửa sổ MetaMask mới.', 'info');
   };
 
   // Role Selection in Modal -> Connect MetaMask
@@ -263,16 +263,16 @@ export const App: React.FC = () => {
     await executeMetaMaskConnect();
   };
 
-  // Listen for account changes (Do NOT auto-connect on page load/refresh)
+  // Listen for account changes ONLY if user is currently logged in (No auto-login)
   useEffect(() => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length > 0) {
+        if (accounts.length === 0) {
+          setCurrentAccount(null);
+        } else if (currentAccount) {
+          // Only switch account if user has actively logged in previously
           setCurrentAccount(accounts[0]);
           fetchContractData(accounts[0]);
-        } else {
-          setCurrentAccount(null);
-          setBatches({});
         }
       };
 
@@ -284,7 +284,7 @@ export const App: React.FC = () => {
         }
       };
     }
-  }, [fetchContractData]);
+  }, [currentAccount, fetchContractData]);
 
   // Navigation Helper
   const handleNavigateTab = (tab: string, batchCodeSelect?: string) => {
