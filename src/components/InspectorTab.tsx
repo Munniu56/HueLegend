@@ -1,6 +1,22 @@
 import React, { useState } from 'react';
 import { Batch } from '../types';
-import { ShieldCheck, AlertOctagon, Award, Clock, CheckCircle2, AlertTriangle, Star } from 'lucide-react';
+import {
+  ShieldCheck,
+  AlertOctagon,
+  Award,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Star,
+  MapPin,
+  UserCheck,
+  Calendar,
+  ExternalLink,
+  Package,
+  Coins,
+  FileText
+} from 'lucide-react';
+import { ETHERSCAN_BASE_URL } from '../constants';
 
 interface InspectorTabProps {
   batches: Record<string, Batch>;
@@ -200,38 +216,124 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
           </div>
         </div>
 
+        {/* Right Column: Complete Batch Creation Details */}
         <div className="space-y-6 font-sans">
           {selectedBatch ? (
-            <div className="bg-white p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-3">
-              <div className="pb-3 border-b border-[#EDE9E0]">
-                <span className="text-[10px] font-bold text-[#8A9D92] uppercase">Trạng Thái Lô Hàng</span>
-                <div className="font-mono text-sm font-extrabold text-[#264939]">{selectedBatch.batchCode}</div>
-                <h3 className="font-serif font-bold text-base text-[#1A2820] mt-1">{selectedBatch.productName}</h3>
+            <div className="bg-white p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-4">
+              <div className="pb-3 border-b border-[#EDE9E0] flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider block">
+                    Chi Tiết Khai Báo Lô Hàng
+                  </span>
+                  <div className="font-mono text-sm font-extrabold text-[#264939] mt-0.5">
+                    {selectedBatch.batchCode}
+                  </div>
+                </div>
+                <Package className="w-5 h-5 text-[#C29B38]" />
               </div>
 
-              {selectedBatch.isVerified ? (
-                <div className="space-y-2">
-                  <span className="inline-flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-extrabold">
-                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-                    <span>ĐÃ CHỨNG NHẬN OCOP</span>
-                  </span>
-                  {selectedBatch.starRating && (
-                    <div className="text-xs font-bold text-[#C29B38] flex items-center gap-1 pt-1">
-                      <Star className="w-3.5 h-3.5 fill-[#C29B38]" />
-                      <span>Xếp hạng: {selectedBatch.starRating} Sao OCOP</span>
-                    </div>
-                  )}
+              {/* Specialty Product Image Preview */}
+              <div className="bg-[#FAF9F5] p-3 rounded-2xl border border-[#E6E1D7] space-y-2 text-center">
+                <div className="relative overflow-hidden rounded-xl bg-white border border-[#EDE9E0] p-2 flex items-center justify-center">
+                  <img
+                    src={selectedBatch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                    alt={selectedBatch.productName}
+                    className="max-h-40 w-full object-contain rounded-lg"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
+                    }}
+                  />
                 </div>
-              ) : (
-                <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                  <Clock className="w-3.5 h-3.5 text-gray-400" />
-                  <span>CHƯA XÁC NHẬN</span>
-                </span>
-              )}
+                <div className="text-[11px] font-extrabold text-[#1A2820] font-serif">
+                  {selectedBatch.productName}
+                </div>
+              </div>
 
-              <div className="pt-3 border-t border-[#EDE9E0] text-[11px] text-[#5E7166] space-y-1">
-                <div>• Phí thẩm định: <strong className="text-emerald-700">0.002 ETH (Đã thu)</strong></div>
-                <div>• Quyền thẩm định: <strong className="text-[#1A2820]">ROLE_INSPECTOR</strong></div>
+              {/* Status Badge */}
+              <div className="bg-[#FAF9F5] p-3 rounded-xl border border-[#E6E1D7] space-y-2">
+                <span className="text-[10px] font-bold text-[#8A9D92] uppercase block">
+                  TRẠNG THÁI KIỂM ĐỊNH OCOP:
+                </span>
+                {selectedBatch.isVerified ? (
+                  <div className="space-y-1">
+                    <span className="inline-flex items-center gap-1.5 bg-amber-100 text-[#8C6D1F] border border-amber-300 px-3 py-1 rounded-full text-xs font-extrabold">
+                      <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+                      <span>ĐÃ CẤP CHỨNG NHẬN OCOP</span>
+                    </span>
+                    {selectedBatch.starRating && (
+                      <div className="text-xs font-bold text-[#C29B38] flex items-center gap-1 pt-1">
+                        <Star className="w-3.5 h-3.5 fill-[#C29B38]" />
+                        <span>Xếp hạng: {selectedBatch.starRating} Sao OCOP</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>CHỜ CẤP CHỨNG NHẬN OCOP</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Full Created Batch Attributes List */}
+              <div className="space-y-2.5 text-xs text-[#5E7166]">
+                <div className="flex items-start justify-between gap-2 p-2 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                  <span className="font-medium flex items-center gap-1 text-[11px]">
+                    <MapPin className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                    <span>Nguồn gốc / Địa danh:</span>
+                  </span>
+                  <strong className="text-[#1A2820] text-right font-bold truncate max-w-[150px]">
+                    {selectedBatch.origin || 'Thừa Thiên Huế'}
+                  </strong>
+                </div>
+
+                <div className="flex items-start justify-between gap-2 p-2 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                  <span className="font-medium flex items-center gap-1 text-[11px]">
+                    <UserCheck className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                    <span>CS SX (Ví On-Chain):</span>
+                  </span>
+                  <a
+                    href={`${ETHERSCAN_BASE_URL}/address/${selectedBatch.producer}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono text-emerald-800 font-bold hover:underline flex items-center gap-1 truncate max-w-[130px]"
+                  >
+                    <span>{selectedBatch.producer ? `${selectedBatch.producer.slice(0, 6)}...${selectedBatch.producer.slice(-4)}` : 'Chưa có'}</span>
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                  </a>
+                </div>
+
+                <div className="flex items-start justify-between gap-2 p-2 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                  <span className="font-medium flex items-center gap-1 text-[11px]">
+                    <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                    <span>Thời gian khởi tạo:</span>
+                  </span>
+                  <strong className="text-[#1A2820] text-right font-mono text-[11px]">
+                    {selectedBatch.createdAt ? new Date(selectedBatch.createdAt * 1000).toLocaleDateString('vi-VN') : 'Mới tạo'}
+                  </strong>
+                </div>
+
+                <div className="flex items-start justify-between gap-2 p-2 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                  <span className="font-medium flex items-center gap-1 text-[11px]">
+                    <Coins className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                    <span>Phí thẩm định gộp:</span>
+                  </span>
+                  <strong className="text-emerald-700 font-mono text-[11px]">
+                    0.002 ETH (Đã thu)
+                  </strong>
+                </div>
+
+                {selectedBatch.checkpoints?.[0]?.metadataURI && (
+                  <div className="p-2 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0] space-y-1">
+                    <span className="font-medium flex items-center gap-1 text-[10px] text-[#8A9D92]">
+                      <FileText className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                      <span>METADATA URI ON-CHAIN:</span>
+                    </span>
+                    <div className="font-mono text-[10px] text-[#264939] truncate bg-white p-1 rounded border border-[#EDE9E0]">
+                      {selectedBatch.checkpoints[0].metadataURI}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

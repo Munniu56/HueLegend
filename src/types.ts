@@ -31,6 +31,7 @@ export interface Batch {
   currentStage?: string;
   inspectorNote?: string;
   certificateURI?: string;
+  imageUrl?: string; // Hinh anh dac san duoc tai len khi tao lo
   txHash?: string;
   verifyTxHash?: string;
   inspectionFeePaid?: string;

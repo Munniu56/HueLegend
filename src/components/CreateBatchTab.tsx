@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Wallet, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Wallet, AlertTriangle, Upload, Image as ImageIcon, Sparkles } from 'lucide-react';
 
 interface CreateBatchTabProps {
   batchCreationFeeEth: string;
@@ -7,7 +7,7 @@ interface CreateBatchTabProps {
   isProducerRole?: boolean;
   currentAccount?: string | null;
   onConnectWallet?: () => void;
-  onCreateBatch: (batchCode: string, productName: string, origin: string, metadataURI: string) => Promise<void>;
+  onCreateBatch: (batchCode: string, productName: string, origin: string, metadataURI: string, imageUrl?: string) => Promise<void>;
   onDepositStake?: (amountEth: string) => Promise<void>;
   onWithdrawStake?: () => Promise<void>;
 }
@@ -21,7 +21,31 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   const [batchCode, setBatchCode] = useState('');
   const [productName, setProductName] = useState('');
   const [origin, setOrigin] = useState('');
+  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Danh sach anh dac san Cố Đô Huế mẫu
+  const sampleSpecialtyImages = [
+    { name: 'Mè Xửng Huế', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600' },
+    { name: 'Trà Cung Đình', url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=600' },
+    { name: 'Dầu Tràm Huế', url: 'https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&q=80&w=600' },
+    { name: 'Nón Lá Bài Thơ', url: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&q=80&w=600' },
+    { name: 'Tôm Chua Cố Đô', url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&q=80&w=600' },
+  ];
+
+  // Xu ly tai anh tu may tinh
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setImageUrl(reader.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Auto-generate batch code from product name
   const generateBatchCodeFromProductName = (name: string): string => {
@@ -62,7 +86,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
     setIsSubmitting(true);
     try {
       const generatedMetadataURI = `ipfs://huelegend/batch/${batchCode.trim()}`;
-      await onCreateBatch(batchCode.trim(), productName.trim(), origin.trim(), generatedMetadataURI);
+      await onCreateBatch(batchCode.trim(), productName.trim(), origin.trim(), generatedMetadataURI, imageUrl);
       setBatchCode('');
       setProductName('');
       setOrigin('');
@@ -158,7 +182,80 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
             />
           </div>
 
+          {/* Specialty Product Image Upload Section */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-[#1A2820]">
+              Hình Ảnh Đặc Sản *
+            </label>
 
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Image Preview Card */}
+              <div className="bg-[#FAF9F5] p-3 rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center text-center">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt="Preview Đặc Sản"
+                    className="h-24 w-full object-contain rounded-xl bg-white border border-[#EDE9E0] p-1"
+                  />
+                ) : (
+                  <div className="h-24 w-full flex flex-col items-center justify-center text-gray-400 bg-white rounded-xl border border-dashed border-[#CCD8CF]">
+                    <ImageIcon className="w-6 h-6 text-gray-300" />
+                    <span className="text-[10px] mt-1">Chưa có ảnh</span>
+                  </div>
+                )}
+                <span className="text-[10px] font-bold text-[#264939] mt-2">Xem Trước Ảnh Lô Hàng</span>
+              </div>
+
+              {/* Upload Input & Presets */}
+              <div className="sm:col-span-2 space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-[#E0ECE4] text-[#264939] text-xs font-bold border border-[#CCD8CF] cursor-pointer hover:bg-[#d0e2d5] transition-all">
+                    <Upload className="w-4 h-4 text-[#264939]" />
+                    <span>Tải Ảnh Từ Máy Tính</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <input
+                    type="text"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="Hoặc dán đường dẫn ảnh URL (https://...)..."
+                    className="w-full px-3 py-1.5 rounded-xl border border-[#E6E1D7] text-[11px] font-mono focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+                  />
+                </div>
+
+                {/* Preset Selector */}
+                <div>
+                  <span className="text-[10px] font-bold text-[#8A9D92] block mb-1">
+                    Hoặc chọn ảnh đặc sản mẫu:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {sampleSpecialtyImages.map((sample) => (
+                      <button
+                        type="button"
+                        key={sample.name}
+                        onClick={() => setImageUrl(sample.url)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                          imageUrl === sample.url
+                            ? 'bg-[#264939] text-white border-[#264939]'
+                            : 'bg-[#FAF9F5] text-[#5E7166] border-[#E6E1D7] hover:border-[#264939]'
+                        }`}
+                      >
+                        {sample.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="pt-3 border-t border-[#EDE9E0] flex justify-end">
             <button

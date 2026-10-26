@@ -557,7 +557,8 @@ export const App: React.FC = () => {
     batchCode: string,
     productName: string,
     origin: string,
-    metadataURI: string
+    metadataURI: string,
+    imageUrl?: string
   ) => {
     // Bat buoc phai ket noi vi MetaMask truoc khi khoi tao
     if (!currentAccount) {
@@ -570,6 +571,7 @@ export const App: React.FC = () => {
     const cleanProductName = productName.trim();
     const cleanOrigin = origin.trim();
     const cleanMetadataURI = metadataURI.trim();
+    const finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 
     const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch createBatch() trên MetaMask...', 'loading', 0);
 
@@ -613,6 +615,7 @@ export const App: React.FC = () => {
         batchCode: cleanBatchCode,
         productName: cleanProductName,
         origin: cleanOrigin,
+        imageUrl: finalImageUrl,
         createdAt: Math.floor(Date.now() / 1000),
         producer: cleanUserAddress,
         isVerified: false,
