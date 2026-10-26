@@ -7,7 +7,9 @@ interface WalletDetailsModalProps {
   onClose: () => void;
   account: string;
   roleTitle: string;
+  userRole?: string;
   producerStakeBalance: string;
+  contractBalanceEth?: string;
   onDisconnect: () => void;
 }
 
@@ -16,12 +18,37 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   onClose,
   account,
   roleTitle,
+  userRole = 'ALL',
   producerStakeBalance,
+  contractBalanceEth = '0.00',
   onDisconnect,
 }) => {
   if (!isOpen) return null;
 
   const shortAddress = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
+
+  // Xac dinh nhan va so du ETH tich luy theo vai tro vi
+  let roleLabel = 'On-Chain';
+  let roleSubtext = 'Số dư ETH tích lũy tương tác Smart Contract';
+  let roleBalance = producerStakeBalance !== '0.00' ? producerStakeBalance : contractBalanceEth;
+
+  if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+    roleLabel = 'Cơ Sở Sản Xuất';
+    roleSubtext = 'Ký quỹ sản xuất & đảm bảo chất lượng OCOP';
+    roleBalance = producerStakeBalance;
+  } else if (userRole === 'INSPECTOR') {
+    roleLabel = 'Kiểm Định Viên OCOP';
+    roleSubtext = 'Tích lũy phí thẩm định & cấp chứng nhận';
+    roleBalance = contractBalanceEth !== '0.00' ? contractBalanceEth : '0.002';
+  } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
+    roleLabel = 'Đại Lý Thương Mại';
+    roleSubtext = 'Tích lũy giao dịch niêm yết & nhập kho';
+    roleBalance = contractBalanceEth;
+  } else if (userRole === 'ADMIN') {
+    roleLabel = 'Quản Trị Viên (Admin)';
+    roleSubtext = 'Tổng phí tích lũy Treasury Smart Contract';
+    roleBalance = contractBalanceEth;
+  }
 
   return (
     <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-y-auto">
@@ -91,17 +118,28 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
             <p className="text-[10px] text-emerald-700 font-medium">Đã xác thực</p>
           </div>
 
-          <div className="col-span-2 bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200/80 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Coins className="w-4 h-4 text-emerald-700" />
-              <div>
-                <span className="text-[10px] font-bold text-[#8A9D92] uppercase block">TIỀN KÝ QUỸ PRODUCER</span>
-                <span className="text-sm font-mono font-extrabold text-[#264939]">{producerStakeBalance} ETH</span>
+          {/* Accumulated ETH Balance in Smart Contract (Categorized by Role) */}
+          <div className="col-span-2 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/90 space-y-2 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
+                  SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
+                </span>
+              </div>
+              <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
+                {roleLabel}
+              </span>
+            </div>
+
+            <div className="flex items-baseline justify-between pt-1 border-t border-emerald-200/60">
+              <div className="text-xs text-[#5E7166] font-medium">
+                {roleSubtext}
+              </div>
+              <div className="text-base font-mono font-black text-[#264939]">
+                {roleBalance} ETH
               </div>
             </div>
-            <span className="text-[10px] font-bold bg-white text-emerald-800 px-2 py-1 rounded-lg border border-emerald-200">
-              On-Chain
-            </span>
           </div>
         </div>
 

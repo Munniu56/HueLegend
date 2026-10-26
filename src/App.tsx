@@ -1127,6 +1127,7 @@ export const App: React.FC = () => {
         isOpen={isWalletDetailsModalOpen}
         onClose={() => setIsWalletDetailsModalOpen(false)}
         account={currentAccount || ''}
+        userRole={simulatedRole}
         roleTitle={getRoleTitle(
           simulatedRole === 'ADMIN' ? ROLE_HASHES.ROLE_ADMIN :
           simulatedRole === 'PRODUCER' ? ROLE_HASHES.ROLE_PRODUCER :
@@ -1134,6 +1135,7 @@ export const App: React.FC = () => {
           simulatedRole === 'INSPECTOR' ? ROLE_HASHES.ROLE_INSPECTOR : ''
         )}
         producerStakeBalance={producerStakeBalance}
+        contractBalanceEth={contractBalanceEth}
         onDisconnect={handleDisconnectWallet}
       />
 
