@@ -223,26 +223,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
         </div>
       </div>
 
-      {/* Thong bao RBAC danh cho cac vi khong phai Admin mac dinh */}
-      {!isAdminRole && (
-        <div className="bg-red-50 border-2 border-red-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-red-950 font-sans shadow-2xs">
-          <div className="flex items-center gap-3">
-            <ShieldAlert className="w-6 h-6 text-red-600 shrink-0" />
-            <div>
-              <span className="font-bold block text-sm text-red-950 font-serif">Yêu Cầu Quyền Quản Trị Hệ Thống (Ví Admin Mặc Định)</span>
-              <span className="text-red-900 font-medium block">
-                Chỉ ví Admin mặc định <code className="font-mono bg-red-100 px-1.5 py-0.5 rounded text-red-950 font-bold border border-red-300">0x82d022a704706B2f144863D619D7418F8a0f19A7</code> mới được cấp quyền truy cập Quản trị viên.
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={onConnectWallet}
-            className="px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs shrink-0"
-          >
-            Chuyển Ví / Chọn Admin
-          </button>
-        </div>
-      )}
+
 
       {/* 5 Production Feature Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

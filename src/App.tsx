@@ -47,34 +47,6 @@ export const App: React.FC = () => {
   const [isSystemPaused, setIsSystemPaused] = useState(false);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
 
-  // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedBatches = localStorage.getItem('hl_local_batches');
-        if (savedBatches) {
-          const parsed = JSON.parse(savedBatches);
-          if (parsed && Object.keys(parsed).length > 0) {
-            setBatches(parsed);
-            setSelectedLookupBatch((prev) => prev || Object.keys(parsed)[0]);
-          }
-        }
-
-        const savedRole = localStorage.getItem('hl_user_role');
-        if (savedRole) {
-          setSimulatedRole(savedRole);
-        }
-
-        const savedAccount = localStorage.getItem('hl_connected_account');
-        if (savedAccount) {
-          setCurrentAccount(savedAccount);
-        }
-      } catch (e) {
-        console.warn('Error restoring state from localStorage:', e);
-      }
-    }
-  }, []);
-
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -108,8 +80,24 @@ export const App: React.FC = () => {
     return 'Đơn Vị Tham Gia';
   };
 
-  // Fetch real Smart Contract data from Sepolia Testnet
+  // Fetch real Smart Contract data from Sepolia Testnet with Guaranteed Local Data Retention
   const fetchContractData = useCallback(async (accountAddr?: string) => {
+    // 1. Luon khoi phuc du lieu LocalStorage TRUOC TIEN ngay khi goi ham
+    let localBatches: Record<string, Batch> = {};
+    if (typeof window !== 'undefined') {
+      try {
+        const localBatchesStr = localStorage.getItem('hl_local_batches');
+        if (localBatchesStr) {
+          localBatches = JSON.parse(localBatchesStr);
+          if (Object.keys(localBatches).length > 0) {
+            setBatches(localBatches);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not parse local batches from localStorage:', e);
+      }
+    }
+
     if (typeof window === 'undefined' || !(window as any).ethereum) {
       return;
     }
@@ -169,7 +157,6 @@ export const App: React.FC = () => {
             isInspector = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_INSPECTOR);
           } catch (e) {}
 
-          // Chi dia chi vi Admin mac dinh moi duoc cap quyen Admin
           const isSpecifiedAdmin = Boolean(
             normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase()
           );
@@ -194,48 +181,6 @@ export const App: React.FC = () => {
         console.warn('Could not read totalBatches from contract getters:', err);
       }
 
-      // Query BatchCreated events to extract txHash
-      const eventTxHashes: Record<string, string> = {};
-      try {
-        const events = await contract.queryFilter(contract.filters.BatchCreated());
-        events.forEach((evt: any) => {
-          if (evt.args && evt.args.batchCode && evt.transactionHash) {
-            eventTxHashes[evt.args.batchCode] = evt.transactionHash;
-          }
-        });
-      } catch (e) {
-        console.warn('Could not query BatchCreated events:', e);
-      }
-
-      // Query BatchVerified events to extract verifyTxHash
-      const eventVerifyTxHashes: Record<string, string> = {};
-      try {
-        const verifyEvents = await contract.queryFilter(contract.filters.BatchVerified());
-        verifyEvents.forEach((evt: any) => {
-          if (evt.args && evt.args.batchCode && evt.transactionHash) {
-            eventVerifyTxHashes[evt.args.batchCode] = evt.transactionHash;
-          }
-        });
-      } catch (e) {
-        console.warn('Could not query BatchVerified events:', e);
-      }
-
-      const localTxHashes = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}')
-        : {};
-
-      const localVerifyTxHashes = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('hl_verify_txhashes') || '{}')
-        : {};
-
-      const localStarRatings = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}')
-        : {};
-
-      const localInspectorNotes = typeof window !== 'undefined'
-        ? JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}')
-        : {};
-
       const fetchedBatches: Record<string, Batch> = {};
 
       if (total > 0n) {
@@ -258,11 +203,6 @@ export const App: React.FC = () => {
               conditionNote: 'Niêm phong Blockchain nguyên vẹn.'
             }));
 
-            const txHash = eventTxHashes[batchCode] || localTxHashes[batchCode] || undefined;
-            const verifyTxHash = eventVerifyTxHashes[batchCode] || localVerifyTxHashes[batchCode] || undefined;
-            const starRating = localStarRatings[batchCode] || (batchData.isVerified ? '4' : undefined);
-            const inspectorNote = localInspectorNotes[batchCode] || batchData.inspectorNote || (batchData.isVerified ? 'Đạt chuẩn chất lượng OCOP Thừa Thiên Huế.' : '');
-
             fetchedBatches[batchCode] = {
               batchCode: batchData.batchCode,
               productName: batchData.productName,
@@ -271,10 +211,8 @@ export const App: React.FC = () => {
               producer: batchData.producer,
               isVerified: batchData.isVerified,
               exists: batchData.exists,
-              starRating,
-              inspectorNote,
               ocopStandard: batchData.isVerified
-                ? `Đạt Chuẩn OCOP ${starRating || '4'} Sao Tỉnh Thừa Thiên Huế`
+                ? 'Đạt Chuẩn OCOP Tỉnh Thừa Thiên Huế'
                 : 'Chưa Thẩm Định OCOP',
               certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
               quantity: 'Sản lượng On-Chain',
@@ -285,8 +223,7 @@ export const App: React.FC = () => {
                   ? 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
               certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
-              txHash,
-              verifyTxHash,
+              txHash: 'On-Chain Confirmed',
               inspectionFeePaid: '0.002 ETH',
               checkpoints
             };
@@ -296,11 +233,7 @@ export const App: React.FC = () => {
         }
       }
 
-      // Doc local batches tu localStorage de khong bi mat du lieu khi reload
-      const localBatchesStr = typeof window !== 'undefined' ? localStorage.getItem('hl_local_batches') : null;
-      const localBatches: Record<string, Batch> = localBatchesStr ? JSON.parse(localBatchesStr) : {};
-
-      // Hop nhat du lieu local va du lieu on-chain (uu tien giu nguyen tat ca lo hang & checkpoints local)
+      // Hop nhat du lieu local va du lieu on-chain (KHONG BAO GIO XOA DU LIEU LOCAL)
       const mergedBatches: Record<string, Batch> = { ...localBatches };
 
       Object.keys(fetchedBatches).forEach((code) => {
@@ -314,29 +247,58 @@ export const App: React.FC = () => {
               mergedBatches[code].checkpoints && mergedBatches[code].checkpoints.length >= (fetchedBatches[code].checkpoints?.length || 0)
                 ? mergedBatches[code].checkpoints
                 : fetchedBatches[code].checkpoints,
-            txHash: (mergedBatches[code].txHash && mergedBatches[code].txHash !== 'Pending / Local Session') ? mergedBatches[code].txHash : fetchedBatches[code].txHash,
           };
         }
       });
 
-      setBatches(mergedBatches);
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('hl_local_batches', JSON.stringify(mergedBatches));
-        } catch (e) {
-          console.warn('Could not save merged batches to localStorage:', e);
+      if (Object.keys(mergedBatches).length > 0) {
+        setBatches(mergedBatches);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(mergedBatches));
+          } catch (e) {}
+          if (!selectedLookupBatch) {
+            setSelectedLookupBatch(Object.keys(mergedBatches)[0]);
+          }
         }
       }
-
-      if (Object.keys(mergedBatches).length > 0 && !selectedLookupBatch) {
-        setSelectedLookupBatch(Object.keys(mergedBatches)[0]);
-      }
     } catch (err: any) {
-      console.error('Error fetching contract data from Sepolia:', err);
+      console.warn('Network sync notice:', err);
     } finally {
       setIsLoadingContract(false);
     }
-  }, [currentAccount, selectedLookupBatch]);
+  }, [currentAccount, simulatedRole, selectedLookupBatch]);
+
+  // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedBatchesStr = localStorage.getItem('hl_local_batches');
+        if (savedBatchesStr) {
+          const parsed = JSON.parse(savedBatchesStr);
+          if (parsed && Object.keys(parsed).length > 0) {
+            setBatches(parsed);
+            setSelectedLookupBatch((prev) => prev || Object.keys(parsed)[0]);
+          }
+        }
+
+        const savedRole = localStorage.getItem('hl_user_role');
+        if (savedRole) {
+          setSimulatedRole(savedRole);
+        }
+
+        const savedAccount = localStorage.getItem('hl_connected_account');
+        if (savedAccount) {
+          setCurrentAccount(savedAccount);
+          fetchContractData(savedAccount);
+        } else {
+          fetchContractData();
+        }
+      } catch (e) {
+        console.warn('Error restoring state from localStorage:', e);
+      }
+    }
+  }, [fetchContractData]);
 
   // Procedure ket noi vi MetaMask va xac thuc vai tro
   const executeMetaMaskConnect = async (targetRole?: string) => {
