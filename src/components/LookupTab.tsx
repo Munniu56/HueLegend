@@ -32,33 +32,39 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   onOpenQRStampModal,
 }) => {
   const batchKeys = Object.keys(batches);
-  const initialCode = selectedBatchCode || batchKeys[0] || '';
+  const initialBatchCode = selectedBatchCode || batchKeys[0] || '';
 
-  const [searchCode, setSearchCode] = useState(initialCode);
-  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[initialCode] || null);
+  // Khoi tao searchCode="" de khong nhap san gia tri vao o tim kiem
+  const [searchCode, setSearchCode] = useState('');
+  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[initialBatchCode] || null);
   const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (selectedBatchCode && batches[selectedBatchCode]) {
-      setSearchCode(selectedBatchCode);
       setActiveBatch(batches[selectedBatchCode]);
     } else if (batchKeys.length > 0 && !activeBatch) {
-      setSearchCode(batchKeys[0]);
       setActiveBatch(batches[batchKeys[0]]);
     }
   }, [selectedBatchCode, batches]);
 
   const handleSearch = (code: string) => {
     const formatted = code.trim().toUpperCase();
-    setSearchCode(formatted);
-    if (batches[formatted]) {
-      setActiveBatch(batches[formatted]);
+    // Neu nguoi dung tim kiem voi o trong, tu dong tra cuu lo mac dinh
+    const targetCode = formatted || selectedBatchCode || batchKeys[0] || '';
+    if (formatted) {
+      setSearchCode(formatted);
+    }
+    if (batches[targetCode]) {
+      setActiveBatch(batches[targetCode]);
     } else {
       setActiveBatch(null);
     }
   };
 
   const currentOriginUrl = window.location.href;
+  const suggestedPlaceholder = batchKeys[0]
+    ? `Gợi ý nhập mã lô: ${batchKeys[0]}`
+    : 'Nhập mã lô đặc sản (Ví dụ: HL-MEXUNGD-2026-001)...';
 
   return (
     <div className="space-y-6 font-sans">
@@ -98,8 +104,8 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 value={searchCode}
                 onChange={(e) => setSearchCode(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchCode)}
-                placeholder="Nhập mã lô đặc sản (Ví dụ: HL-MEXUNGD-2026-001)..."
-                className="w-full pl-11 pr-4 py-3 rounded-2xl border-2 border-[#E6E1D7] text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] shadow-inner transition-colors"
+                placeholder={suggestedPlaceholder}
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border-2 border-[#E6E1D7] text-xs sm:text-sm font-mono focus:outline-none focus:border-[#264939] bg-[#FAF9F5] shadow-inner transition-colors placeholder:text-[#8A9D92] placeholder:font-sans placeholder:font-normal"
               />
             </div>
 
