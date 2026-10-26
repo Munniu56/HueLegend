@@ -13,6 +13,16 @@ export interface Checkpoint {
   conditionNote: string;
 }
 
+export const SPECIALTY_CATEGORIES = [
+  'Bánh kẹo & Món ăn vặt (Đồ khô)',
+  'Trà & Thức uống',
+  'Mắm & Gia vị đặc trưng',
+  'Nông sản & Thảo dược',
+  'Đặc sản tươi & Món ăn tại chỗ (Món mặn)'
+] as const;
+
+export type SpecialtyCategory = typeof SPECIALTY_CATEGORIES[number];
+
 export interface Batch {
   batchCode: string;
   productName: string;
@@ -22,6 +32,7 @@ export interface Batch {
   isVerified: boolean;
   exists: boolean;
   isListed?: boolean; // Trang thai da xac nhan niem yet len cua hang dac san
+  category?: string; // Danh muc dac san Hue
   listingPriceEth?: string;
   storeName?: string;
   starRating?: string;

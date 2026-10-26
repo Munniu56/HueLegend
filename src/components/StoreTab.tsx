@@ -22,7 +22,7 @@ import {
   Send,
   AlertCircle
 } from 'lucide-react';
-import { Batch } from '../types';
+import { Batch, SPECIALTY_CATEGORIES } from '../types';
 import { ETHERSCAN_BASE_URL } from '../constants';
 
 interface StoreTabProps {
@@ -54,6 +54,8 @@ interface CartItem {
 }
 
 export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup, onNavigateToRetailer, currentAccount }) => {
+  const categories = ['Tất Cả', ...SPECIALTY_CATEGORIES];
+
   // Danh sach san pham duoc lay hoan toan tu du lieu lo hang da QUA XAC NHAN NIEM YET
   const [catalog, setCatalog] = useState<ProductItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất Cả');
@@ -87,7 +89,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
       } catch (e) {}
     }
 
-    // 2. Chi lay cac lo hang DA QUA XAC NHAN NIEM YET (isListed === true hoac co chang niem yet tu Dai ly)
+    // 2. Chi lay cac lo hang DA QUA XAC NHAN NIEM YET
     const listedBatches = Object.values(batches).filter((b) => {
       if (b.isListed) return true;
       if (b.currentStage?.toLowerCase().includes('niêm yết') || b.currentStage?.toLowerCase().includes('inretail')) return true;
@@ -107,12 +109,12 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
         id: `batch-${b.batchCode}`,
         batchCode: b.batchCode,
         name: b.productName,
-        category: 'Đặc Sản Huế On-Chain',
+        category: b.category || SPECIALTY_CATEGORIES[0],
         priceVnd: priceVnd > 0 ? priceVnd : 130000,
         priceEth: priceEth > 0 ? priceEth : 0.002,
         starRating: b.starRating || '4',
         origin: b.storeName ? `${b.storeName} (${b.origin})` : b.origin,
-        image: '/assets/aistudio/image_28ddda16.png',
+        image: b.imageUrl || '/assets/aistudio/image_28ddda16.png',
         description: `Lô đặc sản ${b.productName} đã qua xác nhận niêm yết bán lẻ & niêm phong nhật ký Blockchain.`,
         unit: 'Lô / Sản Phẩm',
         inStock: true,
@@ -178,16 +180,6 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
       prod.origin.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesStar && matchesSearch;
   });
-
-  // Categories list
-  const categories = [
-    'Tất Cả',
-    'Mè Xửng & Bánh Kẹo',
-    'Trà Cung Đình',
-    'Nước Mắm & Gia Vị',
-    'Nông Sản & Thảo Dược',
-    'Thủ Công Mỹ Nghệ'
-  ];
 
   // Bat dau dat hang
   const handleCompleteOrder = (e: React.FormEvent) => {

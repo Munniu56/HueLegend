@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Store, Tag, Package, AlertTriangle, Wallet, ArrowDownRight, Image as ImageIcon, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
-import { Batch } from '../types';
+import { Store, Tag, Package, AlertTriangle, Wallet, ArrowDownRight, Image as ImageIcon, CheckCircle2, ShieldCheck, RefreshCw, FolderTree } from 'lucide-react';
+import { Batch, SPECIALTY_CATEGORIES } from '../types';
 
 interface RetailerTabProps {
   batches: Record<string, Batch>;
@@ -34,12 +34,13 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   const verifiedBatches = batchList.filter((b) => b.isVerified);
 
   const [selectedBatchCode, setSelectedBatchCode] = useState(verifiedBatches[0]?.batchCode || '');
+  const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
   const [storeName, setStoreName] = useState('');
   const [listingPriceEth, setListingPriceEth] = useState('');
   const [stockQuantity, setStockQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; stock: string; sellerAddr: string }>>({});
+  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; stock: string; category: string; sellerAddr: string }>>({});
 
   const selectedBatch = batches[selectedBatchCode];
 
@@ -57,10 +58,10 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           selectedBatchCode,
           'RETAILER',
           storeName,
-          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH)`,
+          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH) — [Danh mục: ${selectedCategory}]`,
           'ipfs://QmHueRetailerListing2026',
           'Niêm Yết Bán Lẻ',
-          `Giá niêm yết: ${listingPriceEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`
+          `Danh mục: ${selectedCategory} — Giá niêm yết: ${listingPriceEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`
         );
       }
 
@@ -70,6 +71,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           price: listingPriceEth,
           store: storeName,
           stock: stockQuantity,
+          category: selectedCategory,
           sellerAddr: currentAccount || 'Ví Đại Lý Sepolia'
         }
       }));
@@ -207,6 +209,25 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 ) : (
                   <option value="">Chưa có lô hàng nào đạt chuẩn OCOP</option>
                 )}
+              </select>
+            </div>
+
+            {/* Chon Danh Muc Dac San (5 Danh Muc Bat Buoc) */}
+            <div>
+              <label className="block text-xs font-bold text-[#1A2820] mb-1 flex items-center gap-1.5">
+                <FolderTree className="w-3.5 h-3.5 text-[#264939]" />
+                <span>Chọn Danh Mục Đặc Sản *</span>
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] text-[#264939]"
+              >
+                {SPECIALTY_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -368,6 +389,12 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                     </div>
 
                     <div className="text-xs text-[#5E7166] space-y-1 bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                      <div className="flex justify-between">
+                        <span>Danh mục đặc sản:</span>
+                        <span className="font-bold text-[#264939] truncate max-w-[160px]">
+                          {listingInfo?.category || selectedCategory}
+                        </span>
+                      </div>
                       <div className="flex justify-between">
                         <span>Giá bán niêm yết:</span>
                         <span className="font-mono font-bold text-[#264939]">
