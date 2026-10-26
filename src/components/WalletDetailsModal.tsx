@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, Wallet, ShieldCheck, ExternalLink, LogOut, Coins, Network } from 'lucide-react';
+import { X, Wallet, ShieldCheck, ExternalLink, LogOut, Coins, Network, GripHorizontal } from 'lucide-react';
 import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS } from '../constants';
+import { useDraggable } from '../hooks/useDraggable';
 
 interface WalletDetailsModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   contractBalanceEth = '0.00',
   onDisconnect,
 }) => {
+  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
+
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -60,18 +63,32 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-start justify-center pt-8 sm:pt-14 px-4 sm:px-6 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-hidden">
-      <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden my-0 space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-hidden">
+      <div
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          transition: isDragging ? 'none' : 'transform 0.05s ease-out',
+        }}
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[90vh] sm:max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto my-0 space-y-4"
+      >
+        {/* Header with Drag Handle */}
+        <div
+          {...dragHeaderProps}
+          className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] select-none touch-none"
+          title="Nắm giữ và kéo để di chuyển popup"
+        >
           <div className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-[#264939]" />
-            <h3 className="font-serif font-extrabold text-lg text-[#264939]">
+            <div className="p-1 rounded-lg bg-[#FAF9F5] border border-[#E6E1D7] text-[#8A9D92] hover:text-[#264939] transition-colors">
+              <GripHorizontal className="w-4 h-4" />
+            </div>
+            <Wallet className="w-5 h-5 text-[#264939] pointer-events-none" />
+            <h3 className="font-serif font-extrabold text-lg text-[#264939] pointer-events-none">
               Thông Số Ví Kết Nối
             </h3>
           </div>
           <button
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-[#E0ECE4] transition-all"
             title="Đóng"
           >

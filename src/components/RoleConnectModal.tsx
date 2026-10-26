@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, ShieldCheck, ArrowRight } from 'lucide-react';
+import { X, ShieldCheck, ArrowRight, GripHorizontal } from 'lucide-react';
 import { DEFAULT_ADMIN_ADDRESS } from '../constants';
+import { useDraggable } from '../hooks/useDraggable';
 
 interface RoleConnectModalProps {
   isOpen: boolean;
@@ -13,6 +14,8 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   onClose,
   onSelectRoleAndConnect,
 }) => {
+  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
+
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -63,26 +66,40 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-start justify-center pt-8 sm:pt-14 px-4 sm:px-6 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-hidden">
-      <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden my-0">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-4 shrink-0 border-b border-[#EDE9E0]">
-          <div className="flex items-center gap-3">
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-hidden">
+      <div
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          transition: isDragging ? 'none' : 'transform 0.05s ease-out',
+        }}
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden my-0"
+      >
+        {/* Modal Header with Drag handle */}
+        <div
+          {...dragHeaderProps}
+          className="flex items-center justify-between pb-4 shrink-0 border-b border-[#EDE9E0] select-none touch-none"
+          title="Nắm giữ và kéo để di chuyển popup"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="p-1 rounded-lg bg-[#FAF9F5] border border-[#E6E1D7] text-[#8A9D92] hover:text-[#264939] transition-colors">
+              <GripHorizontal className="w-4 h-4" />
+            </div>
             <img
               src="/assets/aistudio/logo-1_df0d933f.png"
               alt="HueLegend Logo"
-              className="h-7 sm:h-9 w-auto max-w-[140px] sm:max-w-[180px] object-contain"
+              className="h-7 sm:h-9 w-auto max-w-[140px] sm:max-w-[180px] object-contain pointer-events-none"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/assets/aistudio/logo_98ef48b3.png';
               }}
             />
             <span className="text-[#CCD8CF] font-light hidden sm:inline">|</span>
-            <h3 className="font-serif font-extrabold text-base sm:text-lg text-[#264939]">
+            <h3 className="font-serif font-extrabold text-base sm:text-lg text-[#264939] pointer-events-none">
               Chọn Vai Trò Kết Nối Ví
             </h3>
           </div>
           <button
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-[#E0ECE4] transition-all"
             title="Đóng"
           >

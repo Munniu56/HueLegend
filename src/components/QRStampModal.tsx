@@ -1,7 +1,8 @@
 import React from 'react';
 import { Batch } from '../types';
 import { QRCodeSVG } from 'qrcode.react';
-import { X, Printer, ShieldCheck, Award } from 'lucide-react';
+import { X, Printer, ShieldCheck, Award, GripHorizontal } from 'lucide-react';
+import { useDraggable } from '../hooks/useDraggable';
 
 interface QRStampModalProps {
   batch: Batch | null;
@@ -9,6 +10,8 @@ interface QRStampModalProps {
 }
 
 export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) => {
+  const { position, isDragging, dragHeaderProps } = useDraggable(Boolean(batch));
+
   React.useEffect(() => {
     if (batch) {
       document.body.style.overflow = 'hidden';
@@ -27,18 +30,32 @@ export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) =>
   const currentUrl = window.location.href;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-start justify-center pt-8 sm:pt-14 px-4 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-hidden">
-      <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 space-y-6 shadow-2xl relative overflow-hidden">
-        {/* Top Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-hidden">
+      <div
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          transition: isDragging ? 'none' : 'transform 0.05s ease-out',
+        }}
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 space-y-6 shadow-2xl relative overflow-hidden"
+      >
+        {/* Top Header with Drag Handle */}
+        <div
+          {...dragHeaderProps}
+          className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] select-none touch-none"
+          title="Nắm giữ và kéo để di chuyển popup"
+        >
           <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#C29B38]" />
-            <h3 className="font-serif font-extrabold text-lg text-[#264939]">
+            <div className="p-1 rounded-lg bg-[#FAF9F5] border border-[#E6E1D7] text-[#8A9D92] hover:text-[#264939] transition-colors">
+              <GripHorizontal className="w-4 h-4" />
+            </div>
+            <Award className="w-5 h-5 text-[#C29B38] pointer-events-none" />
+            <h3 className="font-serif font-extrabold text-lg text-[#264939] pointer-events-none">
               Tem Mã QR Niêm Phong Đặc Sản
             </h3>
           </div>
           <button
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-5 h-5" />
