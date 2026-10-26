@@ -77,24 +77,12 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
     <div className="max-w-3xl mx-auto font-sans space-y-4">
       {/* Banner hien thi khi chua ket noi vi */}
       {!currentAccount && (
-        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs font-sans">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-            <div>
-              <span className="font-bold block text-sm font-serif text-amber-950">Vui lòng kết nối ví MetaMask trước khi tạo lô hàng</span>
-              <span className="text-amber-900 font-medium">Địa chỉ ví sản xuất sẽ tự động trích xuất trực tiếp từ tài khoản MetaMask đang hoạt động.</span>
-            </div>
+        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex items-center gap-3 text-xs text-amber-950 shadow-2xs font-sans">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div>
+            <span className="font-bold block text-sm font-serif text-amber-950">Vui lòng kết nối ví MetaMask trước khi tạo lô hàng</span>
+            <span className="text-amber-900 font-medium">Địa chỉ ví sản xuất sẽ tự động trích xuất trực tiếp từ tài khoản MetaMask đang hoạt động.</span>
           </div>
-          {onConnectWallet && (
-            <button
-              type="button"
-              onClick={onConnectWallet}
-              className="px-4 py-2 bg-[#264939] text-white font-bold rounded-xl hover:bg-[#1c372b] transition-all shadow-xs shrink-0 flex items-center gap-2"
-            >
-              <Wallet className="w-4 h-4" />
-              <span>Kết Nối Ví MetaMask</span>
-            </button>
-          )}
         </div>
       )}
 
