@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-[#FAF9F5]/90 backdrop-blur-md border-b border-[#E6E1D7] px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-      {/* Network Status Badge */}
+      {/* Network Status */}
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-[#E0ECE4] text-[#1c372b] border border-[#CCD8CF]">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>

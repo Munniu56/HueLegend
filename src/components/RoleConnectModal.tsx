@@ -58,9 +58,17 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
       <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[90vh] flex flex-col p-4 sm:p-6 shadow-2xl relative overflow-hidden my-auto">
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 shrink-0 border-b border-[#EDE9E0]">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#264939]" />
-            <h3 className="font-serif font-extrabold text-lg sm:text-xl text-[#264939]">
+          <div className="flex items-center gap-3">
+            <img
+              src="/assets/aistudio/logo-1_df0d933f.png"
+              alt="HueLegend Logo"
+              className="h-7 sm:h-8 w-auto max-w-[140px] sm:max-w-[170px] object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/aistudio/logo_98ef48b3.png';
+              }}
+            />
+            <span className="text-[#CCD8CF] font-light hidden sm:inline">|</span>
+            <h3 className="font-serif font-extrabold text-base sm:text-lg text-[#264939]">
               Chọn Vai Trò Kết Nối Ví
             </h3>
           </div>

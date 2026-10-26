@@ -98,27 +98,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
       />
 
       <div className="space-y-5">
-        {/* Brand Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-[#E6E1D7]">
-          <div className="w-11 h-11 rounded-2xl bg-[#264939] flex items-center justify-center p-2 shadow-xs shrink-0">
-            <img
-              src="/assets/brand_logo.png"
-              alt="Logo"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-            <Award className="w-6 h-6 text-[#C29B38] hidden" />
-          </div>
-          <div>
-            <h1 className="font-serif font-extrabold text-xl text-[#264939] leading-tight">
-              HueLegend
-            </h1>
-            <p className="text-[10px] font-bold tracking-widest text-[#8A9D92] uppercase mt-0.5">
-              Đặc Sản Huế Blockchain
-            </p>
-          </div>
+        {/* Brand Header - Clean typography without logo image */}
+        <div className="pb-4 border-b border-[#E6E1D7] px-1">
+          <h1 className="font-serif font-extrabold text-2xl text-[#264939] tracking-tight leading-none">
+            HueLegend
+          </h1>
+          <p className="text-[10px] font-bold tracking-widest text-[#8A9D92] uppercase mt-1">
+            Tinh Hoa Huế — Giá Trị Bền Vững
+          </p>
         </div>
 
         {/* Navigation Section */}
