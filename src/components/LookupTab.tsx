@@ -176,38 +176,40 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
       {/* Main Result Display */}
       {activeBatch ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans items-start">
           {/* Left Summary Card */}
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-5 relative overflow-hidden">
-              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5 relative overflow-hidden">
+              {/* Header Badge Row */}
+              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
                 <div>
-                  <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider">
-                    Mã Định Danh Lô Hàng
+                  <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider block">
+                    MÃ ĐỊNH DANH LÔ HÀNG
                   </span>
-                  <div className="font-mono text-base font-extrabold text-[#264939]">
+                  <div className="font-mono text-sm sm:text-base font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-0.5 rounded-lg border border-[#CCD8CF] inline-block mt-0.5">
                     {activeBatch.batchCode}
                   </div>
                 </div>
 
                 {activeBatch.isVerified ? (
-                  <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-extrabold shadow-2xs">
+                  <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-extrabold shadow-2xs shrink-0">
                     <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-                    <span>ĐẠT OCOP {activeBatch.starRating || '4'} SAO</span>
+                    <span>OCOP {activeBatch.starRating || '4'} SAO</span>
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-bold">
+                  <span className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 px-3 py-1.5 rounded-full text-xs font-sans font-bold shrink-0">
                     <Clock className="w-4 h-4 text-amber-600" />
                     <span>Chờ Kiểm Định</span>
                   </span>
                 )}
               </div>
 
+              {/* Title & OCOP Status */}
               <div>
                 <h3 className="font-serif font-extrabold text-2xl text-[#1A2820] leading-snug">
                   {activeBatch.productName}
                 </h3>
-                <p className="text-xs font-sans text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
+                <p className="text-xs font-sans font-medium text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
               </div>
 
               {/* OCOP Star Badge Card if verified */}
@@ -235,73 +237,81 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 </div>
               )}
 
-              {/* QR Code Graphic Box */}
+              {/* Compact QR Code Graphic Box */}
               <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
                 <QRCodeSVG
                   value={`${currentOriginUrl}?batch=${activeBatch.batchCode}`}
-                  size={140}
+                  size={125}
                   level="H"
                   includeMargin={true}
                 />
-                <span className="text-[10px] text-[#8A9D92] font-mono">
-                  Quét bằng điện thoại để xem chứng nhận Sepolia
+                <span className="text-[10px] text-[#8A9D92] font-mono font-medium text-center">
+                  Quét mã QR bằng điện thoại để xem chứng nhận Sepolia
                 </span>
               </div>
 
-              {/* Key Metadata Details */}
+              {/* Key Metadata Details with Clean Truncated Addresses */}
               <div className="space-y-3 text-xs font-sans border-t border-[#EDE9E0] pt-4">
                 <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
-                    <p className="text-[#5E7166]">{activeBatch.origin}</p>
+                    <p className="text-[#5E7166] truncate">{activeBatch.origin}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
-                    <p className="text-[#5E7166]">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                    <p className="text-[#5E7166] truncate">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
-                    <p className="text-[#5E7166]">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
+                    <p className="text-[#5E7166] truncate">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5">
                   <UserCheck className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Địa Chỉ Chủ Cơ Sở (Producer):</span>
-                    <a
-                      href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
-                    >
-                      {activeBatch.producer}
-                    </a>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <a
+                        href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                        title={activeBatch.producer}
+                      >
+                        {activeBatch.producer ? `${activeBatch.producer.slice(0, 10)}...${activeBatch.producer.slice(-6)}` : 'Chưa cập nhật'}
+                      </a>
+                      <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                    </div>
                   </div>
                 </div>
 
                 {activeBatch.txHash && (
                   <div className="flex items-start gap-2.5">
                     <ExternalLink className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="font-bold text-[#1A2820]">Mã Băm Tạo Lô (Tx Hash):</span>
-                      <a
-                        href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
-                      >
-                        {activeBatch.txHash}
-                      </a>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <a
+                          href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                          title={activeBatch.txHash}
+                        >
+                          {`${activeBatch.txHash.slice(0, 10)}...${activeBatch.txHash.slice(-6)}`}
+                        </a>
+                        <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -309,16 +319,20 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 {activeBatch.verifyTxHash && (
                   <div className="flex items-start gap-2.5">
                     <Award className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <span className="font-bold text-[#1A2820]">Mã Băm Thẩm Định (Verify Tx):</span>
-                      <a
-                        href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#264939] hover:underline font-mono text-[11px] block truncate"
-                      >
-                        {activeBatch.verifyTxHash}
-                      </a>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <a
+                          href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                          title={activeBatch.verifyTxHash}
+                        >
+                          {`${activeBatch.verifyTxHash.slice(0, 10)}...${activeBatch.verifyTxHash.slice(-6)}`}
+                        </a>
+                        <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -328,8 +342,8 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
           {/* Right Supply Chain Timeline Column */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
+            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-6">
+              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
                 <div>
                   <h3 className="text-xl font-serif font-extrabold text-[#264939]">
                     Nhật Ký Hành Trình Supply Chain On-Chain
@@ -338,13 +352,13 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                     Tất cả dữ liệu chặng được mã hóa và lưu trữ trên Blockchain Sepolia.
                   </p>
                 </div>
-                <span className="text-xs font-sans font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF]">
+                <span className="text-xs font-sans font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF] shrink-0">
                   {activeBatch.checkpoints?.length || 0} Chặng Đã Khai Báo
                 </span>
               </div>
 
               {/* Timeline Items */}
-              <div className="relative pl-6 space-y-8 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#CCD8CF]">
+              <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#CCD8CF]">
                 {activeBatch.checkpoints?.map((cp, idx) => {
                   const dateStr = new Date(cp.timestamp * 1000).toLocaleString('vi-VN');
 
@@ -391,8 +405,8 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
                         {/* On-Chain Verification Footer */}
                         <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
-                          <div className="font-mono truncate max-w-xs">
-                            Địa chỉ ghi: {cp.recorder}
+                          <div className="font-mono font-bold text-[#1A2820]">
+                            Địa chỉ ghi: {cp.recorder ? `${cp.recorder.slice(0, 10)}...${cp.recorder.slice(-6)}` : '0x...'}
                           </div>
                           <a
                             href={`${ETHERSCAN_BASE_URL}/address/${cp.recorder}`}
