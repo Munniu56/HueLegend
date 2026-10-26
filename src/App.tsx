@@ -1032,21 +1032,6 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {!currentAccount && (
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-900 shadow-2xs font-sans">
-              <div>
-                <span className="font-bold block text-sm text-amber-950 font-serif">Chưa Kết Nối Ví Sepolia Testnet</span>
-                <span>Vui lòng chọn vai trò tham gia và kết nối MetaMask để tương tác từ Smart Contract.</span>
-              </div>
-              <button
-                onClick={handleOpenRoleConnectModal}
-                className="px-4 py-2 bg-[#264939] text-white font-bold rounded-xl hover:bg-[#1c372b] transition-all shadow-xs shrink-0"
-              >
-                Chọn Vai Trò & Kết Nối Ví
-              </button>
-            </div>
-          )}
-
           {activeTab === 'overview' && (
             <OverviewTab
               batches={batches}
