@@ -182,17 +182,17 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
       {/* Main Result Display */}
       {activeBatch ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans items-start">
-          {/* Left Summary Card */}
-          <div className="lg:col-span-1 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans items-start">
+          {/* Left Summary Card (5/12 Grid) */}
+          <div className="lg:col-span-5 space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5 relative overflow-hidden">
               {/* Header Badge Row */}
               <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
-                <div>
+                <div className="min-w-0">
                   <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider block">
                     MÃ ĐỊNH DANH LÔ HÀNG
                   </span>
-                  <div className="font-mono text-sm sm:text-base font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-0.5 rounded-lg border border-[#CCD8CF] inline-block mt-0.5">
+                  <div className="font-mono text-xs sm:text-sm font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF] inline-block mt-0.5 whitespace-nowrap">
                     {activeBatch.batchCode}
                   </div>
                 </div>
@@ -210,12 +210,19 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                 )}
               </div>
 
-              {/* Title & OCOP Status */}
-              <div>
-                <h3 className="font-serif font-extrabold text-2xl text-[#1A2820] leading-snug">
-                  {activeBatch.productName}
-                </h3>
-                <p className="text-xs font-sans font-medium text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
+              {/* Title & Product Image Header */}
+              <div className="flex items-start gap-4 pt-1">
+                <img
+                  src={activeBatch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                  alt={activeBatch.productName}
+                  className="w-20 h-20 rounded-2xl object-cover border border-[#EDE9E0] shadow-2xs shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-serif font-extrabold text-xl text-[#1A2820] leading-snug">
+                    {activeBatch.productName}
+                  </h3>
+                  <p className="text-xs font-sans font-medium text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
+                </div>
               </div>
 
               {/* OCOP Star Badge Card if verified */}
@@ -247,7 +254,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
                 <QRCodeSVG
                   value={`${currentOriginUrl}?batch=${activeBatch.batchCode}`}
-                  size={125}
+                  size={120}
                   level="H"
                   includeMargin={true}
                 />
@@ -346,8 +353,8 @@ export const LookupTab: React.FC<LookupTabProps> = ({
             </div>
           </div>
 
-          {/* Right Supply Chain Timeline Column */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Right Supply Chain Timeline Column (7/12 Grid) */}
+          <div className="lg:col-span-7 space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-6">
               <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
                 <div>
