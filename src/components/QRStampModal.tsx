@@ -21,13 +21,17 @@ export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) =>
   const currentUrl = window.location.href;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-hidden">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in font-sans overflow-hidden"
+    >
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 space-y-6 shadow-2xl relative overflow-hidden"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[85vh] p-6 space-y-6 shadow-2xl relative overflow-y-auto"
       >
         {/* Top Header with Drag Handle */}
         <div

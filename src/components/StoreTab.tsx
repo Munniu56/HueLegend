@@ -451,8 +451,14 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
 
       {/* Product Details Modal */}
       {selectedProductDetails && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden">
-          <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[90vh] sm:max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto space-y-5 my-0">
+        <div
+          onClick={() => setSelectedProductDetails(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto space-y-5 my-0"
+          >
             <div className="flex items-start justify-between pb-3 border-b border-[#EDE9E0]">
               <div>
                 <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
@@ -653,8 +659,14 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
 
       {/* Checkout Modal */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-[190] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden">
-          <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-lg w-full max-h-[90vh] sm:max-h-[85vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-y-auto my-0">
+        <div
+          onClick={() => setIsCheckoutOpen(false)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-lg w-full max-h-[85vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-y-auto my-0"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
               <div className="flex items-center gap-2">
                 <Truck className="w-5 h-5 text-[#264939]" />
@@ -776,8 +788,14 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
 
       {/* Order Confirmation Modal */}
       {confirmedOrder && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden">
-          <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 shadow-2xl relative text-center space-y-4 my-0 max-h-[90vh] overflow-y-auto">
+        <div
+          onClick={() => setConfirmedOrder(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 shadow-2xl relative text-center space-y-4 my-0 max-h-[85vh] overflow-y-auto"
+          >
             <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto border border-emerald-300">
               <CheckCircle2 className="w-7 h-7 text-emerald-700" />
             </div>
