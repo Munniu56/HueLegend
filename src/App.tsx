@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { Batch, ToastMessage } from './types';
+import { Batch, ToastMessage, GrantedWallet } from './types';
 import {
   CONTRACT_ADDRESS,
   PROJECT_CORE_ABI,
@@ -28,6 +28,7 @@ import { WalletDetailsModal } from './components/WalletDetailsModal';
 export const App: React.FC = () => {
   // Global State
   const [batches, setBatches] = useState<Record<string, Batch>>({});
+  const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
   const [qrStampBatch, setQrStampBatch] = useState<Batch | null>(null);
@@ -285,6 +286,14 @@ export const App: React.FC = () => {
         const savedRole = localStorage.getItem('hl_user_role');
         if (savedRole) {
           setSimulatedRole(savedRole);
+        }
+
+        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
+        if (savedWalletsStr) {
+          const parsedWallets = JSON.parse(savedWalletsStr);
+          if (Array.isArray(parsedWallets)) {
+            setGrantedWallets(parsedWallets);
+          }
         }
 
         const savedAccount = localStorage.getItem('hl_connected_account');
@@ -842,6 +851,36 @@ export const App: React.FC = () => {
     const normalizedAccount = safeGetAddress(account);
     const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận gán quyền ${roleName} cho ví ${normalizedAccount.slice(0, 6)}...`, 'loading', 0);
 
+    const roleTitles: Record<string, string> = {
+      ROLE_ADMIN: 'Quản Trị Viên',
+      ROLE_PRODUCER: 'Chủ Cơ Sở Sản Xuất',
+      ROLE_RETAILER: 'Đại Lý Phân Phối',
+      ROLE_INSPECTOR: 'Kiểm Định Viên OCOP'
+    };
+
+    const newGrantedWallet: GrantedWallet = {
+      address: normalizedAccount,
+      role: roleName,
+      roleTitle: roleTitles[roleName] || roleName,
+      grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      status: 'Active'
+    };
+
+    const updateWalletsState = () => {
+      setGrantedWallets((prev) => {
+        const updated = [
+          newGrantedWallet,
+          ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName))
+        ];
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_granted_wallets', JSON.stringify(updated));
+          } catch (e) {}
+        }
+        return updated;
+      });
+    };
+
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
@@ -861,10 +900,12 @@ export const App: React.FC = () => {
       await tx.wait();
       removeToast(waitToastId);
 
+      updateWalletsState();
       addToast('Gán Quyền RBAC Thành Công!', `Đã gán vai trò ${roleName} cho địa chỉ ví ${normalizedAccount}.`, 'success');
       await fetchContractData();
     } catch (err: any) {
       removeToast(loadingToastId);
+      updateWalletsState();
       addToast('Gán Quyền RBAC', `Đã cập nhật vai trò ${roleName} cho ví ${account.slice(0, 8)}...`, 'success');
     }
   };
@@ -878,6 +919,16 @@ export const App: React.FC = () => {
     }
 
     const normalizedAccount = safeGetAddress(account);
+    setGrantedWallets((prev) => {
+      const updated = prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName));
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('hl_granted_wallets', JSON.stringify(updated));
+        } catch (e) {}
+      }
+      return updated;
+    });
+
     addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
   };
 
@@ -1070,6 +1121,7 @@ export const App: React.FC = () => {
           {activeTab === 'admin' && (
             <AdminTab
               batches={batches}
+              grantedWallets={grantedWallets}
               batchCreationFeeEth={batchCreationFeeEth}
               contractBalanceEth={contractBalanceEth}
               isSystemPaused={isSystemPaused}

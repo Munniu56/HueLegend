@@ -18,15 +18,7 @@ import {
 } from 'lucide-react';
 import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress } from '../constants';
 
-import { Batch, Checkpoint } from '../types';
-
-export interface GrantedWallet {
-  address: string;
-  role: string;
-  roleTitle: string;
-  grantedAt: string;
-  status: string;
-}
+import { Batch, Checkpoint, GrantedWallet } from '../types';
 
 export interface EventLog {
   id: string;
@@ -41,6 +33,7 @@ export interface EventLog {
 
 interface AdminTabProps {
   batches?: Record<string, Batch>;
+  grantedWallets?: GrantedWallet[];
   batchCreationFeeEth: string;
   contractBalanceEth?: string;
   isSystemPaused?: boolean;
@@ -56,6 +49,7 @@ interface AdminTabProps {
 
 export const AdminTab: React.FC<AdminTabProps> = ({
   batches = {},
+  grantedWallets = [],
   batchCreationFeeEth,
   contractBalanceEth = '0.00',
   isSystemPaused = false,
@@ -73,9 +67,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   const [newFee, setNewFee] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchRoleQuery, setSearchRoleQuery] = useState('');
-
-  // Live granted wallets list initialized empty (zero hardcoded mock data)
-  const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
 
   // Derive production event logs dynamically from live Sepolia batch data
   const recentEventLogs: EventLog[] = React.useMemo(() => {
@@ -133,26 +124,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
     setIsSubmitting(true);
     try {
       await onAssignRole(normalizedAddr, roleSelect);
-
-      // Add to local list for immediate UI feedback
-      const roleTitles: Record<string, string> = {
-        ROLE_ADMIN: 'Quản Trị Viên',
-        ROLE_PRODUCER: 'Chủ Cơ Sở Sản Xuất',
-        ROLE_RETAILER: 'Đại Lý Phân Phối',
-        ROLE_INSPECTOR: 'Kiểm Định Viên OCOP'
-      };
-
-      setGrantedWallets((prev) => [
-        {
-          address: normalizedAddr,
-          role: roleSelect,
-          roleTitle: roleTitles[roleSelect] || roleSelect,
-          grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-          status: 'Active'
-        },
-        ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAddr.toLowerCase() && w.role === roleSelect))
-      ]);
-
       setAccountAddress('');
     } catch (err) {
       console.error(err);
@@ -166,7 +137,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
     setIsSubmitting(true);
     try {
       await onRevokeRole(normalizedAddr, roleName);
-      setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === normalizedAddr.toLowerCase() && w.role === roleName)));
     } catch (err) {
       console.error(err);
     } finally {

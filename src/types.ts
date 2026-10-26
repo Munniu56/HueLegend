@@ -48,3 +48,11 @@ export interface ToastMessage {
   message: string;
   type: 'info' | 'success' | 'error' | 'warning' | 'loading';
 }
+
+export interface GrantedWallet {
+  address: string;
+  role: string;
+  roleTitle: string;
+  grantedAt: string;
+  status: string;
+}
