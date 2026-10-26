@@ -47,6 +47,34 @@ export const App: React.FC = () => {
   const [isSystemPaused, setIsSystemPaused] = useState(false);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
 
+  // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedBatches = localStorage.getItem('hl_local_batches');
+        if (savedBatches) {
+          const parsed = JSON.parse(savedBatches);
+          if (parsed && Object.keys(parsed).length > 0) {
+            setBatches(parsed);
+            setSelectedLookupBatch((prev) => prev || Object.keys(parsed)[0]);
+          }
+        }
+
+        const savedRole = localStorage.getItem('hl_user_role');
+        if (savedRole) {
+          setSimulatedRole(savedRole);
+        }
+
+        const savedAccount = localStorage.getItem('hl_connected_account');
+        if (savedAccount) {
+          setCurrentAccount(savedAccount);
+        }
+      } catch (e) {
+        console.warn('Error restoring state from localStorage:', e);
+      }
+    }
+  }, []);
+
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -268,9 +296,24 @@ export const App: React.FC = () => {
         }
       }
 
-      setBatches(fetchedBatches);
-      if (Object.keys(fetchedBatches).length > 0 && !selectedLookupBatch) {
-        setSelectedLookupBatch(Object.keys(fetchedBatches)[0]);
+      // Doc local batches tu localStorage de khong bi mat du lieu khi reload
+      const localBatchesStr = typeof window !== 'undefined' ? localStorage.getItem('hl_local_batches') : null;
+      const localBatches: Record<string, Batch> = localBatchesStr ? JSON.parse(localBatchesStr) : {};
+
+      // Hop nhat du lieu local va du lieu on-chain
+      const mergedBatches = { ...localBatches, ...fetchedBatches };
+
+      setBatches(mergedBatches);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('hl_local_batches', JSON.stringify(mergedBatches));
+        } catch (e) {
+          console.warn('Could not save merged batches to localStorage:', e);
+        }
+      }
+
+      if (Object.keys(mergedBatches).length > 0 && !selectedLookupBatch) {
+        setSelectedLookupBatch(Object.keys(mergedBatches)[0]);
       }
     } catch (err: any) {
       console.error('Error fetching contract data from Sepolia:', err);
@@ -282,10 +325,9 @@ export const App: React.FC = () => {
   // Procedure ket noi vi MetaMask va xac thuc vai tro
   const executeMetaMaskConnect = async (targetRole?: string) => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
+      const loadingToastId = addToast('Kích Hoạt MetaMask', 'Đang mở cửa sổ MetaMask, vui lòng chọn tài khoản và xác nhận đăng nhập...', 'loading', 0);
       try {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
-        
-        addToast('Kích Hoạt MetaMask', 'Đang mở cửa sổ MetaMask, vui lòng chọn tài khoản và xác nhận đăng nhập...', 'loading', 4000);
 
         // 1. dam bao mang Sepolia
         try {
@@ -324,6 +366,10 @@ export const App: React.FC = () => {
 
         // 3. Lay dia chi vi sau khi chap thuan
         const accounts = await provider.send('eth_requestAccounts', []);
+        
+        // Tự động ẩn thông báo Kích Hoạt MetaMask ngay khi người dùng xác nhận kết nối
+        removeToast(loadingToastId);
+
         if (accounts.length > 0) {
           const connectedAddr = accounts[0];
           setCurrentAccount(connectedAddr);
@@ -350,13 +396,23 @@ export const App: React.FC = () => {
           setIsCurrentAccountAdmin(isDefaultAdmin);
           setIsCurrentAccountRetailer(activeRole === 'RETAILER' || activeRole === 'ALL');
 
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.setItem('hl_connected_account', connectedAddr);
+              localStorage.setItem('hl_user_role', activeRole);
+            } catch (e) {}
+          }
+
           addToast('Đăng Nhập Thành Công', `Đã xác nhận ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);
         } else {
           addToast('Đăng Nhập Thất Bại', 'Không thể lấy địa chỉ ví từ cửa sổ MetaMask.', 'warning');
         }
       } catch (err: any) {
+        removeToast(loadingToastId);
         addToast('Đăng Nhập Thất Bại', err?.message || 'Không thể đăng nhập qua cửa sổ MetaMask', 'error');
+      } finally {
+        removeToast(loadingToastId);
       }
     } else {
       addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension trên trình duyệt để đăng nhập Web3.', 'warning');
@@ -376,6 +432,11 @@ export const App: React.FC = () => {
   const handleDisconnectWallet = () => {
     setCurrentAccount(null);
     setIsWalletDetailsModalOpen(false);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('hl_connected_account');
+      } catch (e) {}
+    }
     addToast('Đã Ngắt Kết Nối Ví', 'Đã xoá phiên đăng nhập. Lần đăng nhập tới sẽ yêu cầu mở cửa sổ MetaMask mới.', 'info');
   };
 
@@ -503,6 +564,47 @@ export const App: React.FC = () => {
       await tx.wait();
       removeToast(waitToastId);
 
+      const newBatchObj: Batch = {
+        batchCode,
+        productName,
+        origin,
+        createdAt: Math.floor(Date.now() / 1000),
+        producer: cleanUserAddress,
+        isVerified: false,
+        exists: true,
+        ocopStandard: 'Chưa Thẩm Định OCOP',
+        certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
+        quantity: 'Sản lượng On-Chain',
+        currentStage: 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
+        certificateURI: `ipfs://huelegend/cert/${batchCode}`,
+        txHash: tx.hash,
+        inspectionFeePaid: '0.002 ETH',
+        checkpoints: [
+          {
+            stepName: 'Chặng 1: Khai báo sản xuất ban đầu',
+            role: ROLE_HASHES.ROLE_PRODUCER,
+            roleTitle: 'Cơ Sở Sản Xuất',
+            location: origin,
+            action: 'Khởi tạo lô hàng & Thanh toán Phí Thẩm Định OCOP',
+            timestamp: Math.floor(Date.now() / 1000),
+            recorder: cleanUserAddress,
+            metadataURI,
+            txHash: tx.hash,
+            conditionNote: 'Khởi tạo lô hàng thành công trên Sepolia Testnet.'
+          }
+        ]
+      };
+
+      setBatches((prev) => {
+        const updated = { ...prev, [batchCode]: newBatchObj };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(updated));
+          } catch (e) {}
+        }
+        return updated;
+      });
+
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${batchCode} đã được ghi nhận vào Smart Contract Sepolia (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       await fetchContractData(cleanUserAddress);
       handleNavigateTab('lookup', batchCode);
@@ -545,6 +647,35 @@ export const App: React.FC = () => {
 
       await tx.wait();
       removeToast(waitToastId);
+
+      setBatches((prev) => {
+        const target = prev[batchCode];
+        if (!target) return prev;
+        const newCheckpoint = {
+          stepName: stepName || `Chặng ${target.checkpoints.length + 1}: ${action}`,
+          role: roleHash,
+          roleTitle: getRoleTitle(roleHash),
+          location,
+          action: fullActionText,
+          timestamp: Math.floor(Date.now() / 1000),
+          recorder: currentAccount || '0x...',
+          metadataURI,
+          txHash: tx.hash,
+          conditionNote: conditionNote || 'Ghi chặng mới trên Blockchain.'
+        };
+        const updatedBatch = {
+          ...target,
+          currentStage: action,
+          checkpoints: [...target.checkpoints, newCheckpoint]
+        };
+        const updatedAll = { ...prev, [batchCode]: updatedBatch };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+          } catch (e) {}
+        }
+        return updatedAll;
+      });
 
       addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu trữ bất biến on-chain.`, 'success');
       await fetchContractData();
@@ -601,6 +732,27 @@ export const App: React.FC = () => {
 
       await tx.wait();
       removeToast(waitToastId);
+
+      setBatches((prev) => {
+        const target = prev[batchCode];
+        if (!target) return prev;
+        const updatedBatch: Batch = {
+          ...target,
+          isVerified: true,
+          starRating,
+          inspectorNote,
+          verifyTxHash: tx.hash,
+          ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
+          currentStage: 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
+        };
+        const updatedAll = { ...prev, [batchCode]: updatedBatch };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+          } catch (e) {}
+        }
+        return updatedAll;
+      });
 
       addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao chính thức on-chain.`, 'success');
       await fetchContractData();
