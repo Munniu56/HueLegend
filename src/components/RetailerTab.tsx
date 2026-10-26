@@ -268,7 +268,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
               <span className="text-xs text-[#E0ECE4]/80">Doanh thu tích lũy từ khách hàng:</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-mono font-extrabold text-amber-300">
-                  {contractBalanceEth}
+                  {currentAccount ? contractBalanceEth : '0.00'}
                 </span>
                 <span className="text-xs font-mono font-bold text-[#E0ECE4]">ETH</span>
               </div>
@@ -278,22 +278,24 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
               <div className="flex justify-between items-center">
                 <span className="text-white/70">Tài khoản Đại lý đăng nhập:</span>
                 <span className="font-mono text-emerald-300 font-bold truncate max-w-[140px]">
-                  {currentAccount ? `${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}` : 'Chưa kết nối'}
+                  {currentAccount ? `${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}` : 'Chưa kết nối ví'}
                 </span>
               </div>
               <p className="text-[11px] text-white/60 leading-snug">
-                Chỉ ví đại lý sở hữu doanh thu đăng nhập hiện tại mới có quyền thực hiện lệnh rút ETH tích lũy trong Smart Contract về ví cá nhân.
+                {currentAccount
+                  ? 'Ví này chỉ tự động nhận và tăng số dư ETH khi khách hàng thực hiện thanh toán mua sản phẩm. Chỉ đại lý sở hữu ví mới có quyền rút về ví cá nhân.'
+                  : 'Chưa kết nối ví Đại lý. Vui lòng kết nối ví MetaMask để xem số dư tích lũy từ khách hàng thanh toán và thực hiện rút doanh thu.'}
               </p>
             </div>
 
             <button
               type="button"
               onClick={handleWithdrawRevenue}
-              disabled={isWithdrawing || !currentAccount}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#C29B38] text-[#1A2820] font-sans font-extrabold text-xs hover:bg-[#b08c31] active:scale-[0.99] transition-all shadow-2xs flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={isWithdrawing}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#C29B38] text-[#1A2820] font-sans font-extrabold text-xs hover:bg-[#b08c31] active:scale-[0.99] transition-all shadow-2xs flex items-center justify-center gap-2"
             >
               <ArrowDownRight className="w-4 h-4 text-[#1A2820]" />
-              <span>Rút Doanh Thu Về Ví Đại Lý</span>
+              <span>{currentAccount ? 'Rút Doanh Thu Về Ví Đại Lý' : 'Kết Nối Ví Để Rút Doanh Thu'}</span>
             </button>
           </div>
 
