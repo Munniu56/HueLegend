@@ -300,8 +300,24 @@ export const App: React.FC = () => {
       const localBatchesStr = typeof window !== 'undefined' ? localStorage.getItem('hl_local_batches') : null;
       const localBatches: Record<string, Batch> = localBatchesStr ? JSON.parse(localBatchesStr) : {};
 
-      // Hop nhat du lieu local va du lieu on-chain
-      const mergedBatches = { ...localBatches, ...fetchedBatches };
+      // Hop nhat du lieu local va du lieu on-chain (uu tien giu nguyen tat ca lo hang & checkpoints local)
+      const mergedBatches: Record<string, Batch> = { ...localBatches };
+
+      Object.keys(fetchedBatches).forEach((code) => {
+        if (!mergedBatches[code]) {
+          mergedBatches[code] = fetchedBatches[code];
+        } else {
+          mergedBatches[code] = {
+            ...fetchedBatches[code],
+            ...mergedBatches[code],
+            checkpoints:
+              mergedBatches[code].checkpoints && mergedBatches[code].checkpoints.length >= (fetchedBatches[code].checkpoints?.length || 0)
+                ? mergedBatches[code].checkpoints
+                : fetchedBatches[code].checkpoints,
+            txHash: (mergedBatches[code].txHash && mergedBatches[code].txHash !== 'Pending / Local Session') ? mergedBatches[code].txHash : fetchedBatches[code].txHash,
+          };
+        }
+      });
 
       setBatches(mergedBatches);
       if (typeof window !== 'undefined') {
@@ -502,18 +518,24 @@ export const App: React.FC = () => {
     }
   };
 
-  // 1. Create Batch On-Chain
+  // 1. Create Batch (Wallet Connection Mandatory + Permanent Persistence)
   const handleCreateBatch = async (
     batchCode: string,
     productName: string,
     origin: string,
     metadataURI: string
   ) => {
+    // Bat buoc phai ket noi vi MetaMask truoc khi khoi tao
     if (!currentAccount) {
-      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask trước khi tạo lô hàng.', 'warning');
+      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask trước khi khởi tạo lô hàng.', 'warning');
       setIsRoleModalOpen(true);
       return;
     }
+
+    const cleanBatchCode = batchCode.trim();
+    const cleanProductName = productName.trim();
+    const cleanOrigin = origin.trim();
+    const cleanMetadataURI = metadataURI.trim();
 
     const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch createBatch() trên MetaMask...', 'loading', 0);
 
@@ -521,7 +543,6 @@ export const App: React.FC = () => {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
 
-      // Chuan hoa dia chi vi nguoi dung va hop dong bang safeGetAddress EIP-55 checksum
       const rawUserAddr = await signer.getAddress();
       const cleanUserAddress = safeGetAddress(rawUserAddr);
       const cleanContractAddress = safeGetAddress(CONTRACT_ADDRESS);
@@ -539,24 +560,14 @@ export const App: React.FC = () => {
       const totalFeeWei = feeWei + inspectionFeeWei;
 
       const tx = await contract.createBatch(
-        batchCode.trim(),
-        productName.trim(),
-        origin.trim(),
-        metadataURI.trim(),
+        cleanBatchCode,
+        cleanProductName,
+        cleanOrigin,
+        cleanMetadataURI,
         {
           value: totalFeeWei
         }
       );
-
-      if (typeof window !== 'undefined') {
-        try {
-          const savedHashes = JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}');
-          savedHashes[batchCode] = tx.hash;
-          localStorage.setItem('hl_batch_txhashes', JSON.stringify(savedHashes));
-        } catch (e) {
-          console.warn('Could not save txHash to localStorage:', e);
-        }
-      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chờ xác nhận trên Blockchain...`, 'loading', 0);
@@ -565,18 +576,18 @@ export const App: React.FC = () => {
       removeToast(waitToastId);
 
       const newBatchObj: Batch = {
-        batchCode,
-        productName,
-        origin,
+        batchCode: cleanBatchCode,
+        productName: cleanProductName,
+        origin: cleanOrigin,
         createdAt: Math.floor(Date.now() / 1000),
         producer: cleanUserAddress,
         isVerified: false,
         exists: true,
         ocopStandard: 'Chưa Thẩm Định OCOP',
-        certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
-        quantity: 'Sản lượng On-Chain',
+        certificationNo: `OCOP-HUE-2026-${cleanBatchCode.slice(-3)}`,
+        quantity: 'Sản lượng Khởi Tạo On-Chain',
         currentStage: 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
-        certificateURI: `ipfs://huelegend/cert/${batchCode}`,
+        certificateURI: `ipfs://huelegend/cert/${cleanBatchCode}`,
         txHash: tx.hash,
         inspectionFeePaid: '0.002 ETH',
         checkpoints: [
@@ -584,37 +595,42 @@ export const App: React.FC = () => {
             stepName: 'Chặng 1: Khai báo sản xuất ban đầu',
             role: ROLE_HASHES.ROLE_PRODUCER,
             roleTitle: 'Cơ Sở Sản Xuất',
-            location: origin,
+            location: cleanOrigin,
             action: 'Khởi tạo lô hàng & Thanh toán Phí Thẩm Định OCOP',
             timestamp: Math.floor(Date.now() / 1000),
             recorder: cleanUserAddress,
-            metadataURI,
+            metadataURI: cleanMetadataURI,
             txHash: tx.hash,
             conditionNote: 'Khởi tạo lô hàng thành công trên Sepolia Testnet.'
           }
         ]
       };
 
+      // Luu vinh vien vao State va LocalStorage
       setBatches((prev) => {
-        const updated = { ...prev, [batchCode]: newBatchObj };
+        const updated = { ...prev, [cleanBatchCode]: newBatchObj };
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('hl_local_batches', JSON.stringify(updated));
+            const savedHashes = JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}');
+            savedHashes[cleanBatchCode] = tx.hash;
+            localStorage.setItem('hl_batch_txhashes', JSON.stringify(savedHashes));
           } catch (e) {}
         }
         return updated;
       });
 
-      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${batchCode} đã được ghi nhận vào Smart Contract Sepolia (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
+      setSelectedLookupBatch(cleanBatchCode);
+      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       await fetchContractData(cleanUserAddress);
-      handleNavigateTab('lookup', batchCode);
+      handleNavigateTab('lookup', cleanBatchCode);
     } catch (err: any) {
       removeToast(loadingToastId);
-      addToast('Lỗi Giao Dịch On-Chain', err?.reason || err?.message || 'Giao dịch thất bại trên Sepolia.', 'error');
+      addToast('Giao Dịch Thất Bại', err?.reason || err?.message || 'Không thể khởi tạo lô hàng trên Sepolia.', 'error');
     }
   };
 
-  // 2. Add Checkpoint On-Chain
+  // 2. Add Checkpoint (Wallet Connection Mandatory + Permanent Persistence)
   const handleAddCheckpoint = async (
     batchCode: string,
     role: string,
@@ -624,8 +640,9 @@ export const App: React.FC = () => {
     stepName: string,
     conditionNote: string
   ) => {
+    // Bat buoc phai ket noi vi MetaMask truoc khi ghi chang
     if (!currentAccount) {
-      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask.', 'warning');
+      addToast('Chưa Kết Nối Ví', 'Vui lòng chọn vai trò & kết nối ví MetaMask trước khi ghi chặng.', 'warning');
       setIsRoleModalOpen(true);
       return;
     }
@@ -635,6 +652,8 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
+      const rawUserAddr = await signer.getAddress();
+      const cleanUserAddress = safeGetAddress(rawUserAddr);
       const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const roleHash = ROLE_HASHES[role as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_LOGISTICS;
@@ -648,21 +667,22 @@ export const App: React.FC = () => {
       await tx.wait();
       removeToast(waitToastId);
 
+      const newCheckpoint = {
+        stepName: stepName || `Chặng mới: ${action}`,
+        role: roleHash,
+        roleTitle: getRoleTitle(roleHash),
+        location,
+        action: fullActionText,
+        timestamp: Math.floor(Date.now() / 1000),
+        recorder: cleanUserAddress,
+        metadataURI,
+        txHash: tx.hash,
+        conditionNote: conditionNote || 'Ghi chặng mới thành công.'
+      };
+
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
-        const newCheckpoint = {
-          stepName: stepName || `Chặng ${target.checkpoints.length + 1}: ${action}`,
-          role: roleHash,
-          roleTitle: getRoleTitle(roleHash),
-          location,
-          action: fullActionText,
-          timestamp: Math.floor(Date.now() / 1000),
-          recorder: currentAccount || '0x...',
-          metadataURI,
-          txHash: tx.hash,
-          conditionNote: conditionNote || 'Ghi chặng mới trên Blockchain.'
-        };
         const updatedBatch = {
           ...target,
           currentStage: action,
@@ -677,22 +697,23 @@ export const App: React.FC = () => {
         return updatedAll;
       });
 
-      addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu trữ bất biến on-chain.`, 'success');
+      addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu vĩnh viễn on-chain.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
       removeToast(loadingToastId);
-      addToast('Lỗi Giao Dịch On-Chain', err?.reason || err?.message || 'Lỗi ghi chặng lên Blockchain.', 'error');
+      addToast('Giao Dịch Thất Bại', err?.reason || err?.message || 'Lỗi ghi chặng lên Blockchain.', 'error');
     }
   };
 
-  // 3. Verify Batch On-Chain
+  // 3. Verify Batch (Wallet Connection Mandatory + Permanent Persistence)
   const handleVerifyBatch = async (
     batchCode: string,
     inspectorNote: string,
     certificateURI: string,
     starRating: string = '4'
   ) => {
+    // Bat buoc phai ket noi vi MetaMask truoc khi tham dinh
     if (!currentAccount) {
       addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví MetaMask với quyền ROLE_INSPECTOR.', 'warning');
       setIsRoleModalOpen(true);
@@ -704,28 +725,12 @@ export const App: React.FC = () => {
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
       const signer = await provider.getSigner();
+      const rawUserAddr = await signer.getAddress();
+      const cleanUserAddress = safeGetAddress(rawUserAddr);
       const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
       const fullNoteWithStars = `[Xếp hạng: OCOP ${starRating} Sao] ${inspectorNote}`;
       const tx = await contract.verifyBatch(batchCode, fullNoteWithStars, certificateURI);
-
-      if (typeof window !== 'undefined') {
-        try {
-          const verifyHashes = JSON.parse(localStorage.getItem('hl_verify_txhashes') || '{}');
-          verifyHashes[batchCode] = tx.hash;
-          localStorage.setItem('hl_verify_txhashes', JSON.stringify(verifyHashes));
-
-          const starRatings = JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}');
-          starRatings[batchCode] = starRating;
-          localStorage.setItem('hl_batch_starratings', JSON.stringify(starRatings));
-
-          const notes = JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}');
-          notes[batchCode] = inspectorNote;
-          localStorage.setItem('hl_batch_inspectornotes', JSON.stringify(notes));
-        } catch (e) {
-          console.warn('Could not save verify data to localStorage:', e);
-        }
-      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang thẩm định OCOP...`, 'loading', 0);
@@ -749,17 +754,24 @@ export const App: React.FC = () => {
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+            const starRatings = JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}');
+            starRatings[batchCode] = starRating;
+            localStorage.setItem('hl_batch_starratings', JSON.stringify(starRatings));
+
+            const notes = JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}');
+            notes[batchCode] = inspectorNote;
+            localStorage.setItem('hl_batch_inspectornotes', JSON.stringify(notes));
           } catch (e) {}
         }
         return updatedAll;
       });
 
-      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao chính thức on-chain.`, 'success');
+      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao và lưu vĩnh viễn.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
       removeToast(loadingToastId);
-      addToast('Lỗi Thẩm Định On-Chain', err?.reason || err?.message || 'Cần vai trò ROLE_INSPECTOR để thực hiện.', 'error');
+      addToast('Giao Dịch Thất Bại', err?.reason || err?.message || 'Cần vai trò ROLE_INSPECTOR để thực hiện.', 'error');
     }
   };
 
