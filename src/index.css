@@ -27,6 +27,11 @@
   body {
     font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: var(--bg-body);
+    background-image: url('/assets/aistudio/nen_9abbde3c.png');
+    background-size: cover;
+    background-position: center bottom;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: var(--text-main);
     line-height: 1.6;
     letter-spacing: -0.01em;

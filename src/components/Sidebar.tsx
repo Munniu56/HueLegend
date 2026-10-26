@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
   });
 
   return (
-    <aside className="w-80 bg-[#FAF9F5] border-r border-[#E6E1D7] flex flex-col justify-between p-5 h-screen sticky top-0 shrink-0 overflow-y-auto font-sans">
+    <aside className="w-80 bg-[#FAF9F5]/92 backdrop-blur-md border-r border-[#E6E1D7]/80 flex flex-col justify-between p-5 h-screen sticky top-0 shrink-0 overflow-y-auto font-sans shadow-xs">
       {/* Background Subtle Watermark */}
       <img
         src="/assets/lotus_transparent.png"
