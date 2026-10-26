@@ -26,15 +26,6 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 }) => {
   const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const shortAddress = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;

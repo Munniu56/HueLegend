@@ -12,15 +12,6 @@ interface QRStampModalProps {
 export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) => {
   const { position, isDragging, dragHeaderProps } = useDraggable(Boolean(batch));
 
-  React.useEffect(() => {
-    if (batch) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [batch]);
-
   if (!batch) return null;
 
   const handlePrint = () => {

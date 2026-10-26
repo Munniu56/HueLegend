@@ -16,15 +16,6 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
 }) => {
   const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      return () => {
-        document.body.style.overflow = '';
-      };
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
   const roleOptions = [
