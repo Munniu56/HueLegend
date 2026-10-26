@@ -204,6 +204,13 @@ export const App: React.FC = () => {
               conditionNote: 'Niêm phong Blockchain nguyên vẹn.'
             }));
 
+            const isListedOnChain = checkpoints.some(
+              (cp: any) =>
+                cp.role === ROLE_HASHES.ROLE_RETAILER ||
+                (cp.action && cp.action.toLowerCase().includes('niêm yết')) ||
+                (cp.action && cp.action.toLowerCase().includes('inretail'))
+            );
+
             fetchedBatches[batchCode] = {
               batchCode: batchData.batchCode,
               productName: batchData.productName,
@@ -211,6 +218,7 @@ export const App: React.FC = () => {
               createdAt: Number(batchData.createdAt),
               producer: batchData.producer,
               isVerified: batchData.isVerified,
+              isListed: isListedOnChain,
               exists: batchData.exists,
               ocopStandard: batchData.isVerified
                 ? 'Đạt Chuẩn OCOP Tỉnh Thừa Thiên Huế'
@@ -708,9 +716,16 @@ export const App: React.FC = () => {
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
+        const isListingAction =
+          role === 'RETAILER' ||
+          role === ROLE_HASHES.ROLE_RETAILER ||
+          (stepName && stepName.toLowerCase().includes('niêm yết')) ||
+          (action && action.toLowerCase().includes('niêm yết'));
         const updatedBatch = {
           ...target,
           currentStage: action,
+          isListed: isListingAction ? true : target.isListed,
+          storeName: isListingAction && location ? location : target.storeName,
           checkpoints: [...target.checkpoints, newCheckpoint]
         };
         const updatedAll = { ...prev, [batchCode]: updatedBatch };
@@ -1159,6 +1174,7 @@ export const App: React.FC = () => {
             <StoreTab
               batches={batches}
               onNavigateToLookup={(code) => handleNavigateTab('lookup', code)}
+              onNavigateToRetailer={() => handleNavigateTab('retailer')}
             />
           )}
 

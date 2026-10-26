@@ -28,6 +28,7 @@ import { ETHERSCAN_BASE_URL } from '../constants';
 interface StoreTabProps {
   batches: Record<string, Batch>;
   onNavigateToLookup: (batchCode: string) => void;
+  onNavigateToRetailer?: () => void;
   currentAccount?: string | null;
 }
 
@@ -52,8 +53,8 @@ interface CartItem {
   quantity: number;
 }
 
-export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup, currentAccount }) => {
-  // Danh sach san pham duoc lay hoan toan tu du lieu lo hang thuc te
+export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup, onNavigateToRetailer, currentAccount }) => {
+  // Danh sach san pham duoc lay hoan toan tu du lieu lo hang da QUA XAC NHAN NIEM YET
   const [catalog, setCatalog] = useState<ProductItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('Tất Cả');
   const [selectedStar, setSelectedStar] = useState<string>('Tất Cả');
@@ -73,9 +74,9 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
   const [orderNote, setOrderNote] = useState<string>('');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
 
-  // Khoi phuc gio hang tu localStorage va tao danh sach san pham tu lo hang thuc te
+  // Khoi phuc gio hang va loc cac lo hang DA XAC NHAN NIEM YET
   useEffect(() => {
-    // 1. Khoi phuc gio hang
+    // 1. Khoi phuc gio hang tu localStorage
     if (typeof window !== 'undefined') {
       try {
         const savedCartStr = localStorage.getItem('hl_store_cart');
@@ -86,22 +87,38 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
       } catch (e) {}
     }
 
-    // 2. Chuyen doi cac lo hang thuc te trong state batches thanh danh muc san pham
-    const dynamicItems: ProductItem[] = Object.values(batches).map((b) => ({
-      id: `batch-${b.batchCode}`,
-      batchCode: b.batchCode,
-      name: b.productName,
-      category: 'Đặc Sản Huế On-Chain',
-      priceVnd: 80000,
-      priceEth: 0.001,
-      starRating: b.starRating || '4',
-      origin: b.origin,
-      image: '/assets/aistudio/image_28ddda16.png',
-      description: `Lô đặc sản ${b.productName} đã niêm phong nhật ký Blockchain.`,
-      unit: 'Lô / Sản Phẩm',
-      inStock: true,
-      ocopStandard: b.ocopStandard || 'Sản phẩm OCOP Huế On-Chain'
-    }));
+    // 2. Chi lay cac lo hang DA QUA XAC NHAN NIEM YET (isListed === true hoac co chang niem yet tu Dai ly)
+    const listedBatches = Object.values(batches).filter((b) => {
+      if (b.isListed) return true;
+      if (b.currentStage?.toLowerCase().includes('niêm yết') || b.currentStage?.toLowerCase().includes('inretail')) return true;
+      return b.checkpoints?.some(
+        (cp) =>
+          cp.role === '0x992329381cbb4c1a2f1a603952f4a0c8b668d2c41c7b80a6c6e755543d8c1c5a' || // ROLE_RETAILER
+          cp.stepName?.toLowerCase().includes('niêm yết') ||
+          cp.action?.toLowerCase().includes('niêm yết') ||
+          cp.action?.toLowerCase().includes('inretail')
+      );
+    });
+
+    const dynamicItems: ProductItem[] = listedBatches.map((b) => {
+      const priceEth = b.listingPriceEth ? parseFloat(b.listingPriceEth) : 0.002;
+      const priceVnd = Math.round(priceEth * 65000000);
+      return {
+        id: `batch-${b.batchCode}`,
+        batchCode: b.batchCode,
+        name: b.productName,
+        category: 'Đặc Sản Huế On-Chain',
+        priceVnd: priceVnd > 0 ? priceVnd : 130000,
+        priceEth: priceEth > 0 ? priceEth : 0.002,
+        starRating: b.starRating || '4',
+        origin: b.storeName ? `${b.storeName} (${b.origin})` : b.origin,
+        image: '/assets/aistudio/image_28ddda16.png',
+        description: `Lô đặc sản ${b.productName} đã qua xác nhận niêm yết bán lẻ & niêm phong nhật ký Blockchain.`,
+        unit: 'Lô / Sản Phẩm',
+        inStock: true,
+        ocopStandard: b.ocopStandard || 'Sản phẩm OCOP Huế On-Chain'
+      };
+    });
 
     setCatalog(dynamicItems);
   }, [batches]);
@@ -303,12 +320,32 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
 
       {/* Product Grid */}
       {filteredProducts.length === 0 ? (
-        <div className="bg-white p-12 rounded-3xl border border-[#E6E1D7] text-center space-y-3">
-          <Tag className="w-10 h-10 text-gray-300 mx-auto" />
-          <h3 className="font-serif font-bold text-lg text-[#264939]">Không Tìm Thấy Sản Phẩm Phù Hợp</h3>
-          <p className="text-xs text-[#5E7166]">
-            Thử thay đổi từ khoá tìm kiếm hoặc chọn danh mục đặc sản khác.
-          </p>
+        <div className="bg-white p-10 sm:p-14 rounded-3xl border border-[#E6E1D7] text-center space-y-4 max-w-xl mx-auto shadow-2xs">
+          <div className="w-16 h-16 rounded-full bg-[#E0ECE4] text-[#264939] flex items-center justify-center mx-auto border border-[#CCD8CF]">
+            <Tag className="w-8 h-8 text-[#264939]" />
+          </div>
+          <div className="space-y-1.5">
+            <h3 className="font-serif font-extrabold text-lg sm:text-xl text-[#264939]">
+              {catalog.length === 0
+                ? 'Chưa Có Sản Phẩm Nào Được Xác Nhận Niêm Yết'
+                : 'Không Tìm Thấy Sản Phẩm Phù Hợp'}
+            </h3>
+            <p className="text-xs text-[#5E7166] leading-relaxed max-w-md mx-auto">
+              {catalog.length === 0
+                ? 'Sản phẩm sau khi được tạo lô hàng và kiểm định OCOP cần trải qua bước Xác Nhận Niêm Yết Bán Lẻ (bởi Đại lý / Retailer) trước khi chính thức xuất hiện trên Cửa Hàng Đặc Sản.'
+                : 'Thử thay đổi từ khoá tìm kiếm hoặc chọn danh mục đặc sản khác.'}
+            </p>
+          </div>
+
+          {catalog.length === 0 && onNavigateToRetailer && (
+            <button
+              onClick={onNavigateToRetailer}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#264939] text-white font-sans font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs mt-2"
+            >
+              <Store className="w-4 h-4 text-[#C29B38]" />
+              <span>Chuyển Đến Trang Niêm Yết Bán Lẻ (Retailer)</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

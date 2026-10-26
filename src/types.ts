@@ -21,6 +21,9 @@ export interface Batch {
   producer: string;
   isVerified: boolean;
   exists: boolean;
+  isListed?: boolean; // Trang thai da xac nhan niem yet len cua hang dac san
+  listingPriceEth?: string;
+  storeName?: string;
   starRating?: string;
   ocopStandard?: string;
   certificationNo?: string;
