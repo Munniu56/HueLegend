@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Store, Tag, Package, AlertTriangle, ShieldCheck, ShoppingCart, CheckCircle2 } from 'lucide-react';
+import { Store, Tag, Package, AlertTriangle, Wallet, ArrowDownRight, Image as ImageIcon, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Batch } from '../types';
 
 interface RetailerTabProps {
   batches: Record<string, Batch>;
   isRetailerRole: boolean;
   currentAccount: string | null;
+  contractBalanceEth?: string;
   onConnectWallet: () => void;
   onAddCheckpoint?: (
     batchCode: string,
@@ -16,17 +17,20 @@ interface RetailerTabProps {
     stepName: string,
     conditionNote: string
   ) => Promise<void>;
+  onWithdrawEarnings?: () => Promise<void>;
 }
 
 export const RetailerTab: React.FC<RetailerTabProps> = ({
   batches,
   isRetailerRole,
   currentAccount,
+  contractBalanceEth = '0.00',
   onConnectWallet,
   onAddCheckpoint,
+  onWithdrawEarnings,
 }) => {
   const batchList = Object.values(batches);
-  // Filter batches that have been OCOP verified
+  // Loc danh sach cac lo hang da dat chung nhan OCOP
   const verifiedBatches = batchList.filter((b) => b.isVerified);
 
   const [selectedBatchCode, setSelectedBatchCode] = useState(verifiedBatches[0]?.batchCode || '');
@@ -34,9 +38,13 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   const [listingPriceEth, setListingPriceEth] = useState('');
   const [stockQuantity, setStockQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; stock: string; sellerAddr: string }>>({});
 
   const selectedBatch = batches[selectedBatchCode];
+
+  // Mac dinh lay anh dac san cua don vi tao lo hang
+  const defaultProductImageUrl = selectedBatch?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 
   const handleListForSale = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,12 +80,28 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     }
   };
 
+  const handleWithdrawRevenue = async () => {
+    if (!currentAccount) {
+      onConnectWallet();
+      return;
+    }
+    if (!onWithdrawEarnings) return;
+
+    setIsWithdrawing(true);
+    try {
+      await onWithdrawEarnings();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
-      {/* Khong can banner RBAC vi Dai ly & Cua hang dac san duoc tu do niem yet gia */}
-
+      {/* Grid bo cuc 2 cot */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Listing Form */}
+        {/* Cot trai: Form Niem Yet & Preview Anh Dac San */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
@@ -93,7 +117,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
             </div>
 
             <p className="text-xs text-[#5E7166] leading-relaxed">
-              Dành cho các Đại lý & Cửa hàng đặc sản. Bất kỳ cửa hàng nào cũng có thể chọn lô hàng đã đạt chứng nhận <strong>Kiểm Định OCOP</strong> để nhập kho, thiết lập giá niêm yết On-Chain và đăng tải lên Cửa hàng đặc sản mà không cần Admin cấp quyền trước. <em>Doanh thu từ giao dịch mua hàng sẽ tự động được Smart Contract chuyển trực tiếp về ví của cửa hàng thực hiện niêm yết (msg.sender / seller).</em>
+              Dành cho các Đại lý & Cửa hàng đặc sản. Bất kỳ cửa hàng nào cũng có thể chọn lô hàng đã đạt chứng nhận <strong>Kiểm Định OCOP</strong> để nhập kho, thiết lập giá niêm yết On-Chain và đăng tải lên Cửa hàng đặc sản mà không cần Admin cấp quyền trước. <em>Doanh thu từ giao dịch mua hàng sẽ tự động được Smart Contract lưu giữ và chuyển về ví của cửa hàng thực hiện niêm yết khi rút.</em>
             </p>
 
             <form onSubmit={handleListForSale} className="space-y-4 font-sans">
@@ -117,6 +141,43 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                   )}
                 </select>
               </div>
+
+              {/* Muc Anh San Pham mac dinh tu Don Vi Tao Lo Hang */}
+              {selectedBatch && (
+                <div className="p-4 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-[#EDE9E0]">
+                    <ImageIcon className="w-4 h-4 text-[#264939]" />
+                    <span className="text-xs font-bold text-[#264939]">
+                      Ảnh Sản Phẩm (Mặc Định Từ Đơn Vị Tạo Lô Hàng)
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <img
+                      src={defaultProductImageUrl}
+                      alt={selectedBatch.productName}
+                      className="w-28 h-28 object-cover rounded-xl border border-[#EDE9E0] shadow-2xs shrink-0"
+                    />
+                    <div className="space-y-1.5 text-xs text-[#5E7166] flex-1">
+                      <div className="font-bold text-[#1A2820] text-sm font-serif">
+                        {selectedBatch.productName}
+                      </div>
+                      <div>
+                        <span className="text-[#8A9D92]">Mã Lô: </span>
+                        <strong className="font-mono text-[#264939]">{selectedBatch.batchCode}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[#8A9D92]">Đơn Vị Khởi Tạo: </span>
+                        <strong className="font-mono text-xs">{selectedBatch.producer ? `${selectedBatch.producer.slice(0, 8)}...${selectedBatch.producer.slice(-6)}` : 'Chưa cập nhật'}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[#8A9D92]">Nguồn Gốc: </span>
+                        <strong className="text-[#1A2820]">{selectedBatch.origin}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -187,8 +248,56 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Active Listings */}
+        {/* Cot phai: So Du ETH Trong Smart Contract & Danh Sach Niem Yet */}
         <div className="space-y-6 font-sans">
+          {/* Muc So Du ETH Khach Hang Mua San Pham Trong Smart Contract */}
+          <div className="bg-gradient-to-br from-[#264939] to-[#1a3428] text-white p-5 rounded-3xl shadow-md border border-[#264939]/30 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-[#C29B38]" />
+                <h3 className="font-serif font-extrabold text-sm text-[#FAF9F5]">
+                  SỐ DƯ ETH KHÁCH HÀNG MUA SẢN PHẨM TRONG SMART CONTRACT
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#C29B38]/20 text-[#C29B38] border border-[#C29B38]/40">
+                SEPOLIA
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-xs text-[#E0ECE4]/80">Doanh thu tích lũy từ khách hàng:</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-mono font-extrabold text-amber-300">
+                  {contractBalanceEth}
+                </span>
+                <span className="text-xs font-mono font-bold text-[#E0ECE4]">ETH</span>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-xs space-y-1.5">
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">Tài khoản Đại lý đăng nhập:</span>
+                <span className="font-mono text-emerald-300 font-bold truncate max-w-[140px]">
+                  {currentAccount ? `${currentAccount.slice(0, 6)}...${currentAccount.slice(-4)}` : 'Chưa kết nối'}
+                </span>
+              </div>
+              <p className="text-[11px] text-white/60 leading-snug">
+                Chỉ ví đại lý sở hữu doanh thu đăng nhập hiện tại mới có quyền thực hiện lệnh rút ETH tích lũy trong Smart Contract về ví cá nhân.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleWithdrawRevenue}
+              disabled={isWithdrawing || !currentAccount}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#C29B38] text-[#1A2820] font-sans font-extrabold text-xs hover:bg-[#b08c31] active:scale-[0.99] transition-all shadow-2xs flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <ArrowDownRight className="w-4 h-4 text-[#1A2820]" />
+              <span>Rút Doanh Thu Về Ví Đại Lý</span>
+            </button>
+          </div>
+
+          {/* Danh Sach Lo Hang Niem Yet */}
           <div className="bg-white p-5 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
               <h3 className="font-serif font-extrabold text-base text-[#264939]">
@@ -210,20 +319,27 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                   return (
                     <div
                       key={batch.batchCode}
-                      className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2"
+                      className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200">
-                            {batch.batchCode}
-                          </span>
-                          <h4 className="font-serif font-bold text-sm text-[#1A2820] mt-1">
+                      <div className="flex items-start gap-3">
+                        <img
+                          src={batch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                          alt={batch.productName}
+                          className="w-12 h-12 rounded-lg object-cover border border-[#EDE9E0] shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
+                              {batch.batchCode}
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                              InRetail
+                            </span>
+                          </div>
+                          <h4 className="font-serif font-bold text-xs text-[#1A2820] mt-1 truncate">
                             {batch.productName}
                           </h4>
                         </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                          InRetail
-                        </span>
                       </div>
 
                       <div className="text-xs text-[#5E7166] space-y-1 bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
@@ -257,3 +373,4 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     </div>
   );
 };
+

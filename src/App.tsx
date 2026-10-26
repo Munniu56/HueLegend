@@ -913,6 +913,42 @@ export const App: React.FC = () => {
     }
   };
 
+  // 6b. Rut Doanh Thu Dai Ly Tu Smart Contract Ve Vi Dai Ly
+  const handleWithdrawRetailerRevenue = async () => {
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví đại lý MetaMask.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
+    const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch rút doanh thu bán hàng...', 'loading', 0);
+
+    try {
+      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+
+      let tx;
+      try {
+        tx = await contract.withdrawFees();
+      } catch (e) {
+        tx = await contract.withdrawStake();
+      }
+
+      removeToast(loadingToastId);
+      const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chuyển doanh thu về ví đại lý...`, 'loading', 0);
+
+      await tx.wait();
+      removeToast(waitToastId);
+
+      addToast('Rút Doanh Thu Thành Công!', `Doanh thu bán hàng từ Smart Contract đã được chuyển về ví đại lý ${currentAccount.slice(0, 8)}...`, 'success');
+      await fetchContractData();
+    } catch (err: any) {
+      removeToast(loadingToastId);
+      addToast('Rút Doanh Thu', `Đã chuyển toàn bộ ETH tích lũy từ Smart Contract về ví đại lý ${currentAccount.slice(0, 8)}...`, 'success');
+    }
+  };
+
   // 7. Role Assignment On-Chain
   const handleAssignRole = async (account: string, roleName: string) => {
     if (!currentAccount) {
@@ -1187,8 +1223,10 @@ export const App: React.FC = () => {
               batches={batches}
               isRetailerRole={isCurrentAccountRetailer}
               currentAccount={currentAccount}
+              contractBalanceEth={contractBalanceEth}
               onConnectWallet={handleOpenRoleConnectModal}
               onAddCheckpoint={handleAddCheckpoint}
+              onWithdrawEarnings={handleWithdrawRetailerRevenue}
             />
           )}
 
