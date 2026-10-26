@@ -163,14 +163,15 @@ export const App: React.FC = () => {
           );
 
           setIsCurrentAccountAdmin(isSpecifiedAdmin);
-          setIsCurrentAccountRetailer(isRetailer || simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
+          // Dai ly va Cua hang dac san duoc tu do niem yet gia khong can Admin cap quyen truoc
+          setIsCurrentAccountRetailer(true);
           setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
         } catch (roleErr) {
           console.warn('Could not check on-chain roles:', roleErr);
         }
       } else {
         setIsCurrentAccountAdmin(false);
-        setIsCurrentAccountRetailer(simulatedRole === 'RETAILER' || simulatedRole === 'ALL');
+        setIsCurrentAccountRetailer(true);
         setIsCurrentAccountInspector(simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
       }
 

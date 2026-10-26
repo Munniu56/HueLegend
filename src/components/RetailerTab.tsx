@@ -74,26 +74,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
 
   return (
     <div className="space-y-6 font-sans">
-      {/* RBAC Warning Banner if current wallet is NOT a Retailer */}
-      {!isRetailerRole && (
-        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950 font-sans shadow-2xs">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0" />
-            <div>
-              <span className="font-bold block text-sm text-amber-950 font-serif">Yêu Cầu Quyền Đại Lý (Retailer)</span>
-              <span className="text-amber-900 font-medium">
-                Vui lòng kết nối ví Đại lý (Retailer) đã được Admin cấp quyền để thực hiện niêm yết sản phẩm.
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={onConnectWallet}
-            className="px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs shrink-0"
-          >
-            Chuyển Ví / Chọn Retailer
-          </button>
-        </div>
-      )}
+      {/* Khong can banner RBAC vi Dai ly & Cua hang dac san duoc tu do niem yet gia */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Listing Form */}
@@ -107,12 +88,12 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 </h2>
               </div>
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
-                ROLE_RETAILER
+                ĐẠI LÝ & CỬA HÀNG ĐẶC SẢN
               </span>
             </div>
 
             <p className="text-xs text-[#5E7166] leading-relaxed">
-              Dành cho Đại lý & Cửa hàng đặc sản. Sau khi lô hàng đạt chứng nhận <strong>Kiểm Định OCOP</strong>, đại lý thực hiện nhập kho, thiết lập giá niêm yết On-Chain và công khai bán. <em>Doanh thu từ giao dịch mua hàng sẽ tự động được Smart Contract chuyển trực tiếp về ví RETAILER thực hiện niêm yết (msg.sender / seller).</em>
+              Dành cho các Đại lý & Cửa hàng đặc sản. Bất kỳ cửa hàng nào cũng có thể chọn lô hàng đã đạt chứng nhận <strong>Kiểm Định OCOP</strong> để nhập kho, thiết lập giá niêm yết On-Chain và đăng tải lên Cửa hàng đặc sản mà không cần Admin cấp quyền trước. <em>Doanh thu từ giao dịch mua hàng sẽ tự động được Smart Contract chuyển trực tiếp về ví của cửa hàng thực hiện niêm yết (msg.sender / seller).</em>
             </p>
 
             <form onSubmit={handleListForSale} className="space-y-4 font-sans">
@@ -195,7 +176,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !selectedBatch || !isRetailerRole}
+                  disabled={isSubmitting || !selectedBatch}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#264939] text-white font-sans font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs disabled:opacity-50"
                 >
                   <Tag className="w-4 h-4 text-[#C29B38]" />
