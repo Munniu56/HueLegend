@@ -9,6 +9,15 @@ interface QRStampModalProps {
 }
 
 export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) => {
+  React.useEffect(() => {
+    if (batch) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [batch]);
+
   if (!batch) return null;
 
   const handlePrint = () => {
@@ -18,7 +27,7 @@ export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) =>
   const currentUrl = window.location.href;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans">
+    <div className="fixed inset-0 z-[150] flex items-start justify-center pt-8 sm:pt-14 px-4 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-hidden">
       <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 space-y-6 shadow-2xl relative overflow-hidden">
         {/* Top Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">

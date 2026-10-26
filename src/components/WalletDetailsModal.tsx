@@ -23,6 +23,15 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   contractBalanceEth = '0.00',
   onDisconnect,
 }) => {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const shortAddress = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
@@ -51,7 +60,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-start justify-center pt-8 sm:pt-14 px-4 sm:px-6 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-y-auto">
+    <div className="fixed inset-0 z-[160] flex items-start justify-center pt-8 sm:pt-14 px-4 sm:px-6 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-hidden">
       <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden my-0 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
