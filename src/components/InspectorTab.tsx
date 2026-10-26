@@ -62,25 +62,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 
   return (
     <div className="space-y-6 font-sans">
-      {/* RBAC Warning Banner if not Inspector */}
-      {!isInspectorRole && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-900 font-bold leading-relaxed">
-              Vui lòng kết nối ví Kiểm định viên (Inspector) đã được Admin cấp quyền để thực hiện thẩm định và cấp chứng nhận OCOP.
-            </p>
-          </div>
-          {onConnectWallet && (
-            <button
-              onClick={onConnectWallet}
-              className="px-4 py-2 bg-[#C29B38] text-white text-xs font-bold rounded-xl hover:bg-[#8C6D1F] transition-all shrink-0 shadow-2xs"
-            >
-              Chuyển Ví / Chọn Inspector
-            </button>
-          )}
-        </div>
-      )}
+      {/* Da an banner thong bao Kiem dinh vien theo yeu cau */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
