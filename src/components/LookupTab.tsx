@@ -63,105 +63,115 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   return (
     <div className="space-y-6 font-sans">
       {/* Top Search & Camera Scan Bar */}
-      <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-serif font-extrabold text-[#264939]">
+      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#EDE9E0]">
+          <div className="space-y-1 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E0ECE4] text-[#264939] text-[11px] font-bold border border-[#CCD8CF]">
+              <QrCode className="w-3.5 h-3.5 text-[#C29B38]" />
+              <span>CỔNG XÁC THỰC BLOCKCHAIN SEPOLIA</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-serif font-extrabold text-[#264939]">
               Tra Cứu & Xác Thực Nguồn Gốc Đặc Sản
             </h2>
-            <p className="text-xs font-sans text-[#5E7166] mt-1">
-              Nhập mã định danh lô hàng hoặc quét mã tem QR niêm phong để đọc nhật ký từ Sepolia Testnet.
+            <p className="text-xs font-sans text-[#5E7166]">
+              Nhập mã định danh lô hàng hoặc quét mã tem QR niêm phong để đọc nhật ký minh bạch từ Sepolia Testnet.
             </p>
           </div>
 
           <button
             onClick={() => onOpenQRStampModal(activeBatch?.batchCode || '')}
             disabled={!activeBatch}
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#C29B38] text-white text-xs font-sans font-bold hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C29B38] text-white text-xs font-sans font-bold hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-50 shrink-0"
           >
             <Printer className="w-4 h-4" />
             <span>In Tem QR Niêm Phong</span>
           </button>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 font-sans">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchCode}
-              onChange={(e) => setSearchCode(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchCode)}
-              placeholder="Nhập mã lô đặc sản..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
-            />
-          </div>
-
-          <button
-            onClick={() => handleSearch(searchCode)}
-            className="px-6 py-2.5 bg-[#264939] text-white font-sans font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all"
-          >
-            Tra Cứu
-          </button>
-
-          <button
-            onClick={() => setIsScanning(!isScanning)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#E0ECE4] text-[#264939] font-sans font-bold text-xs rounded-xl hover:bg-[#d0e2d5] transition-all border border-[#CCD8CF]"
-          >
-            <Camera className="w-4 h-4" />
-            <span>{isScanning ? 'Tắt Camera' : 'Quét Mã Camera'}</span>
-          </button>
-        </div>
-
-        {/* Quick Batch Suggestion Pills */}
-        {batchKeys.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#EDE9E0] font-sans">
-            <span className="text-[11px] font-bold text-[#8A9D92]">Lô trên Blockchain:</span>
-            {batchKeys.map((code) => (
-              <button
-                key={code}
-                onClick={() => handleSearch(code)}
-                className={`text-xs font-mono px-2.5 py-1 rounded-lg border transition-all ${
-                  searchCode === code
-                    ? 'bg-[#264939] text-white border-[#264939] font-bold'
-                    : 'bg-[#FAF9F5] text-[#3B4D43] border-[#E6E1D7] hover:border-[#264939]'
-                }`}
-              >
-                {code}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Camera Simulator panel if toggled */}
-        {isScanning && (
-          <div className="p-4 bg-emerald-950 text-white rounded-xl text-center space-y-3 animate-in fade-in font-sans">
-            <div className="w-12 h-12 rounded-full bg-emerald-800/50 flex items-center justify-center mx-auto text-emerald-300">
-              <QrCode className="w-6 h-6 animate-pulse" />
+        {/* Refined Form Width & Search Inputs */}
+        <div className="max-w-3xl mx-auto w-full pt-1 space-y-3 font-sans">
+          <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchCode}
+                onChange={(e) => setSearchCode(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchCode)}
+                placeholder="Nhập mã lô đặc sản (Ví dụ: HL-MEXUNGD-2026-001)..."
+                className="w-full pl-11 pr-4 py-3 rounded-2xl border-2 border-[#E6E1D7] text-xs sm:text-sm font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] shadow-inner transition-colors"
+              />
             </div>
-            <p className="text-xs text-emerald-200">
-              {batchKeys.length > 0
-                ? 'Đang giả lập Camera quét QR Code... Vui lòng chọn lô bên dưới để nhận diện lập tức:'
-                : 'Chưa có sản phẩm nào trên Blockchain để quét.'}
-            </p>
-            {batchKeys.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-2 font-mono">
-                {batchKeys.map((code) => (
-                  <button
-                    key={code}
-                    onClick={() => {
-                      handleSearch(code);
-                      setIsScanning(false);
-                    }}
-                    className="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-xs font-bold text-white transition-all"
-                  >
-                    Nhận diện {code}
-                  </button>
-                ))}
-              </div>
-            )}
+
+            <div className="flex gap-2 shrink-0">
+              <button
+                onClick={() => handleSearch(searchCode)}
+                className="px-6 py-3 bg-[#264939] text-white font-sans font-bold text-xs rounded-2xl hover:bg-[#1c372b] transition-all shadow-xs flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Tra Cứu</span>
+              </button>
+
+              <button
+                onClick={() => setIsScanning(!isScanning)}
+                className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#E0ECE4] text-[#264939] font-sans font-bold text-xs rounded-2xl hover:bg-[#d0e2d5] transition-all border border-[#CCD8CF] flex-1 sm:flex-none"
+              >
+                <Camera className="w-4 h-4" />
+                <span>{isScanning ? 'Tắt Camera' : 'Quét Mã Camera'}</span>
+              </button>
+            </div>
           </div>
-        )}
+
+          {/* Quick Batch Suggestion Pills */}
+          {batchKeys.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-2 font-sans">
+              <span className="text-[11px] font-extrabold text-[#8A9D92] uppercase tracking-wider">Lô On-Chain:</span>
+              {batchKeys.map((code) => (
+                <button
+                  key={code}
+                  onClick={() => handleSearch(code)}
+                  className={`text-xs font-mono px-3 py-1 rounded-xl border transition-all shadow-2xs ${
+                    searchCode === code
+                      ? 'bg-[#264939] text-white border-[#264939] font-extrabold scale-105'
+                      : 'bg-[#FAF9F5] text-[#3B4D43] border-[#E6E1D7] hover:border-[#264939] hover:bg-[#E0ECE4]/50'
+                  }`}
+                >
+                  {code}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Camera Simulator panel if toggled */}
+          {isScanning && (
+            <div className="p-5 bg-emerald-950 text-white rounded-2xl text-center space-y-3 animate-in fade-in font-sans shadow-lg">
+              <div className="w-12 h-12 rounded-full bg-emerald-800/50 flex items-center justify-center mx-auto text-emerald-300">
+                <QrCode className="w-6 h-6 animate-pulse" />
+              </div>
+              <p className="text-xs text-emerald-200 font-medium">
+                {batchKeys.length > 0
+                  ? 'Đang giả lập Camera quét QR Code... Vui lòng chọn lô bên dưới để nhận diện lập tức:'
+                  : 'Chưa có sản phẩm nào trên Blockchain để quét.'}
+              </p>
+              {batchKeys.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 font-mono">
+                  {batchKeys.map((code) => (
+                    <button
+                      key={code}
+                      onClick={() => {
+                        handleSearch(code);
+                        setIsScanning(false);
+                      }}
+                      className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-700 rounded-xl text-xs font-bold text-white transition-all border border-emerald-700"
+                    >
+                      Nhận diện {code}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Main Result Display */}
