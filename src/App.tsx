@@ -283,24 +283,44 @@ export const App: React.FC = () => {
           }
         }
 
-        const savedRole = localStorage.getItem('hl_user_role');
-        if (savedRole) {
-          setSimulatedRole(savedRole);
-        }
+        let savedRole = localStorage.getItem('hl_user_role') || 'ALL';
+        const savedAccount = localStorage.getItem('hl_connected_account');
 
         const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
+        let parsedWallets: GrantedWallet[] = [];
         if (savedWalletsStr) {
-          const parsedWallets = JSON.parse(savedWalletsStr);
-          if (Array.isArray(parsedWallets)) {
-            setGrantedWallets(parsedWallets);
-          }
+          try {
+            const parsed = JSON.parse(savedWalletsStr);
+            if (Array.isArray(parsed)) {
+              parsedWallets = parsed;
+              setGrantedWallets(parsed);
+            }
+          } catch (e) {}
         }
 
-        const savedAccount = localStorage.getItem('hl_connected_account');
         if (savedAccount) {
+          const isDefaultAdmin = savedAccount.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase();
+          if (savedRole === 'ADMIN' && !isDefaultAdmin) {
+            savedRole = 'CUSTOMER';
+            localStorage.setItem('hl_user_role', 'CUSTOMER');
+          } else if (savedRole === 'INSPECTOR') {
+            const isInspectorAuthorized =
+              isDefaultAdmin ||
+              parsedWallets.some(
+                (w) =>
+                  w.address.toLowerCase() === savedAccount.toLowerCase() &&
+                  (w.role === 'ROLE_INSPECTOR' || w.role === 'ROLE_ADMIN')
+              );
+            if (!isInspectorAuthorized) {
+              savedRole = 'CUSTOMER';
+              localStorage.setItem('hl_user_role', 'CUSTOMER');
+            }
+          }
+          setSimulatedRole(savedRole);
           setCurrentAccount(savedAccount);
           fetchContractData(savedAccount);
         } else {
+          setSimulatedRole(savedRole);
           fetchContractData();
         }
       } catch (e) {
@@ -354,7 +374,7 @@ export const App: React.FC = () => {
         // 3. Lay dia chi vi sau khi chap thuan
         const accounts = await provider.send('eth_requestAccounts', []);
         
-        // Tự động ẩn thông báo Kích Hoạt MetaMask ngay khi người dùng xác nhận kết nối
+        // Tu dong an thong bao Kich Hoat MetaMask ngay khi nguoi dung xac nhan ket noi
         removeToast(loadingToastId);
 
         if (accounts.length > 0) {
@@ -375,6 +395,40 @@ export const App: React.FC = () => {
             );
             activeRole = 'CUSTOMER';
             if (activeTab === 'admin') {
+              setActiveTab('overview');
+            }
+          }
+
+          // Lay danh sach vi da duoc cap quyen RBAC tu state hoac localStorage
+          let currentGrantedWallets = grantedWallets;
+          if (currentGrantedWallets.length === 0 && typeof window !== 'undefined') {
+            try {
+              const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
+              if (savedWalletsStr) {
+                const parsed = JSON.parse(savedWalletsStr);
+                if (Array.isArray(parsed)) currentGrantedWallets = parsed;
+              }
+            } catch (e) {}
+          }
+
+          // Kiem tra quyen Kiem Dinh Vien (INSPECTOR): Phai la Admin hoac nam trong danh sach grantedWallets
+          const isInspectorAuthorized =
+            isDefaultAdmin ||
+            currentGrantedWallets.some(
+              (w) =>
+                w.address.toLowerCase() === connectedAddr.toLowerCase() &&
+                (w.role === 'ROLE_INSPECTOR' || w.role === 'ROLE_ADMIN')
+            );
+
+          if (activeRole === 'INSPECTOR' && !isInspectorAuthorized) {
+            addToast(
+              'Từ Chối Quyền Kiểm Định Viên',
+              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} chưa được Admin cấp quyền ROLE_INSPECTOR. Đã chuyển về vai trò Khách Hàng.`,
+              'warning',
+              7000
+            );
+            activeRole = 'CUSTOMER';
+            if (activeTab === 'inspector') {
               setActiveTab('overview');
             }
           }
