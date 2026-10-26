@@ -51,8 +51,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-[160] flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs animate-in fade-in font-sans overflow-y-auto">
-      <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[90vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-hidden my-auto space-y-4">
+    <div className="fixed inset-0 z-[160] flex items-start justify-center pt-8 sm:pt-14 px-4 sm:px-6 bg-black/60 backdrop-blur-sm animate-in fade-in slide-in-from-top-4 duration-200 font-sans overflow-y-auto">
+      <div className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-hidden my-0 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0]">
           <div className="flex items-center gap-2">
@@ -63,7 +63,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-[#E0ECE4] transition-all"
+            title="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
