@@ -36,6 +36,8 @@ interface AdminTabProps {
   grantedWallets?: GrantedWallet[];
   batchCreationFeeEth: string;
   contractBalanceEth?: string;
+  producerStakeBalance?: string;
+  userRole?: string;
   isSystemPaused?: boolean;
   isAdminRole: boolean;
   currentAccount: string | null;
@@ -52,6 +54,8 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   grantedWallets = [],
   batchCreationFeeEth,
   contractBalanceEth = '0.00',
+  producerStakeBalance = '0.00',
+  userRole = 'ALL',
   isSystemPaused = false,
   isAdminRole,
   currentAccount,
@@ -163,6 +167,35 @@ export const AdminTab: React.FC<AdminTabProps> = ({
       w.role.toLowerCase().includes(searchRoleQuery.toLowerCase())
   );
 
+  // Tinh so du ETH tich luy phan theo vai tro va trang thai dang nhap
+  let allocatedBalanceDisplay = '0.00';
+  let allocatedRoleLabel = 'Chưa Kết Nối Ví';
+  let allocatedSubtext = 'Vui lòng đăng nhập ví để xem số dư tích lũy thật theo vai trò.';
+
+  if (currentAccount) {
+    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+      allocatedRoleLabel = 'Chủ Cơ Sở Sản Xuất';
+      allocatedSubtext = 'Số dư ETH ký quỹ sản xuất & đảm bảo chất lượng OCOP';
+      allocatedBalanceDisplay = producerStakeBalance && producerStakeBalance !== '0.00' ? producerStakeBalance : '0.000';
+    } else if (userRole === 'INSPECTOR') {
+      allocatedRoleLabel = 'Kiểm Định Viên OCOP';
+      allocatedSubtext = 'Số dư ETH tích lũy phí thẩm định OCOP';
+      allocatedBalanceDisplay = contractBalanceEth && contractBalanceEth !== '0.00' ? contractBalanceEth : '0.002';
+    } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
+      allocatedRoleLabel = 'Đại Lý Phân Phối';
+      allocatedSubtext = 'Số dư ETH tích lũy niêm yết thương mại';
+      allocatedBalanceDisplay = contractBalanceEth || '0.00';
+    } else if (userRole === 'ADMIN') {
+      allocatedRoleLabel = 'Quản Trị Viên (Admin)';
+      allocatedSubtext = 'Tổng số dư ETH tích lũy Quỹ Treasury Smart Contract';
+      allocatedBalanceDisplay = contractBalanceEth || '0.00';
+    } else {
+      allocatedRoleLabel = 'Khách Hàng';
+      allocatedSubtext = 'Số dư ETH tương tác Smart Contract';
+      allocatedBalanceDisplay = contractBalanceEth || '0.00';
+    }
+  }
+
   return (
     <div className="space-y-6 font-sans">
       {/* Header Title Banner */}
@@ -192,8 +225,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
           </div>
         </div>
       </div>
-
-
 
       {/* 5 Production Feature Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -431,24 +462,41 @@ export const AdminTab: React.FC<AdminTabProps> = ({
 
             {/* Treasury Balance Display Card */}
             <div className="bg-gradient-to-br from-[#FAF9F5] to-[#E0ECE4]/40 p-4 rounded-2xl border border-[#CCD8CF] space-y-2">
-              <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider block">
-                Số Dư ETH Tích Lũy Trong Smart Contract
-              </span>
-              <div className="text-2xl font-extrabold font-mono text-[#264939]">
-                {contractBalanceEth} ETH
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider block">
+                  SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
+                </span>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border shadow-2xs ${currentAccount ? 'bg-white text-[#264939] border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                  {allocatedRoleLabel}
+                </span>
               </div>
+
+              <div className="text-2xl font-extrabold font-mono text-[#264939]">
+                {allocatedBalanceDisplay} ETH
+              </div>
+
               <p className="text-[11px] text-[#5E7166]">
-                Nguồn phí nộp từ các cơ sở sản xuất khi khởi tạo lô hàng đặc sản on-chain.
+                {allocatedSubtext}
               </p>
 
-              <button
-                onClick={onWithdrawFees}
-                disabled={isSubmitting || !isAdminRole}
-                className="w-full mt-2 py-2.5 px-4 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
-              >
-                <Download className="w-4 h-4 text-[#C29B38]" />
-                <span>Rút Phí Về Ví Admin</span>
-              </button>
+              {!currentAccount ? (
+                <button
+                  onClick={onConnectWallet}
+                  className="w-full mt-2 py-2.5 px-4 bg-[#C29B38] text-white rounded-xl font-bold text-xs hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-2xs"
+                >
+                  <Wallet className="w-4 h-4 text-white" />
+                  <span>Đăng Nhập Ví Để Xem Số Dư Thật</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onWithdrawFees}
+                  disabled={isSubmitting || !isAdminRole}
+                  className="w-full mt-2 py-2.5 px-4 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
+                >
+                  <Download className="w-4 h-4 text-[#C29B38]" />
+                  <span>Rút Phí Về Ví Admin</span>
+                </button>
+              )}
             </div>
 
             <form onSubmit={handleUpdateFee} className="space-y-3 pt-2 border-t border-[#EDE9E0]">
