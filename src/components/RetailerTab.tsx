@@ -7,6 +7,7 @@ interface RetailerTabProps {
   isRetailerRole: boolean;
   currentAccount: string | null;
   contractBalanceEth?: string;
+  customerSalesEth?: string;
   onConnectWallet: () => void;
   onAddCheckpoint?: (
     batchCode: string,
@@ -25,6 +26,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   isRetailerRole,
   currentAccount,
   contractBalanceEth = '0.00',
+  customerSalesEth = '0.00',
   onConnectWallet,
   onAddCheckpoint,
   onWithdrawEarnings,
@@ -99,6 +101,9 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     }
   };
 
+  // Chi hien thi so du khi co khach hang thanh toan mua hang, neu chua mua se de ve 0.00 ETH
+  const displayRevenueEth = currentAccount && Number(customerSalesEth) > 0 ? customerSalesEth : '0.00';
+
   return (
     <div className="space-y-6 font-sans">
       {/* KHỐI 1: BANNER THỐNG KÊ DOANH THU SMART CONTRACT TRÊN CÙNG (FULL WIDTH) */}
@@ -127,8 +132,8 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           <button
             type="button"
             onClick={handleWithdrawRevenue}
-            disabled={isWithdrawing}
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#C29B38] text-[#1A2820] font-sans font-extrabold text-xs hover:bg-[#b08c31] active:scale-[0.98] transition-all shadow-sm shrink-0"
+            disabled={isWithdrawing || Number(displayRevenueEth) === 0}
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#C29B38] text-[#1A2820] font-sans font-extrabold text-xs hover:bg-[#b08c31] active:scale-[0.98] transition-all shadow-sm shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowDownRight className="w-4 h-4 text-[#1A2820]" />
             <span>{currentAccount ? 'Rút Doanh Thu Về Ví Đại Lý' : 'Kết Nối Ví Để Rút Doanh Thu'}</span>
@@ -136,15 +141,22 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
-          {/* Item 1: So Du ETH */}
+          {/* Item 1: So Du ETH Tu Khach Mua Hang */}
           <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1">
-            <span className="text-xs text-[#E0ECE4]/70 font-medium">Doanh Thu Tích Lũy Bán Hàng:</span>
+            <span className="text-xs text-[#E0ECE4]/70 font-medium">Doanh Thu Tích Lũy Từ Khách Mua Hàng:</span>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-mono font-extrabold text-amber-300">
-                {currentAccount ? contractBalanceEth : '0.00'}
+                {displayRevenueEth}
               </span>
               <span className="text-xs font-mono font-bold text-[#E0ECE4]">ETH</span>
             </div>
+            <p className="text-[10px] text-amber-200/80 font-mono">
+              {!currentAccount
+                ? 'Chưa kết nối ví (Số dư = 0.00 ETH)'
+                : Number(displayRevenueEth) === 0
+                ? 'Chưa có khách hàng mua sản phẩm (Số dư = 0.00 ETH)'
+                : 'Đã nhận thanh toán từ khách mua hàng'}
+            </p>
           </div>
 
           {/* Item 2: Vi Dai Ly Thu Huong */}

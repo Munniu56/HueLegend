@@ -47,6 +47,7 @@ export const App: React.FC = () => {
   const [producerStakeBalance, setProducerStakeBalance] = useState('0.00');
   const [batchCreationFeeEth, setBatchCreationFeeEth] = useState('0.001');
   const [contractBalanceEth, setContractBalanceEth] = useState('0.00');
+  const [customerSalesEth, setCustomerSalesEth] = useState('0.00');
   const [isSystemPaused, setIsSystemPaused] = useState(false);
   const [isLoadingContract, setIsLoadingContract] = useState(false);
 
@@ -1259,6 +1260,7 @@ export const App: React.FC = () => {
               isRetailerRole={isCurrentAccountRetailer}
               currentAccount={currentAccount}
               contractBalanceEth={contractBalanceEth}
+              customerSalesEth={customerSalesEth}
               onConnectWallet={handleOpenRoleConnectModal}
               onAddCheckpoint={handleAddCheckpoint}
               onWithdrawEarnings={handleWithdrawRetailerRevenue}
