@@ -6,7 +6,6 @@ import {
   Award,
   Clock,
   CheckCircle2,
-  AlertTriangle,
   Star,
   MapPin,
   UserCheck,
@@ -18,11 +17,9 @@ import {
   Wallet,
   RotateCcw,
   Search,
-  Filter,
   X,
   Send,
-  Building2,
-  Check
+  UserX
 } from 'lucide-react';
 import { ETHERSCAN_BASE_URL } from '../constants';
 
@@ -50,7 +47,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 }) => {
   const batchList = Object.values(batches);
 
-  // Phap loai danh sach lo hang
+  // Phan loai danh sach lo hang
   const pendingBatches = batchList.filter((b) => !b.isVerified);
   const verifiedBatches = batchList.filter((b) => b.isVerified);
 
@@ -116,7 +113,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
     }
   };
 
-  // Filter Verified Batches by Search
+  // Loc danh sach cac lo hang da kiem dinh theo tu khoa tim kiem
   const filteredVerifiedBatches = verifiedBatches.filter(
     (b) =>
       b.batchCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -150,42 +147,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
             <span className="text-xs font-mono font-bold text-white">
               {currentAccount ? `${currentAccount.slice(0, 8)}...${currentAccount.slice(-4)}` : 'Chưa kết nối ví'}
             </span>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
-            <Clock className="w-6 h-6 text-amber-600" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">CHỜ THẨM ĐỊNH OCOP</div>
-            <div className="text-2xl font-serif font-extrabold text-amber-900 mt-0.5">{pendingBatches.length} Lô</div>
-            <div className="text-[11px] text-[#5E7166]">Đang chờ hội đồng xét duyệt</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-300">
-            <Award className="w-6 h-6 text-emerald-700" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">ĐÃ CẤP CHỨNG NHẬN</div>
-            <div className="text-2xl font-serif font-extrabold text-[#264939] mt-0.5">{verifiedBatches.length} Lô</div>
-            <div className="text-[11px] text-[#5E7166]">Đã ghi nhận on-chain Sepolia</div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#E0ECE4] text-[#264939] flex items-center justify-center shrink-0 border border-[#CCD8CF]">
-            <Package className="w-6 h-6 text-[#264939]" />
-          </div>
-          <div>
-            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">TỔNG SỐ LÔ TRÊN HỆ THỐNG</div>
-            <div className="text-2xl font-serif font-extrabold text-[#1A2820] mt-0.5">{batchList.length} Lô</div>
-            <div className="text-[11px] text-[#5E7166]">Lô hàng đặc sản Huế</div>
           </div>
         </div>
       </div>
@@ -505,36 +466,37 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
           </div>
         </div>
       ) : (
-        /* ================= SUB TAB 2: DANH SÁCH LÔ HÀNG ĐÃ KIỂM ĐỊNH OCOP ================= */
+        /* ================= SUB TAB 2: DANH SÁCH LÔ HÀNG ĐÃ KIỂM ĐỊNH OCOP (DẠNG BẢNG GIỐNG ẢNH 2) ================= */
         <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-6 font-sans">
           {/* Header & Search Bar for Verified Batches */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#EDE9E0]">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
-                <Award className="w-4 h-4 text-emerald-700" />
-                <span>DANH SÁCH ĐÃ KIỂM ĐỊNH OCOP TỈNH THỪA THIÊN HUẾ</span>
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
+                <Award className="w-6 h-6 text-[#264939]" />
               </div>
-              <h3 className="text-xl font-serif font-extrabold text-[#264939] mt-1">
-                Danh Sách Lô Hàng Đã Cấp Chứng Nhận OCOP
-              </h3>
-              <p className="text-xs text-[#5E7166]">
-                Các lô hàng đã được hội đồng thẩm định ký duyệt on-chain. Kiểm định viên có thể xem chi tiết hoặc thực hiện thu hồi nếu cần.
-              </p>
+              <div>
+                <h3 className="text-xl font-serif font-extrabold text-[#264939]">
+                  Danh Sách Đã Kiểm Định OCOP
+                </h3>
+                <p className="text-xs text-[#5E7166]">
+                  Danh sách lô hàng đặc sản Thừa Thiên Huế đã được ký duyệt chứng nhận OCOP
+                </p>
+              </div>
             </div>
 
-            <div className="relative min-w-[260px]">
+            <div className="relative min-w-[280px]">
               <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm mã lô, tên đặc sản..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+                placeholder="Tìm theo mã lô / sản phẩm..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               />
             </div>
           </div>
 
-          {/* List Grid of Verified Batches */}
+          {/* Table View of Verified Batches */}
           {filteredVerifiedBatches.length === 0 ? (
             <div className="p-12 text-center text-xs text-gray-400 bg-[#FAF9F5] rounded-3xl border border-dashed border-[#E6E1D7] space-y-3">
               <Award className="w-12 h-12 text-gray-300 mx-auto" />
@@ -544,95 +506,75 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {filteredVerifiedBatches.map((batch) => (
-                <div
-                  key={batch.batchCode}
-                  className="bg-[#FAF9F5] p-5 rounded-2xl border border-[#E6E1D7] hover:border-[#264939]/40 transition-all space-y-4 shadow-2xs flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#EDE9E0]">
-                      <div>
-                        <span className="font-mono text-xs font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-0.5 rounded-lg border border-[#CCD8CF]">
-                          {batch.batchCode}
-                        </span>
-                        <h4 className="font-serif font-extrabold text-base text-[#1A2820] mt-1.5 leading-snug">
-                          {batch.productName}
-                        </h4>
-                      </div>
+            <div className="overflow-x-auto rounded-2xl border border-[#E6E1D7] shadow-2xs">
+              <table className="w-full text-left border-collapse font-sans">
+                <thead>
+                  <tr className="bg-[#FAF9F5] border-b border-[#E6E1D7] text-[11px] font-extrabold text-[#5E7166] uppercase tracking-wider">
+                    <th className="py-3.5 px-5">MÃ LÔ HÀNG</th>
+                    <th className="py-3.5 px-5">TÊN ĐẶC SẢN / HẠNG OCOP</th>
+                    <th className="py-3.5 px-5">THỜI GIAN KIỂM ĐỊNH</th>
+                    <th className="py-3.5 px-5 text-right">THAO TÁC</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#EDE9E0] text-xs bg-white">
+                  {filteredVerifiedBatches.map((batch) => {
+                    // Tinh thoi gian kiem dinh tu checkpoint hoac createdAt
+                    const inspectorCheckpoint = batch.checkpoints?.find((c) => c.role === 'ROLE_INSPECTOR');
+                    const inspectionTimestamp = inspectorCheckpoint?.timestamp || batch.createdAt;
+                    const inspectionDateStr = inspectionTimestamp
+                      ? new Date(inspectionTimestamp * 1000).toISOString().replace('T', ' ').slice(0, 16)
+                      : '2026-10-28 08:30';
 
-                      <span className="inline-flex items-center gap-1 bg-amber-500 text-white font-extrabold text-[11px] px-3 py-1 rounded-full shadow-2xs shrink-0">
-                        <Star className="w-3.5 h-3.5 fill-white text-white" />
-                        <span>OCOP {batch.starRating || '4'} SAO</span>
-                      </span>
-                    </div>
+                    return (
+                      <tr key={batch.batchCode} className="hover:bg-[#FAF9F5]/70 transition-colors">
+                        {/* Column 1: Ma Lo Hang */}
+                        <td className="py-4 px-5 font-mono font-bold text-[#1A2820]">
+                          <span className="bg-amber-50 text-amber-900 px-2.5 py-1 rounded-lg border border-amber-200 inline-block">
+                            {batch.batchCode}
+                          </span>
+                        </td>
 
-                    {/* Image & Inspector Notes */}
-                    <div className="flex items-start gap-3.5">
-                      <img
-                        src={batch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
-                        alt={batch.productName}
-                        className="w-16 h-16 rounded-xl object-cover border border-[#EDE9E0] shrink-0 bg-white p-1"
-                      />
-
-                      <div className="min-w-0 flex-1 space-y-1 text-xs">
-                        <div className="flex items-center gap-1.5 text-[#5E7166]">
-                          <MapPin className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                          <span className="truncate">{batch.origin}</span>
-                        </div>
-
-                        {batch.inspectorNote && (
-                          <div className="bg-white p-2.5 rounded-xl border border-[#EDE9E0] text-[11px] text-[#1A2820] italic font-serif leading-relaxed line-clamp-2">
-                            "{batch.inspectorNote}"
+                        {/* Column 2: Ten Dac San / Hang OCOP */}
+                        <td className="py-4 px-5">
+                          <div className="space-y-1">
+                            <div className="font-serif font-extrabold text-sm text-[#1A2820]">
+                              {batch.productName}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1 bg-[#264939] text-amber-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+                                <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
+                                <span>OCOP {batch.starRating || '4'} SAO</span>
+                              </span>
+                              <span className="text-[10px] text-[#5E7166] font-medium">
+                                ROLE_INSPECTOR
+                              </span>
+                            </div>
                           </div>
-                        )}
-                      </div>
-                    </div>
+                        </td>
 
-                    {/* Certification Metadata */}
-                    <div className="bg-white p-3 rounded-xl border border-[#EDE9E0] space-y-1.5 text-[11px] text-[#5E7166]">
-                      <div className="flex justify-between">
-                        <span>Số chứng nhận OCOP:</span>
-                        <strong className="text-[#264939] font-mono">{batch.certificationNo || `OCOP-HUE-2026-${batch.batchCode.slice(-3)}`}</strong>
-                      </div>
+                        {/* Column 3: Thoi Gian Kiem Dinh */}
+                        <td className="py-4 px-5 text-[#5E7166] font-mono text-xs">
+                          {inspectionDateStr}
+                        </td>
 
-                      {batch.verifyTxHash && (
-                        <div className="flex justify-between items-center">
-                          <span>Mã băm giao dịch (Tx):</span>
-                          <a
-                            href={`${ETHERSCAN_BASE_URL}/tx/${batch.verifyTxHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono text-emerald-800 font-bold hover:underline flex items-center gap-1"
+                        {/* Column 4: Thao Tac Thu Hoi Button */}
+                        <td className="py-4 px-5 text-right">
+                          <button
+                            onClick={() => {
+                              setRevokingBatch(batch);
+                              setRevokeReason('');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-red-200 bg-red-50/50 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all text-xs font-bold shadow-2xs active:scale-95"
                           >
-                            <span>{batch.verifyTxHash.slice(0, 8)}...{batch.verifyTxHash.slice(-4)}</span>
-                            <ExternalLink className="w-3 h-3 text-[#C29B38]" />
-                          </a>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions Footer: Thu Hoi Button */}
-                  <div className="pt-3 border-t border-[#EDE9E0] flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      ✓ Đã Niêm Phong On-Chain
-                    </span>
-
-                    <button
-                      onClick={() => {
-                        setRevokingBatch(batch);
-                        setRevokeReason('');
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-2xs active:scale-98"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Thu Hồi Kiểm Định</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                            <UserX className="w-3.5 h-3.5 text-red-600" />
+                            <span>Thu Hồi</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
