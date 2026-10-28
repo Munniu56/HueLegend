@@ -319,6 +319,105 @@ export const App: React.FC = () => {
     }
   }, [batches]);
 
+  // Helper phat tin hieu dong bo du lieu thoi gian thuc giua cac phien Desktop & Mobile
+  const notifyDataSync = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hl_last_sync_timestamp', Date.now().toString());
+        window.dispatchEvent(new Event('storage'));
+        if ('BroadcastChannel' in window) {
+          const channel = new BroadcastChannel('huelegend_auto_sync');
+          channel.postMessage({ type: 'SYNC_RELOAD', timestamp: Date.now() });
+          channel.close();
+        }
+      } catch (e) {}
+    }
+  }, []);
+
+  // Tu dong ket noi va dong bo du lieu theo thoi gian thuc giua giao dien May Tinh (Desktop) va Dien Thoai (Mobile)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncLocalState = () => {
+      try {
+        // 1. Dong bo danh sach lo hang (batches)
+        const savedBatchesStr = localStorage.getItem('hl_local_batches');
+        if (savedBatchesStr) {
+          const parsed = JSON.parse(savedBatchesStr);
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            setBatches((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
+                return parsed;
+              }
+              return prev;
+            });
+          }
+        }
+
+        // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets)
+        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
+        if (savedWalletsStr) {
+          const parsed = JSON.parse(savedWalletsStr);
+          if (Array.isArray(parsed)) {
+            setGrantedWallets((prev) => {
+              if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
+                return parsed;
+              }
+              return prev;
+            });
+          }
+        }
+
+        // 3. Dong bo tab dang mo (activeTab)
+        const savedTab = localStorage.getItem('hl_active_tab');
+        if (savedTab) {
+          setActiveTab((prev) => (prev !== savedTab ? savedTab : prev));
+        }
+
+        // 4. Dong bo lo hang dang duoc chon tra cuu (selectedLookupBatch)
+        const savedSelectedBatch = localStorage.getItem('hl_selected_lookup_batch');
+        if (savedSelectedBatch) {
+          setSelectedLookupBatch((prev) => (prev !== savedSelectedBatch ? savedSelectedBatch : prev));
+        }
+
+        // 5. Dong bo vai tro dang xem (simulatedRole)
+        const savedRole = localStorage.getItem('hl_user_role');
+        if (savedRole) {
+          setSimulatedRole((prev) => (prev !== savedRole ? savedRole : prev));
+        }
+      } catch (e) {
+        console.warn('Loi dong bo thoi gian thuc:', e);
+      }
+    };
+
+    // Lang nghe su kien storage tu phien lam viec khac (cross-tab/window)
+    window.addEventListener('storage', syncLocalState);
+
+    // Lang nghe BroadcastChannel giua cac giao dien
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('huelegend_auto_sync');
+        channel.onmessage = (msg) => {
+          if (msg.data?.type === 'SYNC_RELOAD') {
+            syncLocalState();
+          }
+        };
+      } catch (e) {}
+    }
+
+    // Polling heartbeat (800ms) dam bao giao dien Mobile tu dong cap nhat lap tuc khi Desktop co thay doi
+    const syncInterval = setInterval(() => {
+      syncLocalState();
+    }, 800);
+
+    return () => {
+      window.removeEventListener('storage', syncLocalState);
+      if (channel) channel.close();
+      clearInterval(syncInterval);
+    };
+  }, []);
+
   // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -609,12 +708,21 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, fetchContractData]);
 
-  // Navigation Helper
+  // Navigation Helper voi tinh nang luu va dong bo thoi gian thuc
   const handleNavigateTab = (tab: string, batchCodeSelect?: string) => {
     setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('hl_active_tab', tab);
+        if (batchCodeSelect) {
+          localStorage.setItem('hl_selected_lookup_batch', batchCodeSelect);
+        }
+      } catch (e) {}
+    }
     if (batchCodeSelect) {
       setSelectedLookupBatch(batchCodeSelect);
     }
+    notifyDataSync();
   };
 
   // 1. Create Batch (Wallet Connection Mandatory + Permanent Persistence)
@@ -1065,6 +1173,7 @@ export const App: React.FC = () => {
         }
         return updated;
       });
+      notifyDataSync();
     };
 
     try {
@@ -1114,6 +1223,7 @@ export const App: React.FC = () => {
       }
       return updated;
     });
+    notifyDataSync();
 
     addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
   };
