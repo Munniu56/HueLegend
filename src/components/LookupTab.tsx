@@ -171,8 +171,26 @@ export const getEnrichedCheckpoints = (batch: Batch): (Checkpoint & { stageIcon:
     isCompleted: isCp4Done
   };
 
-  // Tra ve danh sach 4 chang theo dung thu tu sequential Chiet 1 -> 2 -> 3 -> 4
-  return [cp1, cp2, cp3, cp4];
+  const allBaseStages = [cp1, cp2, cp3, cp4];
+
+  // Chi lay cac chang DA DUOC XAC NHAN VA HOAN THANH (isCompleted === true)
+  const completedBaseStages = allBaseStages.filter((st) => st.isCompleted);
+
+  // Tim cac chang bo sung khac (nhu Chang 5 Khach hang thanh toan don hang)
+  const extraCheckpoints = existing.slice(1).filter((c) => {
+    const is2 = c.role === ROLE_HASHES.ROLE_INSPECTOR || (c.stepName && (c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định') || c.stepName.toLowerCase().includes('chặng 2')));
+    const is3 = c.role === ROLE_HASHES.ROLE_LOGISTICS || (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')));
+    const is4 = c.role === ROLE_HASHES.ROLE_RETAILER || (c.stepName && (c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('chặng 4') || c.stepName.toLowerCase().includes('cửa hàng')));
+    return !is2 && !is3 && !is4;
+  }).map((c) => ({
+    ...c,
+    stageIcon: Store,
+    stageBadgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    isCompleted: true
+  }));
+
+  // Tra ve danh sach cac chang da xac nhan
+  return [...completedBaseStages, ...extraCheckpoints];
 };
 
 export const LookupTab: React.FC<LookupTabProps> = ({
