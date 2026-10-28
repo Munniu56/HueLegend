@@ -18,7 +18,7 @@ export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) =>
     window.print();
   };
 
-  const currentUrl = window.location.href;
+  const cleanBaseUrl = window.location.origin + window.location.pathname;
 
   return (
     <div
@@ -75,7 +75,7 @@ export const QRStampModal: React.FC<QRStampModalProps> = ({ batch, onClose }) =>
           {/* QR Code Container */}
           <div className="p-3 bg-white rounded-xl border border-[#CCD8CF] inline-block shadow-2xs">
             <QRCodeSVG
-              value={`${currentUrl}?batch=${batch.batchCode}`}
+              value={`${cleanBaseUrl}?batch=${batch.batchCode}`}
               size={150}
               level="H"
               includeMargin={true}

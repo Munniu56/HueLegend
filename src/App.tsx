@@ -279,6 +279,24 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, simulatedRole, selectedLookupBatch]);
 
+  // Tự động đọc tham số ?batch=... từ URL (khi người dùng quét tem QR) để điều hướng thẳng vào trang Tra cứu Lịch sử Chi tiết
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const searchString = window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '');
+        const urlParams = new URLSearchParams(searchString);
+        const batchFromUrl = urlParams.get('batch') || urlParams.get('batchCode');
+        if (batchFromUrl) {
+          const cleanCode = batchFromUrl.trim().toUpperCase();
+          setSelectedLookupBatch(cleanCode);
+          setActiveTab('lookup');
+        }
+      } catch (e) {
+        console.warn('Khong the doc tham so URL QR:', e);
+      }
+    }
+  }, []);
+
   // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
   useEffect(() => {
     if (typeof window !== 'undefined') {

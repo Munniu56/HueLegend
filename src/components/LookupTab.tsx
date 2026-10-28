@@ -185,37 +185,34 @@ export const LookupTab: React.FC<LookupTabProps> = ({
         </div>
       </div>
 
-      {/* Main Result Display - Chi hien thi khi da ket noi vi MetaMask */}
-      {!currentAccount ? (
-        <div className="bg-white p-10 sm:p-12 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-4 font-sans shadow-xs">
-          <div className="w-16 h-16 rounded-2xl bg-[#E0ECE4] text-[#264939] flex items-center justify-center mx-auto border border-[#CCD8CF]">
-            <Wallet className="w-8 h-8 text-[#C29B38]" />
-          </div>
-          <div className="space-y-1.5 max-w-md mx-auto">
-            <h3 className="text-xl font-serif font-extrabold text-[#264939]">
-              Yêu Cầu Kết Nối Ví Để Xem Thông Tin Tra Cứu Tem QR
-            </h3>
-            <p className="text-xs text-[#5E7166] leading-relaxed">
-              Vui lòng kết nối ví MetaMask để truy cập đầy đủ thông tin tra cứu tem QR niêm phong, chứng nhận OCOP Sepolia Testnet và nhật ký hành trình On-Chain.
-            </p>
-          </div>
-          {onConnectWallet && (
-            <button
-              onClick={onConnectWallet}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#264939] text-white font-sans font-bold text-xs hover:bg-[#1c372b] transition-all shadow-md mt-2"
-            >
-              <Wallet className="w-4 h-4 text-[#C29B38]" />
-              <span>Kết Nối Ví MetaMask Ngay</span>
-            </button>
+      {/* Main Result Display - Tu dong hien thi Lich su chi tiet khi quet tem QR */}
+      {activeBatch ? (
+        <div className="space-y-4">
+          {!currentAccount && (
+            <div className="bg-[#E0ECE4] border border-[#CCD8CF] p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-sans text-[#264939]">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#C29B38] shrink-0" />
+                <span>
+                  <strong>Chế độ Xem Công Khai từ Tem QR:</strong> Đang hiển thị nhật ký hành trình minh bạch On-Chain cho lô hàng <strong>{activeBatch.batchCode}</strong>.
+                </span>
+              </div>
+              {onConnectWallet && (
+                <button
+                  onClick={onConnectWallet}
+                  className="px-3 py-1.5 rounded-xl bg-[#264939] text-white font-bold text-[11px] hover:bg-[#1c372b] transition-all shrink-0"
+                >
+                  Kết Nối Ví
+                </button>
+              )}
+            </div>
           )}
-        </div>
-      ) : activeBatch ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans items-start">
-          {/* Left Summary Card (5/12 Grid) */}
-          <div className="lg:col-span-5 space-y-6">
-            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5 relative overflow-hidden">
-              {/* Header Badge Row */}
-              <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans items-start">
+            {/* Left Summary Card (5/12 Grid) */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5 relative overflow-hidden">
+                {/* Header Badge Row */}
+                <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
                 <div className="min-w-0">
                   <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider block">
                     MÃ ĐỊNH DANH LÔ HÀNG
@@ -470,6 +467,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
             </div>
           </div>
         </div>
+      </div>
       ) : (
         <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-3 font-sans">
           <Package className="w-12 h-12 text-gray-300 mx-auto" />
