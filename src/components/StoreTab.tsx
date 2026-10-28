@@ -30,6 +30,16 @@ interface StoreTabProps {
   onNavigateToLookup: (batchCode: string) => void;
   onNavigateToRetailer?: () => void;
   currentAccount?: string | null;
+  onAddCheckpoint?: (
+    batchCode: string,
+    role: string,
+    location: string,
+    action: string,
+    metadataURI: string,
+    stepName: string,
+    conditionNote: string
+  ) => Promise<void>;
+  onOpenJourneyModal?: (batchCode: string) => void;
 }
 
 interface ProductItem {
@@ -53,7 +63,14 @@ interface CartItem {
   quantity: number;
 }
 
-export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup, onNavigateToRetailer, currentAccount }) => {
+export const StoreTab: React.FC<StoreTabProps> = ({
+  batches,
+  onNavigateToLookup,
+  onNavigateToRetailer,
+  currentAccount,
+  onAddCheckpoint,
+  onOpenJourneyModal
+}) => {
   const categories = ['Tất Cả', ...SPECIALTY_CATEGORIES];
 
   // Danh sach san pham duoc lay hoan toan tu du lieu lo hang da QUA XAC NHAN NIEM YET
@@ -182,7 +199,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
   });
 
   // Bat dau dat hang
-  const handleCompleteOrder = (e: React.FormEvent) => {
+  const handleCompleteOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !customerPhone || !customerAddress) {
       alert('Vui lòng nhập đầy đủ thông tin Họ tên, Số điện thoại và Địa chỉ giao hàng.');
@@ -201,6 +218,25 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
       createdAt: new Date().toLocaleString('vi-VN'),
       txHash: paymentMethod === 'WEB3' ? '0x' + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('') : null
     };
+
+    // Tu dong ghi chang thanh toan ban giao vao Nhat Ky Hanh Trinh Supply Chain On-Chain
+    if (onAddCheckpoint && cart.length > 0) {
+      for (const item of cart) {
+        try {
+          await onAddCheckpoint(
+            item.product.batchCode,
+            'RETAILER',
+            customerAddress,
+            `Khách hàng ${customerName} (${customerPhone}) đã thanh toán thành công đơn hàng ${newOrder.orderId} (Phương thức: ${paymentMethod}).`,
+            `ipfs://huelegend/order/${newOrder.orderId}`,
+            `Chặng 5: Khách Hàng Thanh Toán & Bàn Giao Đơn Hàng ${newOrder.orderId}`,
+            `Thanh toán thành công ${item.product.priceVnd.toLocaleString('vi-VN')} VNĐ (~${item.product.priceEth} ETH)`
+          );
+        } catch (err) {
+          console.warn('Ghi chang thanh toan:', err);
+        }
+      }
+    }
 
     setConfirmedOrder(newOrder);
     setCart([]);
@@ -825,12 +861,31 @@ export const StoreTab: React.FC<StoreTabProps> = ({ batches, onNavigateToLookup,
               </div>
             </div>
 
-            <button
-              onClick={() => setConfirmedOrder(null)}
-              className="w-full py-3 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all"
-            >
-              Đóng & Tiếp Tục Mua Sắm
-            </button>
+            <div className="space-y-2 pt-1 font-sans">
+              {confirmedOrder.items && confirmedOrder.items.length > 0 && (
+                <button
+                  onClick={() => {
+                    const firstBatchCode = confirmedOrder.items[0]?.product?.batchCode;
+                    setConfirmedOrder(null);
+                    if (firstBatchCode) {
+                      if (onOpenJourneyModal) onOpenJourneyModal(firstBatchCode);
+                      onNavigateToLookup(firstBatchCode);
+                    }
+                  }}
+                  className="w-full py-3 bg-[#C29B38] text-white font-extrabold text-xs rounded-xl hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <ShieldCheck className="w-4 h-4 text-white" />
+                  <span>Xem Nhật Ký Hành Trình On-Chain Vừa Cập Nhật</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => setConfirmedOrder(null)}
+                className="w-full py-3 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all"
+              >
+                Đóng & Tiếp Tục Mua Sắm
+              </button>
+            </div>
           </div>
         </div>
       )}

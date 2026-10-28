@@ -921,6 +921,8 @@ export const App: React.FC = () => {
       });
 
       setSelectedLookupBatch(cleanBatchCode);
+      setJourneyBatch(newBatchObj);
+      notifyDataSync();
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       await fetchContractData(cleanUserAddress);
       handleNavigateTab('lookup', cleanBatchCode);
@@ -1004,6 +1006,15 @@ export const App: React.FC = () => {
         return updatedAll;
       });
 
+      setSelectedLookupBatch(batchCode);
+      if (journeyBatch && journeyBatch.batchCode === batchCode) {
+        setJourneyBatch((prev) => prev ? {
+          ...prev,
+          currentStage: action,
+          checkpoints: [...prev.checkpoints, newCheckpoint]
+        } : null);
+      }
+      notifyDataSync();
       addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu vĩnh viễn on-chain.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
@@ -1073,6 +1084,19 @@ export const App: React.FC = () => {
         return updatedAll;
       });
 
+      setSelectedLookupBatch(batchCode);
+      if (journeyBatch && journeyBatch.batchCode === batchCode) {
+        setJourneyBatch((prev) => prev ? {
+          ...prev,
+          isVerified: true,
+          starRating,
+          inspectorNote,
+          verifyTxHash: tx.hash,
+          ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
+          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
+        } : null);
+      }
+      notifyDataSync();
       addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao và lưu vĩnh viễn.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
@@ -1491,6 +1515,8 @@ export const App: React.FC = () => {
               batches={batches}
               onNavigateToLookup={(code) => handleNavigateTab('lookup', code)}
               onNavigateToRetailer={() => handleNavigateTab('retailer')}
+              onAddCheckpoint={handleAddCheckpoint}
+              onOpenJourneyModal={(code) => setJourneyBatch(batches[code] || null)}
             />
           )}
 
