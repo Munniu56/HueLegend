@@ -24,6 +24,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { QRStampModal } from './components/QRStampModal';
 import { RoleConnectModal } from './components/RoleConnectModal';
 import { WalletDetailsModal } from './components/WalletDetailsModal';
+import { BatchJourneyModal } from './components/BatchJourneyModal';
 
 export const App: React.FC = () => {
   // Global State
@@ -32,6 +33,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
   const [qrStampBatch, setQrStampBatch] = useState<Batch | null>(null);
+  const [journeyBatch, setJourneyBatch] = useState<Batch | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isWalletDetailsModalOpen, setIsWalletDetailsModalOpen] = useState(false);
 
@@ -1200,6 +1202,7 @@ export const App: React.FC = () => {
               currentAccount={currentAccount}
               onConnectWallet={handleOpenRoleConnectModal}
               onOpenQRStampModal={(code) => setQrStampBatch(batches[code] || null)}
+              onOpenJourneyModal={(code) => setJourneyBatch(batches[code] || null)}
             />
           )}
 
@@ -1300,6 +1303,9 @@ export const App: React.FC = () => {
 
       {/* QR Stamp Printable Modal */}
       <QRStampModal batch={qrStampBatch} onClose={() => setQrStampBatch(null)} />
+
+      {/* Supply Chain On-Chain Journey Detailed Modal Popup */}
+      <BatchJourneyModal batch={journeyBatch} onClose={() => setJourneyBatch(null)} />
     </div>
   );
 };
