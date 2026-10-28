@@ -264,28 +264,31 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               </div>
 
               {/* Key Metadata Details with Clean Truncated Addresses */}
-              <div className="space-y-3 text-xs font-sans border-t border-[#EDE9E0] pt-4">
+              <div className="space-y-3.5 text-xs sm:text-sm font-sans border-t border-[#EDE9E0] pt-4">
                 <div className="flex items-start gap-2.5">
                   <MapPin className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
-                    <p className="text-[#5E7166] truncate">{activeBatch.origin}</p>
+                    <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.origin}</p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2.5">
-                  <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
-                    <p className="text-[#5E7166] truncate">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                {/* Chi hien thi So Chung Nhan OCOP khi lo hang da duoc tham dinh OCOP thanh cong */}
+                {activeBatch.isVerified && (
+                  <div className="flex items-start gap-2.5">
+                    <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
+                      <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-start gap-2.5">
                   <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
-                    <p className="text-[#5E7166] truncate">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
+                    <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
                   </div>
                 </div>
 
@@ -298,12 +301,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                         href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                        className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
                         title={activeBatch.producer}
                       >
                         {activeBatch.producer ? `${activeBatch.producer.slice(0, 10)}...${activeBatch.producer.slice(-6)}` : 'Chưa cập nhật'}
                       </a>
-                      <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                      <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -318,12 +321,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                           href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                          className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
                           title={activeBatch.txHash}
                         >
                           {`${activeBatch.txHash.slice(0, 10)}...${activeBatch.txHash.slice(-6)}`}
                         </a>
-                        <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                        <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                       </div>
                     </div>
                   </div>
@@ -339,12 +342,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                           href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#264939] hover:underline font-mono text-[11px] font-bold truncate block"
+                          className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
                           title={activeBatch.verifyTxHash}
                         >
                           {`${activeBatch.verifyTxHash.slice(0, 10)}...${activeBatch.verifyTxHash.slice(-6)}`}
                         </a>
-                        <ExternalLink className="w-3 h-3 text-[#C29B38] shrink-0" />
+                        <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                       </div>
                     </div>
                   </div>
