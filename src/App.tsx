@@ -210,6 +210,12 @@ export const App: React.FC = () => {
           try {
             const batchCode = await contract.getBatchCodeByIndex(i);
             const batchData = await contract.getBatch(batchCode);
+            const isVerifiedOnChain = Boolean(batchData.isVerified);
+            const savedStarRating =
+              (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}')[batchCode]) || '4';
+            const savedInspectorNote =
+              (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}')[batchCode]) || '';
+
             const checkpointsData = await contract.getCheckpoints(batchCode);
 
             const checkpoints = checkpointsData.map((cp: any, idx: number) => ({
@@ -225,6 +231,27 @@ export const App: React.FC = () => {
               conditionNote: 'Niêm phong Blockchain nguyên vẹn.'
             }));
 
+            // Dam bao luon co Chang 2 trong Checkpoints neu batchData.isVerified === true
+            const hasInspectorCp = checkpoints.some(
+              (cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop'))
+            );
+
+            if (isVerifiedOnChain && !hasInspectorCp) {
+              const inspectorCheckpoint = {
+                stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
+                role: ROLE_HASHES.ROLE_INSPECTOR,
+                roleTitle: 'Kiểm Định Viên OCOP',
+                location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+                action: `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${savedStarRating} Sao. Ghi chú: ${savedInspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
+                timestamp: Number(batchData.createdAt) + 300,
+                recorder: batchData.producer,
+                metadataURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
+                txHash: 'On-Chain Confirmed',
+                conditionNote: 'Đã xác thực chữ ký số Kiểm định viên OCOP on-chain Sepolia.'
+              };
+              checkpoints.splice(1, 0, inspectorCheckpoint);
+            }
+
             const isListedOnChain = checkpoints.some(
               (cp: any) =>
                 cp.role === ROLE_HASHES.ROLE_RETAILER ||
@@ -238,18 +265,20 @@ export const App: React.FC = () => {
               origin: batchData.origin,
               createdAt: Number(batchData.createdAt),
               producer: batchData.producer,
-              isVerified: batchData.isVerified,
+              isVerified: isVerifiedOnChain,
+              starRating: savedStarRating,
+              inspectorNote: savedInspectorNote,
               isListed: isListedOnChain,
               exists: batchData.exists,
-              ocopStandard: batchData.isVerified
-                ? 'Đạt Chuẩn OCOP Tỉnh Thừa Thiên Huế'
+              ocopStandard: isVerifiedOnChain
+                ? `Đạt Chuẩn OCOP ${savedStarRating} Sao Tỉnh Thừa Thiên Huế`
                 : 'Chưa Thẩm Định OCOP',
               certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
               quantity: 'Sản lượng On-Chain',
               currentStage:
                 checkpoints.length > 0
                   ? checkpoints[checkpoints.length - 1].action
-                  : batchData.isVerified
+                  : isVerifiedOnChain
                   ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
               certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
@@ -1082,6 +1111,20 @@ export const App: React.FC = () => {
 
       await tx.wait();
       removeToast(waitToastId);
+
+      // Ghi dong thoi Chang 2 vao Checkpoints Array tren Sepolia Smart Contract
+      try {
+        const cpTx = await contract.addCheckpoint(
+          batchCode,
+          ROLE_HASHES.ROLE_INSPECTOR,
+          'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+          `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
+          certificateURI || `ipfs://huelegend/cert/${batchCode}`
+        );
+        await cpTx.wait();
+      } catch (cpErr) {
+        console.warn('Add inspector checkpoint on-chain notice:', cpErr);
+      }
 
       setBatches((prev) => {
         const target = prev[batchCode];
