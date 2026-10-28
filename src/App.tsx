@@ -12,6 +12,7 @@ import {
 } from './constants';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { MobileNav } from './components/MobileNav';
 import { OverviewTab } from './components/OverviewTab';
 import { LookupTab } from './components/LookupTab';
 import { CreateBatchTab } from './components/CreateBatchTab';
@@ -36,6 +37,7 @@ export const App: React.FC = () => {
   const [journeyBatch, setJourneyBatch] = useState<Batch | null>(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isWalletDetailsModalOpen, setIsWalletDetailsModalOpen] = useState(false);
+  const [isOpenMobileMenu, setIsOpenMobileMenu] = useState(false);
 
   // Web3 Connection State
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
@@ -1350,9 +1352,10 @@ export const App: React.FC = () => {
             setSimulatedRole(role);
             addToast('Góc Nhìn Vai Trò', `Đã chuyển sang góc nhìn: ${role}`, 'info');
           }}
+          onToggleMobileMenu={() => setIsOpenMobileMenu(!isOpenMobileMenu)}
         />
 
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-6">
           {activeTab === 'overview' && (
             <OverviewTab
               batches={batches}
@@ -1447,6 +1450,15 @@ export const App: React.FC = () => {
           )}
         </main>
       </div>
+
+      {/* Mobile Sticky Navigation & Full Drawer */}
+      <MobileNav
+        activeTab={activeTab}
+        userRole={simulatedRole}
+        onTabChange={(tab) => handleNavigateTab(tab)}
+        isOpenMobileMenu={isOpenMobileMenu}
+        onToggleMobileMenu={() => setIsOpenMobileMenu(!isOpenMobileMenu)}
+      />
 
       {/* Global Toast Alerts */}
       <ToastContainer toasts={toasts} onClose={removeToast} />

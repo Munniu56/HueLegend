@@ -69,7 +69,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Banner with Imperial Hue Motif */}
-      <div className="relative bg-gradient-to-r from-[#264939] via-[#1c372b] to-[#12251c] text-white rounded-3xl p-8 shadow-xl overflow-hidden border border-[#CCD8CF]/20">
+      <div className="relative bg-gradient-to-r from-[#264939] via-[#1c372b] to-[#12251c] text-white rounded-3xl p-5 sm:p-8 shadow-xl overflow-hidden border border-[#CCD8CF]/20">
         <img
           src="/assets/hue_landscape_banner.png"
           alt="Huế Landscape"
@@ -80,12 +80,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         />
 
         <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#C29B38]/20 text-[#C29B38] text-xs font-sans font-bold border border-[#C29B38]/30">
-            <Sparkles className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C29B38]/20 text-[#C29B38] text-[11px] sm:text-xs font-sans font-bold border border-[#C29B38]/30">
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
             <span className="tracking-wide">QUẢN TRỊ & TRUY XUẤT NGUỒN GỐC ĐẶC SẢN CỐ ĐÔ</span>
           </div>
 
-          <h1 className="text-3xl lg:text-4xl font-serif font-extrabold tracking-tight leading-tight text-white">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-extrabold tracking-tight leading-tight text-white">
             Hệ Thống Truy Xuất Nguồn Gốc Đặc Sản Huế
           </h1>
 
