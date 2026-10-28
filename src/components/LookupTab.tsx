@@ -594,29 +594,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   </span>
                 </div>
 
-                {/* Micro Status Summary Banner */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-sans">
-                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-                    <span className="text-[#8A9D92] block font-bold text-[10px]">1. SẢN XUẤT</span>
-                    <strong className="text-emerald-700 font-extrabold">Đã Đóng Dấu Ví</strong>
-                  </div>
-                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-                    <span className="text-[#8A9D92] block font-bold text-[10px]">2. KIỂM ĐỊNH OCOP</span>
-                    <strong className={activeBatch.isVerified ? 'text-amber-700 font-extrabold' : 'text-gray-500 font-semibold'}>
-                      {activeBatch.isVerified ? `${activeBatch.starRating || '4'} Sao OCOP` : 'Chờ Duyệt'}
-                    </strong>
-                  </div>
-                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-                    <span className="text-[#8A9D92] block font-bold text-[10px]">3. KHO COLD-CHAIN</span>
-                    <strong className="text-blue-700 font-extrabold">Đã Kiểm Định</strong>
-                  </div>
-                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-                    <span className="text-[#8A9D92] block font-bold text-[10px]">4. SHOWROOM</span>
-                    <strong className={activeBatch.isListed ? 'text-purple-700 font-extrabold' : 'text-gray-500 font-semibold'}>
-                      {activeBatch.isListed ? 'Đã Niêm Yết' : 'Chờ Niêm Yết'}
-                    </strong>
-                  </div>
-                </div>
+
 
                 {/* Timeline Items - Detailed Step Breakdown */}
                 <div className="relative pl-7 space-y-6 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#CCD8CF]">
