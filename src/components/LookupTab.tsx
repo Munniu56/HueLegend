@@ -15,7 +15,8 @@ import {
   Layers,
   Package,
   Star,
-  Award
+  Award,
+  Wallet
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ETHERSCAN_BASE_URL } from '../constants';
@@ -24,12 +25,16 @@ interface LookupTabProps {
   batches: Record<string, Batch>;
   selectedBatchCode?: string;
   onOpenQRStampModal: (batchCode: string) => void;
+  currentAccount?: string | null;
+  onConnectWallet?: () => void;
 }
 
 export const LookupTab: React.FC<LookupTabProps> = ({
   batches,
   selectedBatchCode = '',
   onOpenQRStampModal,
+  currentAccount,
+  onConnectWallet,
 }) => {
   const batchKeys = Object.keys(batches);
   const initialBatchCode = selectedBatchCode || batchKeys[0] || '';
@@ -180,8 +185,31 @@ export const LookupTab: React.FC<LookupTabProps> = ({
         </div>
       </div>
 
-      {/* Main Result Display */}
-      {activeBatch ? (
+      {/* Main Result Display - Chi hien thi khi da ket noi vi MetaMask */}
+      {!currentAccount ? (
+        <div className="bg-white p-10 sm:p-12 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-4 font-sans shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-[#E0ECE4] text-[#264939] flex items-center justify-center mx-auto border border-[#CCD8CF]">
+            <Wallet className="w-8 h-8 text-[#C29B38]" />
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-xl font-serif font-extrabold text-[#264939]">
+              Yêu Cầu Kết Nối Ví Để Xem Thông Tin Tra Cứu Tem QR
+            </h3>
+            <p className="text-xs text-[#5E7166] leading-relaxed">
+              Vui lòng kết nối ví MetaMask để truy cập đầy đủ thông tin tra cứu tem QR niêm phong, chứng nhận OCOP Sepolia Testnet và nhật ký hành trình On-Chain.
+            </p>
+          </div>
+          {onConnectWallet && (
+            <button
+              onClick={onConnectWallet}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#264939] text-white font-sans font-bold text-xs hover:bg-[#1c372b] transition-all shadow-md mt-2"
+            >
+              <Wallet className="w-4 h-4 text-[#C29B38]" />
+              <span>Kết Nối Ví MetaMask Ngay</span>
+            </button>
+          )}
+        </div>
+      ) : activeBatch ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans items-start">
           {/* Left Summary Card (5/12 Grid) */}
           <div className="lg:col-span-5 space-y-6">

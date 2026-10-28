@@ -312,7 +312,23 @@ export const AdminTab: React.FC<AdminTabProps> = ({
               </div>
             </div>
 
-            {filteredWallets.length === 0 ? (
+            {/* Chi hien thi danh sach vi khi da ket noi vi */}
+            {!currentAccount ? (
+              <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-3">
+                <Wallet className="w-8 h-8 text-[#C29B38] mx-auto" />
+                <p className="text-xs font-bold text-[#1A2820]">Yêu Cầu Kết Nối Ví Để Xem Danh Sách RBAC</p>
+                <p className="text-[11px] text-[#5E7166] max-w-sm mx-auto">
+                  Vui lòng kết nối ví MetaMask để xem và quản lý Danh Sách Ví Đã Cấp Quyền RBAC.
+                </p>
+                <button
+                  onClick={onConnectWallet}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs mt-1"
+                >
+                  <Wallet className="w-3.5 h-3.5 text-[#C29B38]" />
+                  <span>Kết Nối Ví Đăng Nhập</span>
+                </button>
+              </div>
+            ) : filteredWallets.length === 0 ? (
               <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-2">
                 <Users className="w-8 h-8 text-[#8A9D92] mx-auto opacity-60" />
                 <p className="text-xs font-bold text-[#1A2820]">Chưa Có Ví Được Phân Quyền On-Chain</p>
@@ -382,7 +398,23 @@ export const AdminTab: React.FC<AdminTabProps> = ({
               </a>
             </div>
 
-            {recentEventLogs.length === 0 ? (
+            {/* Chi hien thi nhat ky su kien khi da ket noi vi */}
+            {!currentAccount ? (
+              <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-3">
+                <Wallet className="w-8 h-8 text-[#C29B38] mx-auto" />
+                <p className="text-xs font-bold text-[#1A2820]">Yêu Cầu Kết Nối Ví Để Xem Nhật Ký Sự Kiện</p>
+                <p className="text-[11px] text-[#5E7166] max-w-sm mx-auto">
+                  Vui lòng kết nối ví MetaMask để xem Nhật Ký Sự Kiện Giao Dịch On-Chain từ Sepolia Testnet.
+                </p>
+                <button
+                  onClick={onConnectWallet}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs mt-1"
+                >
+                  <Wallet className="w-3.5 h-3.5 text-[#C29B38]" />
+                  <span>Kết Nối Ví MetaMask</span>
+                </button>
+              </div>
+            ) : recentEventLogs.length === 0 ? (
               <div className="text-center py-8 px-4 bg-[#FAF9F5] rounded-2xl border border-dashed border-[#E6E1D7] space-y-2">
                 <Activity className="w-8 h-8 text-[#8A9D92] mx-auto opacity-60" />
                 <p className="text-xs font-bold text-[#1A2820]">Chưa Có Sự Kiện Giao Dịch On-Chain</p>

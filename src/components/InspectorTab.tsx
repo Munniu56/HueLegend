@@ -14,13 +14,15 @@ import {
   ExternalLink,
   Package,
   Coins,
-  FileText
+  FileText,
+  Wallet
 } from 'lucide-react';
 import { ETHERSCAN_BASE_URL } from '../constants';
 
 interface InspectorTabProps {
   batches: Record<string, Batch>;
   isInspectorRole?: boolean;
+  currentAccount?: string | null;
   onVerifyBatch: (
     batchCode: string,
     inspectorNote: string,
@@ -34,6 +36,7 @@ interface InspectorTabProps {
 export const InspectorTab: React.FC<InspectorTabProps> = ({
   batches,
   isInspectorRole = true,
+  currentAccount,
   onVerifyBatch,
   onRevokeVerification,
   onConnectWallet,
@@ -78,9 +81,32 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 
   return (
     <div className="space-y-6 font-sans">
-      {/* Da an banner thong bao Kiem dinh vien theo yeu cau */}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Chi hien thi chuc nang Kiem dinh OCOP khi da ket noi vi */}
+      {!currentAccount ? (
+        <div className="bg-white p-10 sm:p-12 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-4 font-sans shadow-xs">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-[#8C6D1F] flex items-center justify-center mx-auto border border-amber-200">
+            <Award className="w-8 h-8 text-[#C29B38]" />
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-xl font-serif font-extrabold text-[#264939]">
+              Yêu Cầu Kết Nối Ví Để Thẩm Định OCOP
+            </h3>
+            <p className="text-xs text-[#5E7166] leading-relaxed">
+              Vui lòng kết nối ví MetaMask có quyền Kiểm Định Viên OCOP (ROLE_INSPECTOR) để xem thông tin chi tiết và thực hiện thẩm định & cấp chứng nhận On-Chain.
+            </p>
+          </div>
+          {onConnectWallet && (
+            <button
+              onClick={onConnectWallet}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#C29B38] text-white font-sans font-bold text-xs hover:bg-[#8C6D1F] transition-all shadow-md mt-2"
+            >
+              <Wallet className="w-4 h-4 text-white" />
+              <span>Kết Nối Ví MetaMask Ngay</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-[#E6E1D7] shadow-2xs space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
@@ -343,6 +369,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

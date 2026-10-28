@@ -1179,6 +1179,8 @@ export const App: React.FC = () => {
             <LookupTab
               batches={batches}
               selectedBatchCode={selectedLookupBatch}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
               onOpenQRStampModal={(code) => setQrStampBatch(batches[code] || null)}
             />
           )}
@@ -1204,6 +1206,7 @@ export const App: React.FC = () => {
             <InspectorTab
               batches={batches}
               isInspectorRole={isCurrentAccountInspector}
+              currentAccount={currentAccount}
               onVerifyBatch={handleVerifyBatch}
               onRevokeVerification={handleRevokeVerification}
               onConnectWallet={handleOpenRoleConnectModal}
