@@ -32,10 +32,15 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   onWithdrawEarnings,
 }) => {
   const batchList = Object.values(batches);
-  // Loc danh sach cac lo hang da dat chung nhan OCOP
-  const verifiedBatches = batchList.filter((b) => b.isVerified);
+  // Loc danh sach cac lo hang da qua kiem dinh OCOP VA da duoc don vi van chuyen xu ly
+  const transportBatches = batchList.filter(
+    (b) =>
+      b.isVerified &&
+      b.checkpoints &&
+      b.checkpoints.length > 1
+  );
 
-  const [selectedBatchCode, setSelectedBatchCode] = useState(verifiedBatches[0]?.batchCode || '');
+  const [selectedBatchCode, setSelectedBatchCode] = useState(transportBatches[0]?.batchCode || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
   const [storeName, setStoreName] = useState('');
   const [listingPriceEth, setListingPriceEth] = useState('');
@@ -216,27 +221,27 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           </div>
 
           <p className="text-xs text-[#5E7166] leading-relaxed">
-            Chọn lô hàng đã đạt chứng nhận <strong>Kiểm Định OCOP</strong> để nhập kho, thiết lập giá niêm yết On-Chain và đăng tải lên Cửa hàng đặc sản.
+            Chọn lô hàng nhận từ đơn vị vận chuyển (đã qua <strong>Kiểm Định OCOP</strong> & <strong>Vận Chuyển</strong>) để nhập kho và niêm yết giá bán On-Chain.
           </p>
 
           <form onSubmit={handleListForSale} className="space-y-4 font-sans">
             <div>
               <label className="block text-xs font-bold text-[#1A2820] mb-1">
-                Chọn Lô Hàng Đã Thẩm Định OCOP *
+                Chọn Lô Hàng từ đơn vị vận chuyển *
               </label>
               <select
                 value={selectedBatchCode}
                 onChange={(e) => setSelectedBatchCode(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               >
-                {verifiedBatches.length > 0 ? (
-                  verifiedBatches.map((batch) => (
+                {transportBatches.length > 0 ? (
+                  transportBatches.map((batch) => (
                     <option key={batch.batchCode} value={batch.batchCode}>
-                      {batch.batchCode} — {batch.productName} (Đã Đạt Chuẩn OCOP)
+                      {batch.batchCode} — {batch.productName} (Đã Qua Vận Chuyển)
                     </option>
                   ))
                 ) : (
-                  <option value="">Chưa có lô hàng nào đạt chuẩn OCOP</option>
+                  <option value="">Chưa có lô hàng nào từ đơn vị vận chuyển</option>
                 )}
               </select>
             </div>
@@ -379,17 +384,17 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
             </span>
           </div>
 
-          {verifiedBatches.length === 0 ? (
+          {transportBatches.length === 0 ? (
             <div className="p-8 text-center text-xs text-gray-500 bg-[#FAF9F5] rounded-2xl border border-[#EDE9E0] space-y-3">
               <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
-              <p className="font-bold text-[#264939] text-sm">Chưa có lô hàng OCOP sẵn sàng</p>
+              <p className="font-bold text-[#264939] text-sm">Chưa có lô hàng từ đơn vị vận chuyển</p>
               <p className="text-gray-500 leading-relaxed max-w-xs mx-auto">
-                Cần Kiểm Định Viên cấp chứng nhận OCOP trước khi đại lý có thể niêm yết lên Cửa hàng đặc sản.
+                Cần đơn vị vận chuyển ghi nhật ký vận chuyển trước khi đại lý có thể niêm yết lên Cửa hàng đặc sản.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {verifiedBatches.map((batch) => {
+              {transportBatches.map((batch: Batch) => {
                 const listingInfo = listedPrices[batch.batchCode];
                 return (
                   <div

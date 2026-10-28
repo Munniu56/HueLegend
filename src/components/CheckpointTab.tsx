@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { Batch } from '../types';
-import { Truck, PlusCircle, CheckCircle2, ShieldCheck, MapPin } from 'lucide-react';
+import { Truck, PlusCircle, CheckCircle2, ShieldCheck, MapPin, AlertTriangle, Lock, Wallet } from 'lucide-react';
 
 interface CheckpointTabProps {
   batches: Record<string, Batch>;
+  isLogisticsRole?: boolean;
+  currentAccount?: string | null;
+  onConnectWallet?: () => void;
   onAddCheckpoint: (
     batchCode: string,
     role: string,
@@ -15,10 +18,18 @@ interface CheckpointTabProps {
   ) => Promise<void>;
 }
 
-export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddCheckpoint }) => {
-  // Khoi tao gia tri khoang trang cho cac truong nhap lieu
-  const batchList = Object.keys(batches);
-  const [selectedBatchCode, setSelectedBatchCode] = useState(batchList[0] || '');
+export const CheckpointTab: React.FC<CheckpointTabProps> = ({
+  batches,
+  isLogisticsRole = true,
+  currentAccount,
+  onConnectWallet,
+  onAddCheckpoint
+}) => {
+  // Chi loc cac lo hang DA DUOC KIEM DINH OCOP
+  const verifiedBatches = Object.values(batches).filter((b) => b.isVerified);
+  const verifiedBatchCodes = verifiedBatches.map((b) => b.batchCode);
+
+  const [selectedBatchCode, setSelectedBatchCode] = useState(verifiedBatchCodes[0] || '');
   const [role, setRole] = useState('ROLE_LOGISTICS');
   const [stepName, setStepName] = useState('');
   const [location, setLocation] = useState('');
@@ -32,11 +43,17 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
   // Ham xu ly submit form ghi chang van chuyen
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentAccount) {
+      if (onConnectWallet) onConnectWallet();
+      return;
+    }
     if (!selectedBatchCode || !location || !action) return;
 
     setIsSubmitting(true);
     try {
-      await onAddCheckpoint(selectedBatchCode, role, location, action, metadataURI, stepName, conditionNote);
+      // Tu dong tao metadata URI cho chang van chuyen neu chua co
+      const finalMetadataURI = metadataURI || `ipfs://huelegend/logistics/${selectedBatchCode}/${Date.now()}`;
+      await onAddCheckpoint(selectedBatchCode, role, location, action, finalMetadataURI, stepName, conditionNote);
     } catch (err) {
       console.error(err);
     } finally {
@@ -44,10 +61,10 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
     }
   };
 
-  // Preset chanh van chuyen nhanh
+  // Preset chang van chuyen nhanh - Chuyen chang 2 thanh Chang 3 theo quy dinh
   const applyPreset = (presetType: 'COLD_CHAIN' | 'EXPRESS_POST') => {
     if (presetType === 'COLD_CHAIN') {
-      setStepName('Chặng 2: Tiếp nhận kho lạnh & Niêm phong xe thùng xốp bảo ôn');
+      setStepName('Chặng 3: Tiếp nhận kho lạnh & Niêm phong xe thùng xốp bảo ôn');
       setLocation('Kho Vận Lạnh Bưu Chính Huế - 16 Lý Thường Kiệt, TP.Huế');
       setAction('Kiểm tra tem niêm phong QR, xếp lô hàng vào xe tải lạnh bảo ôn, theo dõi nhiệt độ tự động.');
       setConditionNote('Nhiệt độ bảo quản lạnh 15°C - 18°C, độ ẩm 45%, chì niêm phong số #HL-LOG-9921.');
@@ -80,6 +97,40 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
         </div>
       </div>
 
+      {/* Warning banner neu vi chua duoc Admin cap quyen LOGISTICS */}
+      {!isLogisticsRole && currentAccount && (
+        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex items-center gap-3 text-xs text-amber-950 shadow-2xs font-sans">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div>
+            <span className="font-bold block text-sm font-serif text-amber-950">Quyền Truy Cập Bị Khóa (Cần Admin Cấp Quyền)</span>
+            <span className="text-amber-900 font-medium">Ví hiện tại ({currentAccount.slice(0, 8)}...) chưa được Admin cấp quyền Đơn Vị Vận Chuyển (ROLE_LOGISTICS). Vui lòng dùng ví Admin cấp quyền để truy cập chức năng ghi chặng.</span>
+          </div>
+        </div>
+      )}
+
+      {/* Banner yeu cau ket noi vi neu chua login */}
+      {!currentAccount && (
+        <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-950 shadow-2xs font-sans">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold block text-sm font-serif text-amber-950">Vui lòng kết nối ví Đơn vị vận chuyển</span>
+              <span className="text-amber-900 font-medium">Kết nối ví đã được Admin phân quyền ROLE_LOGISTICS để ghi chặng vận chuyển On-Chain.</span>
+            </div>
+          </div>
+          {onConnectWallet && (
+            <button
+              type="button"
+              onClick={onConnectWallet}
+              className="px-4 py-2 bg-[#264939] text-white font-bold text-xs rounded-xl hover:bg-[#1c372b] transition-all shadow-2xs shrink-0 flex items-center gap-1.5"
+            >
+              <Wallet className="w-4 h-4 text-[#C29B38]" />
+              <span>Kết Nối Ví</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
       {/* Left 2 Cols: Logistics Form */}
       <div className="lg:col-span-2 space-y-6">
@@ -94,14 +145,22 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 Khai Báo & Ghi Nhật Ký Vận Chuyển / Kho Vận
               </h2>
             </div>
-            <Truck className="w-7 h-7 text-[#264939]" />
+            <span className="px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full text-xs font-bold border border-[#CCD8CF]">
+              ⚡ Miễn Phí (0 ETH)
+            </span>
+          </div>
+
+          {/* Fee Notice: Producer paid upfront */}
+          <div className="bg-[#FAF9F5] p-3 rounded-xl border border-[#E6E1D7] text-xs text-[#264939] flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#264939] shrink-0" />
+            <span><strong>Trạng thái phí:</strong> Miễn phí cho Đơn vị vận chuyển (0 ETH). Phí vận chuyển 0.002 ETH đã do Cơ sở sản xuất chi trả gộp khi khởi tạo lô hàng.</span>
           </div>
 
           {/* Quick Preset Buttons */}
           <div className="bg-[#FAF9F5] p-3.5 rounded-xl border border-[#E6E1D7] space-y-2">
             <span className="text-xs font-bold text-[#1A2820] flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-              Gợi ý chặng vận chuyển nhanh:
+              Gợi ý chặng vận chuyển nhanh (Chặng 3):
             </span>
             <div className="flex flex-wrap gap-2">
               <button
@@ -109,14 +168,14 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
                 onClick={() => applyPreset('COLD_CHAIN')}
                 className="px-3 py-1.5 rounded-lg bg-white border border-[#CCD8CF] hover:border-[#264939] text-xs font-bold text-[#264939] hover:bg-[#E0ECE4] transition-all"
               >
-                🚚 Chặng Kho Lạnh Bảo Ôn
+                🚚 Chặng 3: Kho Lạnh Bảo Ôn
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('EXPRESS_POST')}
                 className="px-3 py-1.5 rounded-lg bg-white border border-[#CCD8CF] hover:border-[#264939] text-xs font-bold text-[#264939] hover:bg-[#E0ECE4] transition-all"
               >
-                ✈️ Chặng Chuyển Phát Nhanh / Hàng Không
+                ✈️ Chặng 3: Chuyển Phát Nhanh / Hàng Không
               </button>
             </div>
           </div>
@@ -124,21 +183,21 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
           <form onSubmit={handleSubmit} className="space-y-4 font-sans">
             <div>
               <label className="block text-xs font-bold text-[#1A2820] mb-1">
-                Chọn Lô Hàng *
+                Chọn Lô Hàng Đã Thẩm Định OCOP *
               </label>
               <select
                 value={selectedBatchCode}
                 onChange={(e) => setSelectedBatchCode(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               >
-                {batchList.length > 0 ? (
-                  batchList.map((code) => (
-                    <option key={code} value={code}>
-                      {code} — {batches[code]?.productName}
+                {verifiedBatches.length > 0 ? (
+                  verifiedBatches.map((batch) => (
+                    <option key={batch.batchCode} value={batch.batchCode}>
+                      {batch.batchCode} — {batch.productName} (Đã Thẩm Định OCOP)
                     </option>
                   ))
                 ) : (
-                  <option value="">Chưa có sản phẩm nào trên Blockchain</option>
+                  <option value="">Chưa có lô hàng nào được kiểm định OCOP để vận chuyển</option>
                 )}
               </select>
             </div>
@@ -215,27 +274,15 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({ batches, onAddChec
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[#1A2820] mb-1">
-                IPFS Metadata Link (Biên Bản Giao Nhận / Hóa Đơn)
-              </label>
-              <input
-                type="text"
-                value={metadataURI}
-                onChange={(e) => setMetadataURI(e.target.value)}
-                placeholder="Ví dụ: ipfs://Qm... (Link hóa đơn hoặc biên bản giao nhận)"
-                className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono focus:outline-none focus:border-[#264939]"
-              />
-            </div>
 
             <div className="pt-3 border-t border-[#EDE9E0] flex justify-end">
               <button
                 type="submit"
-                disabled={isSubmitting || batchList.length === 0}
+                disabled={isSubmitting || verifiedBatches.length === 0 || (!isLogisticsRole && Boolean(currentAccount))}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#264939] text-white font-sans font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs disabled:opacity-50"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Ghi Chặng Vận Chuyển On-Chain</span>
+                <span>Ghi Chặng Vận Chuyển On-Chain (0 ETH)</span>
               </button>
             </div>
           </form>

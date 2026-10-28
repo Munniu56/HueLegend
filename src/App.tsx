@@ -44,6 +44,7 @@ export const App: React.FC = () => {
   const [isCurrentAccountAdmin, setIsCurrentAccountAdmin] = useState(true);
   const [isCurrentAccountRetailer, setIsCurrentAccountRetailer] = useState(true);
   const [isCurrentAccountInspector, setIsCurrentAccountInspector] = useState(true);
+  const [isCurrentAccountLogistics, setIsCurrentAccountLogistics] = useState(true);
   const [producerStakeBalance, setProducerStakeBalance] = useState('0.00');
   const [batchCreationFeeEth, setBatchCreationFeeEth] = useState('0.001');
   const [contractBalanceEth, setContractBalanceEth] = useState('0.00');
@@ -162,14 +163,19 @@ export const App: React.FC = () => {
             isInspector = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_INSPECTOR);
           } catch (e) {}
 
+          let isLogistics = false;
+          try {
+            isLogistics = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_LOGISTICS);
+          } catch (e) {}
+
           const isSpecifiedAdmin = Boolean(
             normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase()
           );
 
           setIsCurrentAccountAdmin(isSpecifiedAdmin);
-          // Dai ly va Cua hang dac san duoc tu do niem yet gia khong can Admin cap quyen truoc
           setIsCurrentAccountRetailer(true);
-          setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
+          setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || isSpecifiedAdmin || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
+          setIsCurrentAccountLogistics(isOwner || isAdmin || isLogistics || isSpecifiedAdmin || simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
         } catch (roleErr) {
           console.warn('Could not check on-chain roles:', roleErr);
         }
@@ -177,6 +183,7 @@ export const App: React.FC = () => {
         setIsCurrentAccountAdmin(false);
         setIsCurrentAccountRetailer(true);
         setIsCurrentAccountInspector(simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
+        setIsCurrentAccountLogistics(simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
       }
 
       // Query total batches count
@@ -453,7 +460,7 @@ export const App: React.FC = () => {
             } catch (e) {}
           }
 
-          // Kiem tra quyen Kiem Dinh Vien (INSPECTOR): Phai la Admin hoac nam trong danh sach grantedWallets
+          // Kiem tra quyen Kiem Dinh Vien (INSPECTOR) & Don Vi Van Chuyen (LOGISTICS)
           const isInspectorAuthorized =
             isDefaultAdmin ||
             currentGrantedWallets.some(
@@ -475,9 +482,31 @@ export const App: React.FC = () => {
             }
           }
 
+          const isLogisticsAuthorized =
+            isDefaultAdmin ||
+            currentGrantedWallets.some(
+              (w) =>
+                w.address.toLowerCase() === connectedAddr.toLowerCase() &&
+                (w.role === 'ROLE_LOGISTICS' || w.role === 'ROLE_ADMIN')
+            );
+
+          if (activeRole === 'LOGISTICS' && !isLogisticsAuthorized) {
+            addToast(
+              'Từ Chối Quyền Đơn Vị Vận Chuyển',
+              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} chưa được Admin cấp quyền ROLE_LOGISTICS. Đã chuyển về vai trò Khách Hàng.`,
+              'warning',
+              7000
+            );
+            activeRole = 'CUSTOMER';
+            if (activeTab === 'checkpoint') {
+              setActiveTab('overview');
+            }
+          }
+
           setSimulatedRole(activeRole);
           setIsCurrentAccountAdmin(isDefaultAdmin);
           setIsCurrentAccountRetailer(activeRole === 'RETAILER' || activeRole === 'ALL');
+          setIsCurrentAccountLogistics(isDefaultAdmin || isLogisticsAuthorized || activeRole === 'LOGISTICS' || activeRole === 'ALL');
 
           if (typeof window !== 'undefined') {
             try {
@@ -531,6 +560,7 @@ export const App: React.FC = () => {
     const roleMapping: Record<string, string> = {
       ADMIN: 'ADMIN',
       SUPPLY_CHAIN: 'PRODUCER',
+      LOGISTICS: 'LOGISTICS',
       COMMERCE: 'RETAILER',
       INSPECTOR: 'INSPECTOR',
       CUSTOMER: 'CUSTOMER'
@@ -540,6 +570,8 @@ export const App: React.FC = () => {
 
     // Kiem tra tab hien tai co hop le voi vai tro moi hay khong
     if ((targetRole === 'PRODUCER' || targetRole === 'SUPPLY_CHAIN') && !['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(activeTab)) {
+      setActiveTab('overview');
+    } else if (targetRole === 'LOGISTICS' && !['overview', 'lookup', 'store', 'checkpoint'].includes(activeTab)) {
       setActiveTab('overview');
     } else if ((targetRole === 'RETAILER' || targetRole === 'COMMERCE') && !['overview', 'lookup', 'store', 'retailer'].includes(activeTab)) {
       setActiveTab('overview');
@@ -635,7 +667,8 @@ export const App: React.FC = () => {
       }
 
       const inspectionFeeWei = ethers.parseEther('0.002');
-      const totalFeeWei = feeWei + inspectionFeeWei;
+      const transportFeeWei = ethers.parseEther('0.002');
+      const totalFeeWei = feeWei + inspectionFeeWei + transportFeeWei;
 
       const tx = await contract.createBatch(
         cleanBatchCode,
@@ -1244,7 +1277,13 @@ export const App: React.FC = () => {
           )}
 
           {activeTab === 'checkpoint' && (
-            <CheckpointTab batches={batches} onAddCheckpoint={handleAddCheckpoint} />
+            <CheckpointTab
+              batches={batches}
+              isLogisticsRole={isCurrentAccountLogistics}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
+              onAddCheckpoint={handleAddCheckpoint}
+            />
           )}
 
           {activeTab === 'inspector' && (
