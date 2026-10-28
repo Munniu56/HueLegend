@@ -292,35 +292,51 @@ export const App: React.FC = () => {
         }
       }
 
-      // Hop nhat du lieu local va du lieu on-chain (KHONG BAO GIO XOA DU LIEU LOCAL)
-      const mergedBatches: Record<string, Batch> = { ...localBatches };
-
-      Object.keys(fetchedBatches).forEach((code) => {
-        if (!mergedBatches[code]) {
-          mergedBatches[code] = fetchedBatches[code];
-        } else {
-          mergedBatches[code] = {
-            ...fetchedBatches[code],
-            ...mergedBatches[code],
-            checkpoints:
-              mergedBatches[code].checkpoints && mergedBatches[code].checkpoints.length >= (fetchedBatches[code].checkpoints?.length || 0)
-                ? mergedBatches[code].checkpoints
-                : fetchedBatches[code].checkpoints,
-          };
-        }
-      });
-
-      if (Object.keys(mergedBatches).length > 0) {
-        setBatches(mergedBatches);
+      // Hop nhat du lieu local, current state va du lieu on-chain (KHONG BAO GIO XOA DU LIEU LOCAL)
+      setBatches((prevBatches) => {
+        let currentLocalStorage: Record<string, Batch> = {};
         if (typeof window !== 'undefined') {
           try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(mergedBatches));
+            const str = localStorage.getItem('hl_local_batches');
+            if (str) currentLocalStorage = JSON.parse(str);
           } catch (e) {}
-          if (!selectedLookupBatch) {
-            setSelectedLookupBatch(Object.keys(mergedBatches)[0]);
-          }
         }
-      }
+
+        const baseBatches: Record<string, Batch> = {
+          ...prevBatches,
+          ...localBatches,
+          ...currentLocalStorage
+        };
+
+        const merged: Record<string, Batch> = { ...baseBatches };
+
+        Object.keys(fetchedBatches).forEach((code) => {
+          if (!merged[code]) {
+            merged[code] = fetchedBatches[code];
+          } else {
+            merged[code] = {
+              ...fetchedBatches[code],
+              ...merged[code],
+              imageUrl: merged[code].imageUrl || fetchedBatches[code].imageUrl,
+              productionDate: merged[code].productionDate || fetchedBatches[code].productionDate,
+              expiryDate: merged[code].expiryDate || fetchedBatches[code].expiryDate,
+              txHash: merged[code].txHash || fetchedBatches[code].txHash,
+              checkpoints:
+                merged[code].checkpoints && merged[code].checkpoints.length >= (fetchedBatches[code].checkpoints?.length || 0)
+                  ? merged[code].checkpoints
+                  : fetchedBatches[code].checkpoints,
+            };
+          }
+        });
+
+        if (typeof window !== 'undefined' && Object.keys(merged).length > 0) {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(merged));
+          } catch (e) {}
+        }
+
+        return merged;
+      });
     } catch (err: any) {
       console.warn('Network sync notice:', err);
     } finally {
@@ -962,7 +978,7 @@ export const App: React.FC = () => {
         ]
       };
 
-      // Luu vinh vien vao State va LocalStorage
+      // Luu vinh vien va DONG BO vao State & LocalStorage
       setBatches((prev) => {
         const updated = { ...prev, [cleanBatchCode]: newBatchObj };
         if (typeof window !== 'undefined') {
@@ -976,12 +992,26 @@ export const App: React.FC = () => {
         return updated;
       });
 
+      // Dam bao truu tuong hoa luu ngay va luon trong localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const raw = localStorage.getItem('hl_local_batches');
+          const parsed = raw ? JSON.parse(raw) : {};
+          parsed[cleanBatchCode] = newBatchObj;
+          localStorage.setItem('hl_local_batches', JSON.stringify(parsed));
+        } catch (e) {}
+      }
+
       setSelectedLookupBatch(cleanBatchCode);
       setJourneyBatch(newBatchObj);
       notifyDataSync();
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
-      await fetchContractData(cleanUserAddress);
       handleNavigateTab('lookup', cleanBatchCode);
+
+      // Delay 1000ms cho Sepolia RPC node cap nhat block ma khong ghi de du lieu batch moi
+      setTimeout(() => {
+        fetchContractData(cleanUserAddress);
+      }, 1000);
     } catch (err: any) {
       removeToast(loadingToastId);
       addToast('Giao Dịch Thất Bại', err?.reason || err?.message || 'Không thể khởi tạo lô hàng trên Sepolia.', 'error');

@@ -31,7 +31,27 @@ function syncServerPlugin(): Plugin {
           req.on('end', () => {
             try {
               const parsed = JSON.parse(body);
-              memorySyncStore.set(code, parsed);
+              const existing = memorySyncStore.get(code) || {};
+              const mergedBatches = {
+                ...(existing.batches || {}),
+                ...(parsed.batches || {})
+              };
+              const mergedWallets = Array.from(
+                new Set([
+                  ...(existing.grantedWallets || []),
+                  ...(parsed.grantedWallets || [])
+                ].map((w) => JSON.stringify(w)))
+              ).map((s) => JSON.parse(s));
+
+              const fullPayload = {
+                ...existing,
+                ...parsed,
+                batches: mergedBatches,
+                grantedWallets: mergedWallets,
+                updatedAt: Date.now()
+              };
+
+              memorySyncStore.set(code, fullPayload);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ success: true, timestamp: Date.now() }));
             } catch (err) {
