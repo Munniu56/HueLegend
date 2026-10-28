@@ -78,6 +78,7 @@ export const App: React.FC = () => {
   // Map OpenZeppelin role hash to title
   const getRoleTitle = (roleHash: string): string => {
     if (roleHash === ROLE_HASHES.ROLE_PRODUCER) return 'Cơ Sở Sản Xuất';
+    if (roleHash === ROLE_HASHES.ROLE_LOGISTICS) return 'Đơn Vị Vận Chuyển';
     if (roleHash === ROLE_HASHES.ROLE_RETAILER) return 'Đại Lý Phân Phối';
     if (roleHash === ROLE_HASHES.ROLE_INSPECTOR) return 'Kiểm Định Viên OCOP';
     if (roleHash === ROLE_HASHES.ROLE_ADMIN) return 'Quản Trị Viên';
@@ -233,7 +234,7 @@ export const App: React.FC = () => {
                 checkpoints.length > 0
                   ? checkpoints[checkpoints.length - 1].action
                   : batchData.isVerified
-                  ? 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
+                  ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
               certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
               txHash: 'On-Chain Confirmed',
@@ -835,7 +836,7 @@ export const App: React.FC = () => {
           inspectorNote,
           verifyTxHash: tx.hash,
           ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
-          currentStage: 'Sẵn sàng Niêm Yết Cửa Hàng (InRetail)'
+          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
         };
         const updatedAll = { ...prev, [batchCode]: updatedBatch };
         if (typeof window !== 'undefined') {

@@ -106,6 +106,23 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
 
   return (
     <div className="space-y-6 font-sans">
+      {/* Step Indicator Banner */}
+      <div className="bg-[#FAF9F5] p-3.5 rounded-2xl border border-[#E6E1D7] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+        <span className="font-bold text-[#264939] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+          <Tag className="w-4 h-4 text-[#C29B38]" />
+          Quy Trình Chuỗi Cung Ứng On-Chain:
+        </span>
+        <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] font-bold">
+          <span className="text-[#5E7166]">1. Khai Báo Lô</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">2. Thẩm Định OCOP</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">3. Vận Chuyển</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="px-2.5 py-1 rounded-lg bg-[#264939] text-white shadow-2xs">4. Quản Lý Niêm Yết</span>
+        </div>
+      </div>
+
       {/* KHỐI 1: BANNER THỐNG KÊ DOANH THU SMART CONTRACT TRÊN CÙNG (FULL WIDTH) */}
       <div className="bg-gradient-to-r from-[#264939] via-[#1c382b] to-[#12261d] text-white p-6 rounded-3xl shadow-sm border border-[#264939]/40 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">

@@ -133,6 +133,23 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
 
   return (
     <div className="max-w-3xl mx-auto font-sans space-y-4">
+      {/* Step Indicator Banner */}
+      <div className="bg-[#FAF9F5] p-3.5 rounded-2xl border border-[#E6E1D7] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+        <span className="font-bold text-[#264939] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+          <PlusCircle className="w-4 h-4 text-[#C29B38]" />
+          Quy Trình Chuỗi Cung Ứng On-Chain:
+        </span>
+        <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] font-bold">
+          <span className="px-2.5 py-1 rounded-lg bg-[#264939] text-white shadow-2xs">1. Khai Báo Lô</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">2. Thẩm Định OCOP</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">3. Vận Chuyển</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">4. Quản Lý Niêm Yết</span>
+        </div>
+      </div>
+
       {/* Banner hien thi khi chua ket noi vi */}
       {!currentAccount && (
         <div className="bg-amber-50 border-2 border-amber-300 p-4 rounded-2xl flex items-center gap-3 text-xs text-amber-950 shadow-2xs font-sans">

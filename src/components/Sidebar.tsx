@@ -4,6 +4,7 @@ import {
   QrCode,
   PlusCircle,
   ShieldCheck,
+  Truck,
   Store,
   Tag,
   Settings,
@@ -43,20 +44,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
     },
     {
       id: 'create-batch',
-      label: 'Tạo Lô Hàng',
-      sublabel: 'Dành cho cơ sở sản xuất',
+      label: '1. Tạo Lô Hàng',
+      sublabel: 'Bước 1: Khai báo lô & trả phí thẩm định',
       icon: PlusCircle,
     },
     {
       id: 'inspector',
-      label: 'Kiểm Định OCOP',
-      sublabel: 'Thẩm định & cấp chứng nhận',
+      label: '2. Kiểm Định OCOP',
+      sublabel: 'Bước 2: Thẩm định & cấp chứng nhận',
       icon: ShieldCheck,
     },
     {
+      id: 'checkpoint',
+      label: '3. Vận Chuyển',
+      sublabel: 'Bước 3: Nhật ký vận chuyển & kho',
+      icon: Truck,
+    },
+    {
       id: 'retailer',
-      label: 'Quản Lý Niêm Yết',
-      sublabel: 'Nhập kho & niêm yết bán lẻ',
+      label: '4. Quản Lý Niêm Yết',
+      sublabel: 'Bước 4: Nhập kho & niêm yết bán lẻ',
       icon: Tag,
     },
     {
@@ -70,13 +77,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
   // Loc cac muc menu theo vai tro nguoi dung
   const filteredNavItems = navItems.filter((item) => {
     if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
-      return ['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(item.id);
+      return ['overview', 'lookup', 'store', 'create-batch', 'inspector', 'checkpoint'].includes(item.id);
     }
     if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
-      return ['overview', 'lookup', 'store', 'retailer'].includes(item.id);
+      return ['overview', 'lookup', 'store', 'checkpoint', 'retailer'].includes(item.id);
     }
     if (userRole === 'INSPECTOR') {
-      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+      return ['overview', 'lookup', 'store', 'inspector', 'checkpoint'].includes(item.id);
     }
     if (userRole === 'CUSTOMER') {
       return ['overview', 'lookup', 'store'].includes(item.id);

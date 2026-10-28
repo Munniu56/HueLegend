@@ -109,6 +109,23 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
         </div>
       </div>
 
+      {/* Step Indicator Banner */}
+      <div className="bg-[#FAF9F5] p-3.5 rounded-2xl border border-[#E6E1D7] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
+        <span className="font-bold text-[#264939] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+          Quy Trình Chuỗi Cung Ứng On-Chain:
+        </span>
+        <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] font-bold">
+          <span className="text-[#5E7166]">1. Khai Báo Lô</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="px-2.5 py-1 rounded-lg bg-[#264939] text-white shadow-2xs">2. Thẩm Định OCOP</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">3. Vận Chuyển</span>
+          <span className="text-[#8A9D92]">→</span>
+          <span className="text-[#5E7166]">4. Quản Lý Niêm Yết</span>
+        </div>
+      </div>
+
       {/* Chi hien thi chuc nang Kiem dinh OCOP khi da ket noi vi */}
       {!currentAccount ? (
         <div className="bg-white p-10 sm:p-12 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-4 font-sans shadow-xs">
