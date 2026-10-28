@@ -37,21 +37,21 @@ interface LookupTabProps {
   onConnectWallet?: () => void;
 }
 
-// Ham tao danh sach nhat ky hanh trinh chuoi cung ung day du 4 chang chi tiet
+// Ham tao danh sach nhat ky hanh trinh chuoi cung ung day du 4 chang chi tiet theo thu tu sequential (Chiet 1 -> 2 -> 3 -> 4)
 export const getEnrichedCheckpoints = (batch: Batch): (Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean })[] => {
   const existing = batch.checkpoints || [];
 
-  // Dem va tao cac chang chuan theo quy trinh Supply Chain On-Chain
   const prodDate = batch.productionDate || new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN');
   const expDate = batch.expiryDate || new Date((batch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN');
 
-  // Chang 1: San xuat ban dau
-  const cp1: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing[0] ? {
-    ...existing[0],
-    stepName: existing[0].stepName || 'Chặng 1: Khai Báo Nguồn Gốc & Sản Xuất',
+  // Chang 1: San xuat & Khai bao lo hang (Luon la buoc dau tien khi tao lo)
+  const explicitCp1 = existing[0];
+  const cp1: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = explicitCp1 ? {
+    ...explicitCp1,
+    stepName: explicitCp1.stepName || 'Chặng 1: Khai Báo Nguồn Gốc & Sản Xuất Ban Đầu',
     stageIcon: Package,
     stageBadgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    envNote: `NSX: ${prodDate} | HSD: ${expDate} | Độ ẩm bánh: < 12% | Đạt ATVSTP`,
+    envNote: `NSX: ${prodDate} | HSD: ${expDate} | Đạt ATVSTP`,
     isCompleted: true
   } : {
     stepName: 'Chặng 1: Khai Báo Nguồn Gốc & Sản Xuất Ban Đầu',
@@ -70,83 +70,108 @@ export const getEnrichedCheckpoints = (batch: Batch): (Checkpoint & { stageIcon:
     isCompleted: true
   };
 
-  // Chang 2: Kiem dinh OCOP
-  const cp2: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_INSPECTOR || c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định')) ? {
-    ...existing.find(c => c.role === ROLE_HASHES.ROLE_INSPECTOR || c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định'))!,
+  // Chang 2: Kiem dinh OCOP (Yeu cau Chang 1 hoan thanh -> Boolean(batch.isVerified))
+  const explicitCp2 = existing.find(c =>
+    c.role === ROLE_HASHES.ROLE_INSPECTOR ||
+    (c.stepName && (c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định') || c.stepName.toLowerCase().includes('chặng 2')))
+  );
+
+  const isCp2Done = Boolean(batch.isVerified);
+
+  const cp2: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = explicitCp2 ? {
+    ...explicitCp2,
     stageIcon: Award,
-    stageBadgeColor: 'bg-amber-100 text-[#8C6D1F] border-amber-300',
-    envNote: `Chứng nhận OCOP ${batch.starRating || '4'} Sao | Số HS: ${batch.certificationNo || 'OCOP-HUE-2026'}`,
-    isCompleted: batch.isVerified
+    stageBadgeColor: isCp2Done ? 'bg-amber-100 text-[#8C6D1F] border-amber-300' : 'bg-gray-100 text-gray-600 border-gray-300',
+    envNote: isCp2Done ? `Chứng nhận OCOP ${batch.starRating || '4'} Sao | Số HS: ${batch.certificationNo || 'OCOP-HUE-2026'}` : 'Chờ xét duyệt OCOP',
+    isCompleted: isCp2Done
   } : {
     stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
     role: ROLE_HASHES.ROLE_INSPECTOR,
     roleTitle: 'Kiểm Định Viên OCOP',
     location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
-    action: batch.isVerified
+    action: isCp2Done
       ? `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${batch.starRating || '4'} Sao. Ghi chú: ${batch.inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm và chất lượng đặc sản Thừa Thiên Huế.'}`
       : 'Hồ sơ lô hàng đang chờ Hội đồng thẩm định OCOP tỉnh xét duyệt và ký số chứng nhận on-chain.',
-    timestamp: batch.isVerified ? batch.createdAt + 3600 : batch.createdAt + 1800,
-    recorder: batch.isVerified ? '0x82d022a704706B2f144863D619D7418F8a0f19A7' : '0x0000...0000',
+    timestamp: isCp2Done ? batch.createdAt + 3600 : batch.createdAt + 1800,
+    recorder: isCp2Done ? '0x82d022a704706B2f144863D619D7418F8a0f19A7' : '0x0000...0000',
     metadataURI: batch.certificateURI || `ipfs://huelegend/cert/${batch.batchCode}`,
-    txHash: batch.verifyTxHash || (batch.isVerified ? '0xa19c...982f' : ''),
-    conditionNote: batch.isVerified ? `Cấp mã số OCOP: ${batch.certificationNo || 'OCOP-HUE-2026'}. Đã xác thực phí 0.002 ETH.` : 'Đang trong quy trình đánh giá chỉ tiêu chất lượng.',
+    txHash: batch.verifyTxHash || (isCp2Done ? '0xa19c...982f' : ''),
+    conditionNote: isCp2Done ? `Cấp mã số OCOP: ${batch.certificationNo || 'OCOP-HUE-2026'}. Đã xác thực phí 0.002 ETH.` : 'Đang trong quy trình đánh giá chỉ tiêu chất lượng.',
     stageIcon: Award,
-    stageBadgeColor: batch.isVerified ? 'bg-amber-100 text-[#8C6D1F] border-amber-300' : 'bg-gray-100 text-gray-600 border-gray-300',
-    envNote: batch.isVerified ? `Đạt Hạng OCOP ${batch.starRating || '4'} Sao Tỉnh Thừa Thiên Huế` : 'Chờ cấp chứng nhận OCOP',
-    isCompleted: batch.isVerified
+    stageBadgeColor: isCp2Done ? 'bg-amber-100 text-[#8C6D1F] border-amber-300' : 'bg-gray-100 text-gray-600 border-gray-300',
+    envNote: isCp2Done ? `Đạt Hạng OCOP ${batch.starRating || '4'} Sao Tỉnh Thừa Thiên Huế` : 'Chờ cấp chứng nhận OCOP',
+    isCompleted: isCp2Done
   };
 
-  // Chang 3: Logistics / Kho bao quan
-  const cp3: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_LOGISTICS || c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('kho')) ? {
-    ...existing.find(c => c.role === ROLE_HASHES.ROLE_LOGISTICS || c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('kho'))!,
+  // Chang 3: Vanchuyen & Cold-Chain (Yeu cau Chang 2 hoan thanh -> isCp2Done va co checkpoint Van chuyen)
+  const explicitCp3: Checkpoint | undefined = existing.find(c =>
+    c.role === ROLE_HASHES.ROLE_LOGISTICS ||
+    (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+  );
+
+  const isCp3Done = Boolean(isCp2Done && explicitCp3);
+
+  const cp3: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = explicitCp3 ? {
+    ...explicitCp3,
     stageIcon: Truck,
-    stageBadgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    envNote: 'Kho lạnh bảo quản 16°C - 20°C | Niêm phong thùng xốp bảo ôn',
-    isCompleted: true
+    stageBadgeColor: isCp3Done ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-500 border-gray-300',
+    envNote: isCp3Done ? 'Kho lạnh bảo quản 16°C - 20°C | Niêm phong xe thùng xốp bảo ôn' : 'Chưa hoàn thành Chặng 2 OCOP',
+    isCompleted: isCp3Done
   } : {
     stepName: 'Chặng 3: Đóng Gói Niêm Phong & Vận Chuyển Cold-Chain',
     role: ROLE_HASHES.ROLE_LOGISTICS,
     roleTitle: 'Đơn Vị Logistics & Bưu Chính',
     location: 'Trung Tâm Bưu Chính Logistics Cố Đô Huế - Ga Huế & Sân Bay Phú Bài',
-    action: `Đóng thùng chống sốc, gắn tem QR mã hóa Sepolia, theo dõi hành trình vận chuyển bằng cảm biến nhiệt độ & độ ẩm tự động.`,
-    timestamp: batch.createdAt + 7200,
-    recorder: batch.producer,
+    action: !isCp2Done
+      ? 'Chưa thể thực hiện: Lô hàng cần hoàn thành Thẩm Định OCOP (Chặng 2) trước khi Đơn vị vận chuyển tiếp nhận.'
+      : 'Đã hoàn thành Thẩm định OCOP. Đang chờ Đơn vị vận chuyển (ROLE_LOGISTICS) tiếp nhận kho lạnh & ghi nhận chặng vận chuyển 3.',
+    timestamp: isCp3Done ? batch.createdAt + 7200 : batch.createdAt + 3600,
+    recorder: (explicitCp3 as any)?.recorder || batch.producer,
     metadataURI: `ipfs://huelegend/logistics/${batch.batchCode}`,
-    txHash: '0x7c3a...1102',
-    conditionNote: 'Nhiệt độ thùng lạnh: 18°C | Độ ẩm 50% | Trạng thái niêm phong nguyên vẹn.',
+    txHash: (explicitCp3 as any)?.txHash || '',
+    conditionNote: isCp3Done ? 'Nhiệt độ thùng lạnh: 18°C | Độ ẩm 50% | Trạng thái niêm phong nguyên vẹn.' : 'Chờ đơn vị vận chuyển tiếp nhận',
     stageIcon: Truck,
-    stageBadgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    envNote: 'Theo dõi cảm biến Cold-Chain | Xe tải chuyên dụng bảo quản đặc sản',
-    isCompleted: true
+    stageBadgeColor: isCp3Done ? 'bg-blue-100 text-blue-800 border-blue-300' : (isCp2Done ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'),
+    envNote: isCp3Done ? 'Theo dõi cảm biến Cold-Chain | Xe tải chuyên dụng bảo quản đặc sản' : (isCp2Done ? 'Đủ điều kiện — Chờ Đơn vị Vận chuyển ghi Chặng 3' : 'Khóa — Cần hoàn thành Chặng 2 Thẩm Định OCOP'),
+    isCompleted: isCp3Done
   };
 
-  // Chang 4: Dai ly / Niem yet Cua hang
-  const cp4: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_RETAILER || c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('cửa hàng')) ? {
-    ...existing.find(c => c.role === ROLE_HASHES.ROLE_RETAILER || c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('cửa hàng'))!,
+  // Chang 4: Niem yet Cua hang & Ban le (Yeu cau Chang 3 hoan thanh -> isCp3Done va batch.isListed / explicitCp4)
+  const explicitCp4: Checkpoint | undefined = existing.find(c =>
+    c.role === ROLE_HASHES.ROLE_RETAILER ||
+    (c.stepName && (c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('chặng 4') || c.stepName.toLowerCase().includes('cửa hàng')))
+  );
+
+  const isCp4Done = Boolean(isCp3Done && (batch.isListed || explicitCp4));
+
+  const cp4: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = explicitCp4 ? {
+    ...explicitCp4,
     stageIcon: Store,
-    stageBadgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    envNote: `Cửa hàng: ${batch.storeName || 'Đại lý Đặc sản Huế'} | Giá: ${batch.listingPriceEth || '0.005'} ETH`,
-    isCompleted: Boolean(batch.isListed)
+    stageBadgeColor: isCp4Done ? 'bg-purple-100 text-purple-800 border-purple-300' : 'bg-gray-100 text-gray-500 border-gray-300',
+    envNote: isCp4Done ? `Cửa hàng: ${batch.storeName || 'Đại lý Đặc sản Huế'} | Giá: ${batch.listingPriceEth || '0.005'} ETH` : 'Chưa hoàn thành Chặng 3 Vận chuyển',
+    isCompleted: isCp4Done
   } : {
     stepName: 'Chặng 4: Niêm Yết Cửa Hàng Đặc Sản & Tra Cứu Tem QR Khách Hàng',
     role: ROLE_HASHES.ROLE_RETAILER,
     roleTitle: 'Đại Lý Phân Phối / Cửa Hàng Đặc Sản',
     location: batch.storeName || 'Cửa Hàng Đặc Sản HueLegend - 12 Lê Lợi, TP. Huế',
-    action: batch.isListed
+    action: isCp4Done
       ? `Đã nhận lô hàng tại showroom, quét mã tem QR kiểm tra chữ ký số on-chain hợp lệ và niêm yết công khai cho du khách & khách hàng.`
-      : `Sẵn sàng tiếp nhận tại showroom đại lý phân phối đặc sản Huế để niêm yết thương mại on-chain.`,
-    timestamp: batch.createdAt + 14400,
-    recorder: batch.producer,
+      : (!isCp3Done
+          ? 'Chưa thể thực hiện: Lô hàng phải được Đơn vị Vận chuyển tiếp nhận & hoàn thành Chặng 3 trước khi Đại lý Niêm yết tại Showroom.'
+          : 'Đã hoàn thành Chặng 3 Vận chuyển. Đang chờ Đại lý Bán lẻ (ROLE_RETAILER) tiếp nhận và Niêm yết giá bán công khai tại Showroom.'),
+    timestamp: isCp4Done ? batch.createdAt + 14400 : batch.createdAt + 10800,
+    recorder: (explicitCp4 as any)?.recorder || batch.producer,
     metadataURI: `ipfs://huelegend/store/${batch.batchCode}`,
-    txHash: '0x9d12...44f0',
-    conditionNote: `Giá niêm yết showroom: ${batch.listingPriceEth || '0.005'} ETH. Sẵn sàng quét QR tra cứu minh bạch.`,
+    txHash: (explicitCp4 as any)?.txHash || '',
+    conditionNote: isCp4Done ? `Giá niêm yết showroom: ${batch.listingPriceEth || '0.005'} ETH. Sẵn sàng quét QR tra cứu minh bạch.` : 'Chờ đại lý bán lẻ niêm yết',
     stageIcon: Store,
-    stageBadgeColor: batch.isListed ? 'bg-purple-100 text-purple-800 border-purple-300' : 'bg-gray-100 text-gray-600 border-gray-300',
-    envNote: batch.isListed ? 'Đã niêm yết chính thức tại showroom đặc sản' : 'Chờ niêm yết cửa hàng',
-    isCompleted: Boolean(batch.isListed)
+    stageBadgeColor: isCp4Done ? 'bg-purple-100 text-purple-800 border-purple-300' : (isCp3Done ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-gray-100 text-gray-500 border-gray-200'),
+    envNote: isCp4Done ? 'Đã niêm yết chính thức tại showroom đặc sản' : (isCp3Done ? 'Đủ điều kiện — Chờ Đại lý Niêm yết Chặng 4' : 'Khóa — Cần hoàn thành Chặng 3 Vận Chuyển'),
+    isCompleted: isCp4Done
   };
 
-  // Tra ve danh sach 4 chang theo thu tu logic
+  // Tra ve danh sach 4 chang theo dung thu tu sequential Chiet 1 -> 2 -> 3 -> 4
   return [cp1, cp2, cp3, cp4];
 };
 

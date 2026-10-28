@@ -32,13 +32,17 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   onWithdrawEarnings,
 }) => {
   const batchList = Object.values(batches);
-  // Loc danh sach cac lo hang da qua kiem dinh OCOP VA da duoc don vi van chuyen xu ly
-  const transportBatches = batchList.filter(
-    (b) =>
-      b.isVerified &&
-      b.checkpoints &&
-      b.checkpoints.length > 1
-  );
+  // Loc danh sach cac lo hang da qua kiem dinh OCOP (Chang 2) VA da duoc don vi van chuyen ghi nhat ky (Chang 3)
+  const transportBatches = batchList.filter((b) => {
+    if (!b.isVerified) return false;
+    const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
+      (c) =>
+        c.role === 'ROLE_LOGISTICS' ||
+        c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
+        (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+    );
+    return Boolean(hasLogisticsCp);
+  });
 
   const [selectedBatchCode, setSelectedBatchCode] = useState(transportBatches[0]?.batchCode || '');
   const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);

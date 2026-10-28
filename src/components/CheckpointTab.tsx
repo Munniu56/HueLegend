@@ -212,7 +212,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({
                   required
                   value={stepName}
                   onChange={(e) => setStepName(e.target.value)}
-                  placeholder="Ví dụ: Chặng 2: Vận chuyển kho lạnh..."
+                  placeholder="Ví dụ: Chặng 3: Vận chuyển kho lạnh bảo ôn..."
                   className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
                 />
               </div>
