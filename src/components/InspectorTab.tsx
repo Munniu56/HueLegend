@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Batch } from '../types';
 import {
   ShieldCheck,
@@ -15,7 +15,14 @@ import {
   Package,
   Coins,
   FileText,
-  Wallet
+  Wallet,
+  RotateCcw,
+  Search,
+  Filter,
+  X,
+  Send,
+  Building2,
+  Check
 } from 'lucide-react';
 import { ETHERSCAN_BASE_URL } from '../constants';
 
@@ -42,14 +49,37 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
   onConnectWallet,
 }) => {
   const batchList = Object.values(batches);
-  const [selectedBatchCode, setSelectedBatchCode] = useState(batchList[0]?.batchCode || '');
+
+  // Phap loai danh sach lo hang
+  const pendingBatches = batchList.filter((b) => !b.isVerified);
+  const verifiedBatches = batchList.filter((b) => b.isVerified);
+
+  // Sub tab view: 'form' (Thua hanh bieu mau) hoac 'verified' (Danh sach da kiem dinh)
+  const [activeSubTab, setActiveSubTab] = useState<'form' | 'verified'>('form');
+
+  // Form state cho tham dinh lo hang
+  const [selectedBatchCode, setSelectedBatchCode] = useState(pendingBatches[0]?.batchCode || batchList[0]?.batchCode || '');
   const [starRating, setStarRating] = useState('4');
   const [inspectorNote, setInspectorNote] = useState('');
-  const [revokeReason, setRevokeReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Modal State cho Thu Hoi OCOP
+  const [revokingBatch, setRevokingBatch] = useState<Batch | null>(null);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Tu dong cap nhat selectedBatchCode neu danh sach pendingBatches thay doi
+  useEffect(() => {
+    if (pendingBatches.length > 0 && (!selectedBatchCode || batches[selectedBatchCode]?.isVerified)) {
+      setSelectedBatchCode(pendingBatches[0].batchCode);
+    } else if (batchList.length > 0 && !selectedBatchCode) {
+      setSelectedBatchCode(batchList[0].batchCode);
+    }
+  }, [batches]);
 
   const selectedBatch = batches[selectedBatchCode];
 
+  // Ham xu ly Ky Xac Nhan & Cap OCOP
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBatchCode) return;
@@ -58,6 +88,10 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
     try {
       const generatedCertURI = `ipfs://huelegend/cert/${selectedBatchCode}`;
       await onVerifyBatch(selectedBatchCode, inspectorNote, generatedCertURI, starRating);
+
+      // Chuyen sang Tab Danh Sach Da Kiem Dinh va xoa note
+      setActiveSubTab('verified');
+      setInspectorNote('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -65,12 +99,15 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
     }
   };
 
-  const handleRevoke = async () => {
-    if (!selectedBatchCode || !revokeReason) return;
+  // Ham xu ly Thu Hoi Kiem Dinh
+  const handleConfirmRevoke = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!revokingBatch || !revokeReason) return;
 
     setIsSubmitting(true);
     try {
-      await onRevokeVerification(selectedBatchCode, revokeReason);
+      await onRevokeVerification(revokingBatch.batchCode, revokeReason);
+      setRevokingBatch(null);
       setRevokeReason('');
     } catch (err) {
       console.error(err);
@@ -79,9 +116,17 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
     }
   };
 
+  // Filter Verified Batches by Search
+  const filteredVerifiedBatches = verifiedBatches.filter(
+    (b) =>
+      b.batchCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      b.origin.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 font-sans">
-      {/* Top Banner Title Header */}
+      {/* Top Banner Header */}
       <div className="bg-gradient-to-r from-[#264939] via-[#1c382b] to-[#12261d] text-white p-6 sm:p-7 rounded-3xl shadow-sm border border-[#264939]/40 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C29B38]/20 text-[#C29B38] text-xs font-bold border border-[#C29B38]/30">
@@ -109,24 +154,76 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
         </div>
       </div>
 
-      {/* Step Indicator Banner */}
-      <div className="bg-[#FAF9F5] p-3.5 rounded-2xl border border-[#E6E1D7] flex flex-wrap items-center justify-between gap-2 text-xs font-sans">
-        <span className="font-bold text-[#264939] uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-          <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-          Quy Trình Chuỗi Cung Ứng On-Chain:
-        </span>
-        <div className="flex items-center gap-1.5 sm:gap-3 text-[11px] font-bold">
-          <span className="text-[#5E7166]">1. Khai Báo Lô</span>
-          <span className="text-[#8A9D92]">→</span>
-          <span className="px-2.5 py-1 rounded-lg bg-[#264939] text-white shadow-2xs">2. Thẩm Định OCOP</span>
-          <span className="text-[#8A9D92]">→</span>
-          <span className="text-[#5E7166]">3. Vận Chuyển</span>
-          <span className="text-[#8A9D92]">→</span>
-          <span className="text-[#5E7166]">4. Quản Lý Niêm Yết</span>
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
+            <Clock className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">CHỜ THẨM ĐỊNH OCOP</div>
+            <div className="text-2xl font-serif font-extrabold text-amber-900 mt-0.5">{pendingBatches.length} Lô</div>
+            <div className="text-[11px] text-[#5E7166]">Đang chờ hội đồng xét duyệt</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-300">
+            <Award className="w-6 h-6 text-emerald-700" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">ĐÃ CẤP CHỨNG NHẬN</div>
+            <div className="text-2xl font-serif font-extrabold text-[#264939] mt-0.5">{verifiedBatches.length} Lô</div>
+            <div className="text-[11px] text-[#5E7166]">Đã ghi nhận on-chain Sepolia</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#E0ECE4] text-[#264939] flex items-center justify-center shrink-0 border border-[#CCD8CF]">
+            <Package className="w-6 h-6 text-[#264939]" />
+          </div>
+          <div>
+            <div className="text-xs font-bold text-[#8A9D92] uppercase tracking-wider">TỔNG SỐ LÔ TRÊN HỆ THỐNG</div>
+            <div className="text-2xl font-serif font-extrabold text-[#1A2820] mt-0.5">{batchList.length} Lô</div>
+            <div className="text-[11px] text-[#5E7166]">Lô hàng đặc sản Huế</div>
+          </div>
         </div>
       </div>
 
-      {/* Chi hien thi chuc nang Kiem dinh OCOP khi da ket noi vi */}
+      {/* Navigation Sub-Tabs Bar */}
+      <div className="bg-white p-2.5 rounded-2xl border border-[#E6E1D7] shadow-2xs flex flex-wrap items-center justify-between gap-3 font-sans">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveSubTab('form')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeSubTab === 'form'
+                ? 'bg-[#264939] text-white shadow-xs'
+                : 'bg-[#FAF9F5] text-[#5E7166] border border-[#E6E1D7] hover:text-[#264939]'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+            <span>Thẩm Định Lô Hàng Mới ({pendingBatches.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('verified')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+              activeSubTab === 'verified'
+                ? 'bg-[#264939] text-white shadow-xs'
+                : 'bg-[#FAF9F5] text-[#5E7166] border border-[#E6E1D7] hover:text-[#264939]'
+            }`}
+          >
+            <Award className="w-4 h-4 text-[#C29B38]" />
+            <span>Danh Sách Đã Kiểm Định OCOP ({verifiedBatches.length})</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-[#5E7166] font-medium hidden sm:block">
+          Vai trò: <strong className="text-[#264939]">Kiểm Định Viên OCOP (ROLE_INSPECTOR)</strong>
+        </div>
+      </div>
+
+      {/* Unconnected Wallet Warning */}
       {!currentAccount ? (
         <div className="bg-white p-10 sm:p-12 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-4 font-sans shadow-xs">
           <div className="w-16 h-16 rounded-2xl bg-amber-100 text-[#8C6D1F] flex items-center justify-center mx-auto border border-amber-200">
@@ -137,7 +234,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
               Yêu Cầu Kết Nối Ví Để Thẩm Định OCOP
             </h3>
             <p className="text-xs text-[#5E7166] leading-relaxed">
-              Vui lòng kết nối ví MetaMask có quyền Kiểm Định Viên OCOP (ROLE_INSPECTOR) để xem thông tin chi tiết và thực hiện thẩm định & cấp chứng nhận On-Chain.
+              Vui lòng kết nối ví MetaMask có quyền Kiểm Định Viên OCOP (ROLE_INSPECTOR) để thực hiện thẩm định & quản lý danh sách chứng nhận On-Chain.
             </p>
           </div>
           {onConnectWallet && (
@@ -150,7 +247,8 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
             </button>
           )}
         </div>
-      ) : (
+      ) : activeSubTab === 'form' ? (
+        /* ================= SUB TAB 1: FORM THẨM ĐỊNH LÔ HÀNG MỚI ================= */
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Cot Trai (7/12): Form Tham Dinh */}
           <div className="lg:col-span-7 bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-6">
@@ -161,10 +259,10 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-serif font-extrabold text-[#264939]">
-                    Biểu Mẫu Thẩm Định & Đánh Giá
+                    Biểu Mẫu Thẩm Định OCOP
                   </h3>
                   <p className="text-xs text-[#5E7166]">
-                    Chọn lô hàng, xếp hạng sao và nhập ghi chú thẩm định chính thức
+                    Chọn lô hàng đang chờ, xếp hạng sao và bấm ký xác nhận on-chain
                   </p>
                 </div>
               </div>
@@ -179,7 +277,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div>
                   <span className="font-bold text-[#1A2820] block">Phí Thẩm Định Gộp On-Chain:</span>
-                  <span className="text-[11px] text-[#5E7166]">Đã được Cơ sở sản xuất chi trả khi tạo lô (0.002 ETH)</span>
+                  <span className="text-[11px] text-[#5E7166]">Đã được Cơ sở sản xuất chi trả khi khởi tạo lô (0.002 ETH)</span>
                 </div>
               </div>
               <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[11px] border border-emerald-200 shrink-0 text-center">
@@ -199,14 +297,14 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                   onChange={(e) => setSelectedBatchCode(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] text-[#1A2820] shadow-inner"
                 >
-                  {batchList.length > 0 ? (
-                    batchList.map((batch) => (
+                  {pendingBatches.length > 0 ? (
+                    pendingBatches.map((batch) => (
                       <option key={batch.batchCode} value={batch.batchCode}>
-                        {batch.batchCode} — {batch.productName} [{batch.isVerified ? 'Đã Cấp OCOP' : 'Chờ Thẩm Định'}]
+                        {batch.batchCode} — {batch.productName} (Chờ Thẩm Định OCOP)
                       </option>
                     ))
                   ) : (
-                    <option value="">Chưa có sản phẩm nào trên Blockchain</option>
+                    <option value="">Tất cả các lô hàng đã được kiểm định OCOP</option>
                   )}
                 </select>
               </div>
@@ -284,36 +382,9 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 </button>
               </div>
             </form>
-
-            {/* Revoke OCOP Section if verified */}
-            {selectedBatch?.isVerified && (
-              <div className="pt-4 border-t border-red-200 bg-red-50/60 p-4.5 rounded-2xl space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-red-800">
-                  <AlertOctagon className="w-4 h-4 text-red-600" />
-                  <span>Thu Hồi Chứng Nhận OCOP (Nếu Phát Hiện Vi Phạm)</span>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    value={revokeReason}
-                    onChange={(e) => setRevokeReason(e.target.value)}
-                    placeholder="Nhập lý do thu hồi chứng nhận OCOP..."
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-red-200 text-xs focus:outline-none focus:border-red-500 bg-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRevoke}
-                    disabled={isSubmitting || !revokeReason || !isInspectorRole}
-                    className="px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-xl hover:bg-red-700 transition-all shrink-0 disabled:opacity-50"
-                  >
-                    Xác Nhận Thu Hồi
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Cot Phai (5/12): Tat Ca Thong Tin Tao Lo Hang & Trang Thai OCOP */}
+          {/* Cot Phai (5/12): Chi Tiet Lo Hang Dang Chon */}
           <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
             {selectedBatch ? (
               <div className="space-y-4 font-sans">
@@ -424,65 +495,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                       {selectedBatch.createdAt ? new Date(selectedBatch.createdAt * 1000).toLocaleString('vi-VN') : 'Vừa tạo'}
                     </strong>
                   </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
-                    <span className="font-medium flex items-center gap-1.5 text-[11px]">
-                      <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
-                      <span>Ngày Sản Xuất (NSX):</span>
-                    </span>
-                    <strong className="text-[#1A2820] font-mono text-[11px]">
-                      {selectedBatch.productionDate || new Date(selectedBatch.createdAt * 1000).toLocaleDateString('vi-VN')}
-                    </strong>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
-                    <span className="font-medium flex items-center gap-1.5 text-[11px]">
-                      <Clock className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                      <span>Hạn Sử Dụng (HSD):</span>
-                    </span>
-                    <strong className="text-[#8C6D1F] font-mono text-[11px]">
-                      {selectedBatch.expiryDate || new Date((selectedBatch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}
-                    </strong>
-                  </div>
-
-                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
-                    <span className="font-medium flex items-center gap-1.5 text-[11px]">
-                      <Coins className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                      <span>Phí Tạo Lô + Phí Thẩm Định:</span>
-                    </span>
-                    <strong className="text-emerald-800 font-mono text-[11px]">
-                      0.003 ETH (Đã thanh toán)
-                    </strong>
-                  </div>
-
-                  {selectedBatch.checkpoints?.[0]?.metadataURI && (
-                    <div className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0] space-y-1">
-                      <span className="font-medium flex items-center gap-1.5 text-[10px] text-[#8A9D92]">
-                        <FileText className="w-3.5 h-3.5 text-[#264939] shrink-0" />
-                        <span>METADATA URI ON-CHAIN:</span>
-                      </span>
-                      <div className="font-mono text-[10px] text-[#264939] truncate bg-white p-1.5 rounded-lg border border-[#EDE9E0]">
-                        {selectedBatch.checkpoints[0].metadataURI}
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedBatch.txHash && (
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
-                      <span className="font-medium flex items-center gap-1.5 text-[11px]">
-                        <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                        <span>Mã Băm Tạo Lô (Tx Hash):</span>
-                      </span>
-                      <a
-                        href={`${ETHERSCAN_BASE_URL}/tx/${selectedBatch.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-mono text-xs text-[#264939] hover:underline font-bold truncate max-w-[130px]"
-                      >
-                        {`${selectedBatch.txHash.slice(0, 8)}...${selectedBatch.txHash.slice(-4)}`}
-                      </a>
-                    </div>
-                  )}
                 </div>
               </div>
             ) : (
@@ -492,8 +504,215 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
             )}
           </div>
         </div>
+      ) : (
+        /* ================= SUB TAB 2: DANH SÁCH LÔ HÀNG ĐÃ KIỂM ĐỊNH OCOP ================= */
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-6 font-sans">
+          {/* Header & Search Bar for Verified Batches */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[#EDE9E0]">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-300">
+                <Award className="w-4 h-4 text-emerald-700" />
+                <span>DANH SÁCH ĐÃ KIỂM ĐỊNH OCOP TỈNH THỪA THIÊN HUẾ</span>
+              </div>
+              <h3 className="text-xl font-serif font-extrabold text-[#264939] mt-1">
+                Danh Sách Lô Hàng Đã Cấp Chứng Nhận OCOP
+              </h3>
+              <p className="text-xs text-[#5E7166]">
+                Các lô hàng đã được hội đồng thẩm định ký duyệt on-chain. Kiểm định viên có thể xem chi tiết hoặc thực hiện thu hồi nếu cần.
+              </p>
+            </div>
+
+            <div className="relative min-w-[260px]">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm mã lô, tên đặc sản..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+              />
+            </div>
+          </div>
+
+          {/* List Grid of Verified Batches */}
+          {filteredVerifiedBatches.length === 0 ? (
+            <div className="p-12 text-center text-xs text-gray-400 bg-[#FAF9F5] rounded-3xl border border-dashed border-[#E6E1D7] space-y-3">
+              <Award className="w-12 h-12 text-gray-300 mx-auto" />
+              <p className="font-bold text-[#264939] text-sm">Chưa có lô hàng nào trong danh sách đã kiểm định</p>
+              <p className="text-gray-500 max-w-md mx-auto">
+                Sau khi ký xác nhận ở Tab "Thẩm Định Lô Hàng Mới", lô hàng sẽ tự động xuất hiện ở phần này.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredVerifiedBatches.map((batch) => (
+                <div
+                  key={batch.batchCode}
+                  className="bg-[#FAF9F5] p-5 rounded-2xl border border-[#E6E1D7] hover:border-[#264939]/40 transition-all space-y-4 shadow-2xs flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    {/* Header Row */}
+                    <div className="flex items-start justify-between gap-3 pb-3 border-b border-[#EDE9E0]">
+                      <div>
+                        <span className="font-mono text-xs font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-0.5 rounded-lg border border-[#CCD8CF]">
+                          {batch.batchCode}
+                        </span>
+                        <h4 className="font-serif font-extrabold text-base text-[#1A2820] mt-1.5 leading-snug">
+                          {batch.productName}
+                        </h4>
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 bg-amber-500 text-white font-extrabold text-[11px] px-3 py-1 rounded-full shadow-2xs shrink-0">
+                        <Star className="w-3.5 h-3.5 fill-white text-white" />
+                        <span>OCOP {batch.starRating || '4'} SAO</span>
+                      </span>
+                    </div>
+
+                    {/* Image & Inspector Notes */}
+                    <div className="flex items-start gap-3.5">
+                      <img
+                        src={batch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                        alt={batch.productName}
+                        className="w-16 h-16 rounded-xl object-cover border border-[#EDE9E0] shrink-0 bg-white p-1"
+                      />
+
+                      <div className="min-w-0 flex-1 space-y-1 text-xs">
+                        <div className="flex items-center gap-1.5 text-[#5E7166]">
+                          <MapPin className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                          <span className="truncate">{batch.origin}</span>
+                        </div>
+
+                        {batch.inspectorNote && (
+                          <div className="bg-white p-2.5 rounded-xl border border-[#EDE9E0] text-[11px] text-[#1A2820] italic font-serif leading-relaxed line-clamp-2">
+                            "{batch.inspectorNote}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Certification Metadata */}
+                    <div className="bg-white p-3 rounded-xl border border-[#EDE9E0] space-y-1.5 text-[11px] text-[#5E7166]">
+                      <div className="flex justify-between">
+                        <span>Số chứng nhận OCOP:</span>
+                        <strong className="text-[#264939] font-mono">{batch.certificationNo || `OCOP-HUE-2026-${batch.batchCode.slice(-3)}`}</strong>
+                      </div>
+
+                      {batch.verifyTxHash && (
+                        <div className="flex justify-between items-center">
+                          <span>Mã băm giao dịch (Tx):</span>
+                          <a
+                            href={`${ETHERSCAN_BASE_URL}/tx/${batch.verifyTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-emerald-800 font-bold hover:underline flex items-center gap-1"
+                          >
+                            <span>{batch.verifyTxHash.slice(0, 8)}...{batch.verifyTxHash.slice(-4)}</span>
+                            <ExternalLink className="w-3 h-3 text-[#C29B38]" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions Footer: Thu Hoi Button */}
+                  <div className="pt-3 border-t border-[#EDE9E0] flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      ✓ Đã Niêm Phong On-Chain
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        setRevokingBatch(batch);
+                        setRevokeReason('');
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-2xs active:scale-98"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Thu Hồi Kiểm Định</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal Popup Confirm Revocation (Thu Hoi Kiem Dinh) */}
+      {revokingBatch && (
+        <div
+          onClick={() => setRevokingBatch(null)}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-6 shadow-2xl relative space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-red-100 text-red-700 border border-red-200">
+                  <AlertOctagon className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-extrabold text-base text-red-900">
+                    Thu Hồi Chứng Nhận OCOP
+                  </h3>
+                  <p className="text-[11px] text-gray-500">Ghi nhận quyết định thu hồi lên Blockchain</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRevokingBatch(null)}
+                className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-red-50 p-3.5 rounded-2xl border border-red-200 text-xs text-red-900 space-y-1">
+              <div className="font-bold flex items-center justify-between">
+                <span>Lô Hàng Bị Thu Hồi:</span>
+                <span className="font-mono font-extrabold text-red-950">{revokingBatch.batchCode}</span>
+              </div>
+              <div>Tên sản phẩm: <strong>{revokingBatch.productName}</strong></div>
+            </div>
+
+            <form onSubmit={handleConfirmRevoke} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#1A2820] mb-1">
+                  Nhập Lý Do Thu Hồi Chứng Nhận OCOP *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={revokeReason}
+                  onChange={(e) => setRevokeReason(e.target.value)}
+                  placeholder="Ví dụ: Phát hiện lô hàng không đảm bảo chỉ tiêu vệ sinh an toàn thực phẩm theo kết quả kiểm nghiệm đột xuất..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-red-600 bg-[#FAF9F5]"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRevokingBatch(null)}
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold text-xs hover:bg-gray-200 transition-all"
+                >
+                  Hủy Bỏ
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !revokeReason}
+                  className="px-5 py-2.5 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Xác Nhận Thu Hồi On-Chain</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
 };
-
