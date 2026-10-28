@@ -250,16 +250,6 @@ export const LookupTab: React.FC<LookupTabProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {onOpenJourneyModal && activeBatch && (
-              <button
-                onClick={() => onOpenJourneyModal(activeBatch.batchCode)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#264939] text-white text-xs font-sans font-bold hover:bg-[#1c372b] transition-all shadow-2xs"
-              >
-                <Award className="w-4 h-4 text-[#C29B38]" />
-                <span>Mở Popup Lịch Sử On-Chain</span>
-              </button>
-            )}
-
             <button
               onClick={() => onOpenQRStampModal(activeBatch?.batchCode || '')}
               disabled={!activeBatch}
