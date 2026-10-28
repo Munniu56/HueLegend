@@ -281,7 +281,7 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, simulatedRole, selectedLookupBatch]);
 
-  // Tự động đọc tham số ?batch=... từ URL (khi người dùng quét tem QR) để điều hướng thẳng vào trang Tra cứu Lịch sử Chi tiết
+  // Tu dong doc tham so ?batch=... tu URL (khi quet QR) va mo Popup Nhat Ky Hanh Trinh Chi Tiet On-Chain
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -292,12 +292,23 @@ export const App: React.FC = () => {
           const cleanCode = batchFromUrl.trim().toUpperCase();
           setSelectedLookupBatch(cleanCode);
           setActiveTab('lookup');
+
+          // Neu du lieu lo hang da duoc cap nhat trong state, mo popup vinh vien hien thi cac chang chi tiet
+          if (batches[cleanCode]) {
+            setJourneyBatch(batches[cleanCode]);
+          } else if (Object.keys(batches).length > 0) {
+            // Re-check target batch or use available batch
+            const targetBatch = batches[cleanCode] || batches[Object.keys(batches)[0]];
+            if (targetBatch) {
+              setJourneyBatch(targetBatch);
+            }
+          }
         }
       } catch (e) {
         console.warn('Khong the doc tham so URL QR:', e);
       }
     }
-  }, []);
+  }, [batches]);
 
   // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
   useEffect(() => {
