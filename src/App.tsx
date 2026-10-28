@@ -26,6 +26,7 @@ import { QRStampModal } from './components/QRStampModal';
 import { RoleConnectModal } from './components/RoleConnectModal';
 import { WalletDetailsModal } from './components/WalletDetailsModal';
 import { BatchJourneyModal } from './components/BatchJourneyModal';
+import { MobileMetaMaskModal } from './components/MobileMetaMaskModal';
 
 export const App: React.FC = () => {
   // Global State
@@ -38,6 +39,8 @@ export const App: React.FC = () => {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isWalletDetailsModalOpen, setIsWalletDetailsModalOpen] = useState(false);
   const [isOpenMobileMenu, setIsOpenMobileMenu] = useState(false);
+  const [isMobileMetaMaskModalOpen, setIsMobileMetaMaskModalOpen] = useState(false);
+  const [mobileMetaMaskDeepLink, setMobileMetaMaskDeepLink] = useState('');
 
   // Web3 Connection State
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
@@ -387,6 +390,12 @@ export const App: React.FC = () => {
         if (savedRole) {
           setSimulatedRole((prev) => (prev !== savedRole ? savedRole : prev));
         }
+
+        // 6. Dong bo phien ket noi vi (currentAccount)
+        const savedAccount = localStorage.getItem('hl_connected_account');
+        if (savedAccount !== currentAccount) {
+          setCurrentAccount(savedAccount || null);
+        }
       } catch (e) {
         console.warn('Loi dong bo thoi gian thuc:', e);
       }
@@ -628,7 +637,18 @@ export const App: React.FC = () => {
         removeToast(loadingToastId);
       }
     } else {
-      addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension trên trình duyệt để đăng nhập Web3.', 'warning');
+      const isMobileDevice = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobileDevice) {
+        const currentHostAndPath = window.location.host + window.location.pathname + window.location.search;
+        const deepLink = `https://metamask.app.link/dapp/${currentHostAndPath}`;
+        setMobileMetaMaskDeepLink(deepLink);
+        setIsMobileMetaMaskModalOpen(true);
+        try {
+          window.location.href = deepLink;
+        } catch (e) {}
+      } else {
+        addToast('Cần MetaMask', 'Vui lòng cài đặt MetaMask extension trên trình duyệt để đăng nhập Web3.', 'warning');
+      }
     }
   };
 
@@ -1492,6 +1512,13 @@ export const App: React.FC = () => {
 
       {/* Supply Chain On-Chain Journey Detailed Modal Popup */}
       <BatchJourneyModal batch={journeyBatch} onClose={() => setJourneyBatch(null)} />
+
+      {/* Mobile MetaMask App Prompt Modal */}
+      <MobileMetaMaskModal
+        isOpen={isMobileMetaMaskModalOpen}
+        onClose={() => setIsMobileMetaMaskModalOpen(false)}
+        deepLinkUrl={mobileMetaMaskDeepLink}
+      />
     </div>
   );
 };
