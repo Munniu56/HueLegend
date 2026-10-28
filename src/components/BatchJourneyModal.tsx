@@ -12,7 +12,8 @@ import {
   Star,
   UserCheck,
   Building2,
-  Package
+  Package,
+  Calendar
 } from 'lucide-react';
 import { useDraggable } from '../hooks/useDraggable';
 import { ETHERSCAN_BASE_URL } from '../constants';
@@ -103,6 +104,16 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-[#C29B38]" />
                   <span>{batch.origin || 'Thừa Thiên Huế'}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-[#264939] bg-white px-2 py-0.5 rounded border border-[#EDE9E0]">
+                  <Calendar className="w-3 h-3 text-[#264939]" />
+                  <span>NSX: {batch.productionDate || new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN')}</span>
+                </span>
+
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-[#8C6D1F] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  <Clock className="w-3 h-3 text-[#C29B38]" />
+                  <span>HSD: {batch.expiryDate || new Date((batch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}</span>
                 </span>
 
                 {batch.isVerified && batch.certificationNo && (

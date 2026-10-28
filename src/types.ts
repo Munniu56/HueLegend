@@ -43,6 +43,8 @@ export interface Batch {
   inspectorNote?: string;
   certificateURI?: string;
   imageUrl?: string; // Hinh anh dac san duoc tai len khi tao lo
+  productionDate?: string; // Ngay san xuat (NSX)
+  expiryDate?: string; // Han su dung (HSD)
   txHash?: string;
   verifyTxHash?: string;
   inspectionFeePaid?: string;

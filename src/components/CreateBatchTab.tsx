@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, Wallet, AlertTriangle, Upload, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { PlusCircle, Wallet, AlertTriangle, Upload, Image as ImageIcon, Sparkles, Calendar, Clock, Lock } from 'lucide-react';
 
 interface CreateBatchTabProps {
   batchCreationFeeEth: string;
@@ -7,7 +7,15 @@ interface CreateBatchTabProps {
   isProducerRole?: boolean;
   currentAccount?: string | null;
   onConnectWallet?: () => void;
-  onCreateBatch: (batchCode: string, productName: string, origin: string, metadataURI: string, imageUrl?: string) => Promise<void>;
+  onCreateBatch: (
+    batchCode: string,
+    productName: string,
+    origin: string,
+    metadataURI: string,
+    imageUrl?: string,
+    productionDate?: string,
+    expiryDate?: string
+  ) => Promise<void>;
   onDepositStake?: (amountEth: string) => Promise<void>;
   onWithdrawStake?: () => Promise<void>;
 }
@@ -22,7 +30,21 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   const [productName, setProductName] = useState('');
   const [origin, setOrigin] = useState('');
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600');
+
+  // Thoi gian: Ngay san xuat va Han su dung
+  const todayStr = new Date().toISOString().split('T')[0];
+  const defaultExpDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [productionDate, setProductionDate] = useState(todayStr);
+  const [expiryDate, setExpiryDate] = useState(defaultExpDate);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fast duration selection helper
+  const setExpiryInMonths = (months: number) => {
+    const baseDate = productionDate ? new Date(productionDate) : new Date();
+    baseDate.setMonth(baseDate.getMonth() + months);
+    setExpiryDate(baseDate.toISOString().split('T')[0]);
+  };
 
   // Danh sach anh dac san Cố Đô Huế mẫu
   const sampleSpecialtyImages = [
@@ -86,10 +108,22 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
     setIsSubmitting(true);
     try {
       const generatedMetadataURI = `ipfs://huelegend/batch/${batchCode.trim()}`;
-      await onCreateBatch(batchCode.trim(), productName.trim(), origin.trim(), generatedMetadataURI, imageUrl);
+      await onCreateBatch(
+        batchCode.trim(),
+        productName.trim(),
+        origin.trim(),
+        generatedMetadataURI,
+        imageUrl,
+        productionDate,
+        expiryDate
+      );
       setBatchCode('');
       setProductName('');
       setOrigin('');
+      const freshToday = new Date().toISOString().split('T')[0];
+      const freshDefaultExp = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      setProductionDate(freshToday);
+      setExpiryDate(freshDefaultExp);
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,6 +214,85 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               placeholder="Ví dụ: Phường Hương Long, TP Huế, Thừa Thiên Huế..."
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
             />
+          </div>
+
+          {/* Mục Thời Gian: Ngày Sản Xuất & Hạn Sử Dụng */}
+          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-[#E6E1D7] space-y-3">
+            <div className="flex items-center justify-between border-b border-[#EDE9E0] pb-2">
+              <span className="text-xs font-serif font-extrabold text-[#264939] flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-[#C29B38]" />
+                <span>Khung Thời Gian Lô Hàng (Ngày Sản Xuất & Hạn Sử Dụng) *</span>
+              </span>
+              <span className="text-[10px] font-mono font-bold text-[#8A9D92] bg-white px-2 py-0.5 rounded border border-[#E6E1D7]">
+                Mã Hóa Blockchain
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Ngay san xuat - khoat mac dinh ngay hien tai */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-[#1A2820] flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-[#264939]" />
+                    <span>Ngày Sản Xuất (NSX) *</span>
+                  </label>
+                  <span className="text-[9px] font-bold text-[#264939] bg-[#E0ECE4] px-1.5 py-0.5 rounded border border-[#CCD8CF] flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5 text-[#264939]" /> Khoá ngày hiện tại
+                  </span>
+                </div>
+                <input
+                  type="date"
+                  readOnly
+                  required
+                  value={productionDate}
+                  title="Ngay san xuat duoc khoat mac dinh la ngay hien tai de dam bao tinh minh bach"
+                  className="w-full px-3 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none bg-[#FAF9F5] text-[#264939] cursor-not-allowed select-none"
+                />
+              </div>
+
+              {/* Han Su Dung */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-[#1A2820] flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-[#C29B38]" />
+                    <span>Hạn Sử Dụng (HSD) *</span>
+                  </label>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setExpiryInMonths(3)}
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#8C6D1F] border border-amber-200 hover:bg-amber-100 transition-colors"
+                      title="Cộng 3 tháng"
+                    >
+                      +3 Tháng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpiryInMonths(6)}
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#8C6D1F] border border-amber-200 hover:bg-amber-100 transition-colors"
+                      title="Cộng 6 tháng"
+                    >
+                      +6 Tháng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpiryInMonths(12)}
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-[#8C6D1F] border border-amber-200 hover:bg-amber-100 transition-colors"
+                      title="Cộng 12 tháng"
+                    >
+                      +1 Năm
+                    </button>
+                  </div>
+                </div>
+                <input
+                  type="date"
+                  required
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-white"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Specialty Product Image Upload Section */}

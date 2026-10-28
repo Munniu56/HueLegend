@@ -410,6 +410,26 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 
                   <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
                     <span className="font-medium flex items-center gap-1.5 text-[11px]">
+                      <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                      <span>Ngày Sản Xuất (NSX):</span>
+                    </span>
+                    <strong className="text-[#1A2820] font-mono text-[11px]">
+                      {selectedBatch.productionDate || new Date(selectedBatch.createdAt * 1000).toLocaleDateString('vi-VN')}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                    <span className="font-medium flex items-center gap-1.5 text-[11px]">
+                      <Clock className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                      <span>Hạn Sử Dụng (HSD):</span>
+                    </span>
+                    <strong className="text-[#8C6D1F] font-mono text-[11px]">
+                      {selectedBatch.expiryDate || new Date((selectedBatch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}
+                    </strong>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#FAF9F5] border border-[#EDE9E0]">
+                    <span className="font-medium flex items-center gap-1.5 text-[11px]">
                       <Coins className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                       <span>Phí Tạo Lô + Phí Thẩm Định:</span>
                     </span>

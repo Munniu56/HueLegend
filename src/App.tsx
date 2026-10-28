@@ -590,7 +590,9 @@ export const App: React.FC = () => {
     productName: string,
     origin: string,
     metadataURI: string,
-    imageUrl?: string
+    imageUrl?: string,
+    productionDate?: string,
+    expiryDate?: string
   ) => {
     // Bat buoc phai ket noi vi MetaMask truoc khi khoi tao
     if (!currentAccount) {
@@ -604,6 +606,13 @@ export const App: React.FC = () => {
     const cleanOrigin = origin.trim();
     const cleanMetadataURI = metadataURI.trim();
     const finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
+
+    const cleanProdDate = productionDate
+      ? new Date(productionDate).toLocaleDateString('vi-VN')
+      : new Date().toLocaleDateString('vi-VN');
+    const cleanExpDate = expiryDate
+      ? new Date(expiryDate).toLocaleDateString('vi-VN')
+      : new Date(Date.now() + 180 * 24 * 3600 * 1000).toLocaleDateString('vi-VN');
 
     const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch createBatch() trên MetaMask...', 'loading', 0);
 
@@ -648,6 +657,8 @@ export const App: React.FC = () => {
         productName: cleanProductName,
         origin: cleanOrigin,
         imageUrl: finalImageUrl,
+        productionDate: cleanProdDate,
+        expiryDate: cleanExpDate,
         createdAt: Math.floor(Date.now() / 1000),
         producer: cleanUserAddress,
         isVerified: false,
@@ -665,7 +676,7 @@ export const App: React.FC = () => {
             role: ROLE_HASHES.ROLE_PRODUCER,
             roleTitle: 'Cơ Sở Sản Xuất',
             location: cleanOrigin,
-            action: 'Khởi tạo lô hàng & Thanh toán Phí Thẩm Định OCOP',
+            action: `Khởi tạo lô hàng & Thanh toán Phí Thẩm Định OCOP. NSX: ${cleanProdDate} - HSD: ${cleanExpDate}`,
             timestamp: Math.floor(Date.now() / 1000),
             recorder: cleanUserAddress,
             metadataURI: cleanMetadataURI,

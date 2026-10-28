@@ -16,7 +16,8 @@ import {
   Package,
   Star,
   Award,
-  Wallet
+  Wallet,
+  Calendar
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ETHERSCAN_BASE_URL } from '../constants';
@@ -312,6 +313,29 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                   <div className="min-w-0 flex-1">
                     <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
                     <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.origin}</p>
+                  </div>
+                </div>
+
+                {/* Muc Thoi Gian: Ngay San Xuat & Han Su Dung */}
+                <div className="grid grid-cols-2 gap-2 bg-[#FAF9F5] p-2.5 rounded-xl border border-[#EDE9E0]">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-bold text-[#8A9D92] block">Ngày Sản Xuất:</span>
+                      <strong className="text-[11px] font-mono font-bold text-[#1A2820]">
+                        {activeBatch.productionDate || new Date(activeBatch.createdAt * 1000).toLocaleDateString('vi-VN')}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-bold text-[#8A9D92] block">Hạn Sử Dụng:</span>
+                      <strong className="text-[11px] font-mono font-bold text-[#8C6D1F]">
+                        {activeBatch.expiryDate || new Date((activeBatch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}
+                      </strong>
+                    </div>
                   </div>
                 </div>
 
