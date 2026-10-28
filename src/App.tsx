@@ -109,14 +109,18 @@ export const App: React.FC = () => {
       }
     }
 
-    if (typeof window === 'undefined' || !(window as any).ethereum) {
+    if (typeof window === 'undefined') {
       return;
     }
 
     setIsLoadingContract(true);
     try {
       const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      // Su dung BrowserProvider neu co window.ethereum, hoac JsonRpcProvider fallback cho Mobile
+      const provider = (window as any).ethereum
+        ? new ethers.BrowserProvider((window as any).ethereum)
+        : new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+
       const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, provider);
 
       // Read real Smart Contract ETH balance from Sepolia Testnet
@@ -483,6 +487,29 @@ export const App: React.FC = () => {
       clearInterval(syncInterval);
     };
   }, [currentAccount]);
+
+  // Tu dong day du lieu batches len cloud sync endpoint ngay khi co bat ky lo hang nao duoc khoi tao hoac thay doi o Desktop
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(batches).length > 0) {
+      try {
+        localStorage.setItem('hl_local_batches', JSON.stringify(batches));
+        const payload = {
+          batches,
+          grantedWallets,
+          activeTab,
+          selectedLookupBatch,
+          simulatedRole,
+          currentAccount,
+          updatedAt: Date.now()
+        };
+        fetch('/api/sync?code=huelegend_global_sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
+      } catch (e) {}
+    }
+  }, [batches, grantedWallets, activeTab, selectedLookupBatch, simulatedRole, currentAccount]);
 
 
   // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
@@ -1432,6 +1459,31 @@ export const App: React.FC = () => {
     }
   };
 
+  // Ham dong bo thu cong tu Cloud Sync
+  const handleManualSync = async () => {
+    try {
+      const res = await fetch('/api/sync?code=huelegend_global_sync');
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.data && json.data.batches && typeof json.data.batches === 'object') {
+          setBatches((prev) => {
+            const merged = { ...prev, ...json.data.batches };
+            try {
+              localStorage.setItem('hl_local_batches', JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
+          addToast('Đồng Bộ Thành Công!', `Đã cập nhật ${Object.keys(json.data.batches).length} lô hàng từ máy tính.`, 'success');
+        } else {
+          addToast('Đồng Bộ Hoàn Tất', 'Đã kiểm tra dữ liệu đồng bộ cloud mới nhất.', 'info');
+        }
+      }
+      await fetchContractData();
+    } catch (e) {
+      addToast('Lỗi Đồng Bộ Cloud', 'Không thể kết nối máy chủ Cloud Sync.', 'error');
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-[#F4F1EA]/30 backdrop-blur-[1px] bg-cover bg-fixed bg-center text-[#1A2820]">
       {/* Sidebar Navigation */}
@@ -1453,6 +1505,7 @@ export const App: React.FC = () => {
             addToast('Góc Nhìn Vai Trò', `Đã chuyển sang góc nhìn: ${role}`, 'info');
           }}
           onToggleMobileMenu={() => setIsOpenMobileMenu(!isOpenMobileMenu)}
+          onManualSync={handleManualSync}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-6">
