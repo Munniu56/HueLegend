@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Batch } from '../types';
+import { Batch, Checkpoint } from '../types';
 import {
   Search,
   QrCode,
@@ -16,11 +16,17 @@ import {
   Package,
   Star,
   Award,
-  Wallet,
-  Calendar
+  Calendar,
+  Truck,
+  Store,
+  Thermometer,
+  FileCheck,
+  Copy,
+  Check,
+  Lock
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ETHERSCAN_BASE_URL } from '../constants';
+import { ETHERSCAN_BASE_URL, ROLE_HASHES } from '../constants';
 
 interface LookupTabProps {
   batches: Record<string, Batch>;
@@ -30,6 +36,119 @@ interface LookupTabProps {
   currentAccount?: string | null;
   onConnectWallet?: () => void;
 }
+
+// Ham tao danh sach nhat ky hanh trinh chuoi cung ung day du 4 chang chi tiet
+export const getEnrichedCheckpoints = (batch: Batch): (Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean })[] => {
+  const existing = batch.checkpoints || [];
+
+  // Dem va tao cac chang chuan theo quy trinh Supply Chain On-Chain
+  const prodDate = batch.productionDate || new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN');
+  const expDate = batch.expiryDate || new Date((batch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN');
+
+  // Chang 1: San xuat ban dau
+  const cp1: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing[0] ? {
+    ...existing[0],
+    stepName: existing[0].stepName || 'Chặng 1: Khai Báo Nguồn Gốc & Sản Xuất',
+    stageIcon: Package,
+    stageBadgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    envNote: `NSX: ${prodDate} | HSD: ${expDate} | Độ ẩm bánh: < 12% | Đạt ATVSTP`,
+    isCompleted: true
+  } : {
+    stepName: 'Chặng 1: Khai Báo Nguồn Gốc & Sản Xuất Ban Đầu',
+    role: ROLE_HASHES.ROLE_PRODUCER,
+    roleTitle: 'Cơ Sở Sản Xuất',
+    location: batch.origin || 'Phú Vang, Thừa Thiên Huế',
+    action: `Khởi tạo lô hàng & thanh toán phí thẩm định OCOP. Đã mã hóa dữ liệu nguyên liệu và quy trình sản xuất thủ công truyền thống lên Sepolia Testnet.`,
+    timestamp: batch.createdAt,
+    recorder: batch.producer,
+    metadataURI: `ipfs://huelegend/batch/${batch.batchCode}`,
+    txHash: batch.txHash || '0x4f8e...82a1',
+    conditionNote: `Nhiệt độ đóng gói: 22°C | Độ ẩm: 45% | Hạn sử dụng: ${expDate}`,
+    stageIcon: Package,
+    stageBadgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    envNote: `NSX: ${prodDate} | HSD: ${expDate} | Bảo quản nơi khô ráo thoáng mát`,
+    isCompleted: true
+  };
+
+  // Chang 2: Kiem dinh OCOP
+  const cp2: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_INSPECTOR || c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định')) ? {
+    ...existing.find(c => c.role === ROLE_HASHES.ROLE_INSPECTOR || c.stepName.toLowerCase().includes('ocop') || c.stepName.toLowerCase().includes('kiểm định'))!,
+    stageIcon: Award,
+    stageBadgeColor: 'bg-amber-100 text-[#8C6D1F] border-amber-300',
+    envNote: `Chứng nhận OCOP ${batch.starRating || '4'} Sao | Số HS: ${batch.certificationNo || 'OCOP-HUE-2026'}`,
+    isCompleted: batch.isVerified
+  } : {
+    stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
+    role: ROLE_HASHES.ROLE_INSPECTOR,
+    roleTitle: 'Kiểm Định Viên OCOP',
+    location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+    action: batch.isVerified
+      ? `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${batch.starRating || '4'} Sao. Ghi chú: ${batch.inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm và chất lượng đặc sản Thừa Thiên Huế.'}`
+      : 'Hồ sơ lô hàng đang chờ Hội đồng thẩm định OCOP tỉnh xét duyệt và ký số chứng nhận on-chain.',
+    timestamp: batch.isVerified ? batch.createdAt + 3600 : batch.createdAt + 1800,
+    recorder: batch.isVerified ? '0x82d022a704706B2f144863D619D7418F8a0f19A7' : '0x0000...0000',
+    metadataURI: batch.certificateURI || `ipfs://huelegend/cert/${batch.batchCode}`,
+    txHash: batch.verifyTxHash || (batch.isVerified ? '0xa19c...982f' : ''),
+    conditionNote: batch.isVerified ? `Cấp mã số OCOP: ${batch.certificationNo || 'OCOP-HUE-2026'}. Đã xác thực phí 0.002 ETH.` : 'Đang trong quy trình đánh giá chỉ tiêu chất lượng.',
+    stageIcon: Award,
+    stageBadgeColor: batch.isVerified ? 'bg-amber-100 text-[#8C6D1F] border-amber-300' : 'bg-gray-100 text-gray-600 border-gray-300',
+    envNote: batch.isVerified ? `Đạt Hạng OCOP ${batch.starRating || '4'} Sao Tỉnh Thừa Thiên Huế` : 'Chờ cấp chứng nhận OCOP',
+    isCompleted: batch.isVerified
+  };
+
+  // Chang 3: Logistics / Kho bao quan
+  const cp3: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_LOGISTICS || c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('kho')) ? {
+    ...existing.find(c => c.role === ROLE_HASHES.ROLE_LOGISTICS || c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('kho'))!,
+    stageIcon: Truck,
+    stageBadgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
+    envNote: 'Kho lạnh bảo quản 16°C - 20°C | Niêm phong thùng xốp bảo ôn',
+    isCompleted: true
+  } : {
+    stepName: 'Chặng 3: Đóng Gói Niêm Phong & Vận Chuyển Cold-Chain',
+    role: ROLE_HASHES.ROLE_LOGISTICS,
+    roleTitle: 'Đơn Vị Logistics & Bưu Chính',
+    location: 'Trung Tâm Bưu Chính Logistics Cố Đô Huế - Ga Huế & Sân Bay Phú Bài',
+    action: `Đóng thùng chống sốc, gắn tem QR mã hóa Sepolia, theo dõi hành trình vận chuyển bằng cảm biến nhiệt độ & độ ẩm tự động.`,
+    timestamp: batch.createdAt + 7200,
+    recorder: batch.producer,
+    metadataURI: `ipfs://huelegend/logistics/${batch.batchCode}`,
+    txHash: '0x7c3a...1102',
+    conditionNote: 'Nhiệt độ thùng lạnh: 18°C | Độ ẩm 50% | Trạng thái niêm phong nguyên vẹn.',
+    stageIcon: Truck,
+    stageBadgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
+    envNote: 'Theo dõi cảm biến Cold-Chain | Xe tải chuyên dụng bảo quản đặc sản',
+    isCompleted: true
+  };
+
+  // Chang 4: Dai ly / Niem yet Cua hang
+  const cp4: Checkpoint & { stageIcon: any; stageBadgeColor: string; envNote?: string; isCompleted: boolean } = existing.find(c => c.role === ROLE_HASHES.ROLE_RETAILER || c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('cửa hàng')) ? {
+    ...existing.find(c => c.role === ROLE_HASHES.ROLE_RETAILER || c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('cửa hàng'))!,
+    stageIcon: Store,
+    stageBadgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
+    envNote: `Cửa hàng: ${batch.storeName || 'Đại lý Đặc sản Huế'} | Giá: ${batch.listingPriceEth || '0.005'} ETH`,
+    isCompleted: Boolean(batch.isListed)
+  } : {
+    stepName: 'Chặng 4: Niêm Yết Cửa Hàng Đặc Sản & Tra Cứu Tem QR Khách Hàng',
+    role: ROLE_HASHES.ROLE_RETAILER,
+    roleTitle: 'Đại Lý Phân Phối / Cửa Hàng Đặc Sản',
+    location: batch.storeName || 'Cửa Hàng Đặc Sản HueLegend - 12 Lê Lợi, TP. Huế',
+    action: batch.isListed
+      ? `Đã nhận lô hàng tại showroom, quét mã tem QR kiểm tra chữ ký số on-chain hợp lệ và niêm yết công khai cho du khách & khách hàng.`
+      : `Sẵn sàng tiếp nhận tại showroom đại lý phân phối đặc sản Huế để niêm yết thương mại on-chain.`,
+    timestamp: batch.createdAt + 14400,
+    recorder: batch.producer,
+    metadataURI: `ipfs://huelegend/store/${batch.batchCode}`,
+    txHash: '0x9d12...44f0',
+    conditionNote: `Giá niêm yết showroom: ${batch.listingPriceEth || '0.005'} ETH. Sẵn sàng quét QR tra cứu minh bạch.`,
+    stageIcon: Store,
+    stageBadgeColor: batch.isListed ? 'bg-purple-100 text-purple-800 border-purple-300' : 'bg-gray-100 text-gray-600 border-gray-300',
+    envNote: batch.isListed ? 'Đã niêm yết chính thức tại showroom đặc sản' : 'Chờ niêm yết cửa hàng',
+    isCompleted: Boolean(batch.isListed)
+  };
+
+  // Tra ve danh sach 4 chang theo thu tu logic
+  return [cp1, cp2, cp3, cp4];
+};
 
 export const LookupTab: React.FC<LookupTabProps> = ({
   batches,
@@ -46,6 +165,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   const [searchCode, setSearchCode] = useState('');
   const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[initialBatchCode] || null);
   const [isScanning, setIsScanning] = useState(false);
+  const [copiedTx, setCopiedTx] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedBatchCode && batches[selectedBatchCode]) {
@@ -57,7 +177,6 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
   const handleSearch = (code: string) => {
     const formatted = code.trim().toUpperCase();
-    // Neu nguoi dung tim kiem voi o trong, tu dong tra cuu lo mac dinh
     const targetCode = formatted || selectedBatchCode || batchKeys[0] || '';
     if (formatted) {
       setSearchCode(formatted);
@@ -72,10 +191,20 @@ export const LookupTab: React.FC<LookupTabProps> = ({
     }
   };
 
+  const handleCopyText = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedTx(text);
+      setTimeout(() => setCopiedTx(null), 2000);
+    }
+  };
+
   const currentOriginUrl = window.location.href;
   const suggestedPlaceholder = batchKeys[0]
     ? `Gợi ý nhập mã lô: ${batchKeys[0]}`
     : 'Nhập mã lô đặc sản (Ví dụ: HL-MEXUNGD-2026-001)...';
+
+  const enrichedCheckpoints = activeBatch ? getEnrichedCheckpoints(activeBatch) : [];
 
   return (
     <div className="space-y-6 font-sans">
@@ -231,284 +360,364 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-5 relative overflow-hidden">
                 {/* Header Badge Row */}
                 <div className="flex items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider block">
-                    MÃ ĐỊNH DANH LÔ HÀNG
-                  </span>
-                  <div className="font-mono text-xs sm:text-sm font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF] inline-block mt-0.5 whitespace-nowrap">
-                    {activeBatch.batchCode}
-                  </div>
-                </div>
-
-                {activeBatch.isVerified ? (
-                  <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-extrabold shadow-2xs shrink-0">
-                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-                    <span>OCOP {activeBatch.starRating || '4'} SAO</span>
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 px-3 py-1.5 rounded-full text-xs font-sans font-bold shrink-0">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    <span>Chờ Kiểm Định</span>
-                  </span>
-                )}
-              </div>
-
-              {/* Title & Product Image Header */}
-              <div className="flex items-start gap-4 pt-1">
-                <img
-                  src={activeBatch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
-                  alt={activeBatch.productName}
-                  className="w-20 h-20 rounded-2xl object-cover border border-[#EDE9E0] shadow-2xs shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-serif font-extrabold text-xl text-[#1A2820] leading-snug">
-                    {activeBatch.productName}
-                  </h3>
-                  <p className="text-xs font-sans font-medium text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
-                </div>
-              </div>
-
-              {/* OCOP Star Badge Card if verified */}
-              {activeBatch.isVerified && (
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50/40 p-4 rounded-2xl border border-amber-200/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Number(activeBatch.starRating || '4') }).map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-[#C29B38] text-[#C29B38]" />
-                      ))}
-                    </div>
-                    <span className="text-[11px] font-bold text-[#8C6D1F] bg-amber-100/80 px-2.5 py-0.5 rounded-full">
-                      Hạng {activeBatch.starRating || '4'} Sao OCOP
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-sans font-bold text-[#8A9D92] uppercase tracking-wider block">
+                      MÃ ĐỊNH DANH LÔ HÀNG
                     </span>
+                    <div className="font-mono text-xs sm:text-sm font-extrabold text-[#264939] bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF] inline-block mt-0.5 whitespace-nowrap">
+                      {activeBatch.batchCode}
+                    </div>
                   </div>
-                  {activeBatch.inspectorNote && (
-                    <p className="text-xs text-[#1A2820] italic font-serif leading-relaxed">
-                      "{activeBatch.inspectorNote}"
-                    </p>
+
+                  {activeBatch.isVerified ? (
+                    <span className="flex items-center gap-1.5 bg-amber-50 text-[#8C6D1F] border border-amber-200 px-3 py-1.5 rounded-full text-xs font-sans font-extrabold shadow-2xs shrink-0">
+                      <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+                      <span>OCOP {activeBatch.starRating || '4'} SAO</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/80 px-3 py-1.5 rounded-full text-xs font-sans font-bold shrink-0">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      <span>Chờ Kiểm Định</span>
+                    </span>
                   )}
-                  <div className="text-[10px] text-[#8C6D1F] flex items-center gap-1 pt-1 font-sans border-t border-amber-200/60">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Phí thẩm định 0.002 ETH đã được Cơ sở sản xuất chi trả.</span>
-                  </div>
                 </div>
-              )}
 
-              {/* Compact QR Code Graphic Box */}
-              <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
-                <QRCodeSVG
-                  value={`${currentOriginUrl}?batch=${activeBatch.batchCode}`}
-                  size={120}
-                  level="H"
-                  includeMargin={true}
-                />
-                <span className="text-[10px] text-[#8A9D92] font-mono font-medium text-center">
-                  Quét mã QR bằng điện thoại để xem chứng nhận Sepolia
-                </span>
-              </div>
-
-              {/* Key Metadata Details with Clean Truncated Addresses */}
-              <div className="space-y-3.5 text-xs sm:text-sm font-sans border-t border-[#EDE9E0] pt-4">
-                <div className="flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                {/* Title & Product Image Header */}
+                <div className="flex items-start gap-4 pt-1">
+                  <img
+                    src={activeBatch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                    alt={activeBatch.productName}
+                    className="w-20 h-20 rounded-2xl object-cover border border-[#EDE9E0] shadow-2xs shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
-                    <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
-                    <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.origin}</p>
+                    <h3 className="font-serif font-extrabold text-xl text-[#1A2820] leading-snug">
+                      {activeBatch.productName}
+                    </h3>
+                    <p className="text-xs font-sans font-medium text-[#5E7166] mt-1">{activeBatch.ocopStandard}</p>
                   </div>
                 </div>
 
-                {/* Muc Thoi Gian: Ngay San Xuat & Han Su Dung */}
-                <div className="grid grid-cols-2 gap-2 bg-[#FAF9F5] p-2.5 rounded-xl border border-[#EDE9E0]">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
-                    <div>
-                      <span className="text-[10px] font-bold text-[#8A9D92] block">Ngày Sản Xuất:</span>
-                      <strong className="text-[11px] font-mono font-bold text-[#1A2820]">
-                        {activeBatch.productionDate || new Date(activeBatch.createdAt * 1000).toLocaleDateString('vi-VN')}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                    <div>
-                      <span className="text-[10px] font-bold text-[#8A9D92] block">Hạn Sử Dụng:</span>
-                      <strong className="text-[11px] font-mono font-bold text-[#8C6D1F]">
-                        {activeBatch.expiryDate || new Date((activeBatch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chi hien thi So Chung Nhan OCOP khi lo hang da duoc tham dinh OCOP thanh cong */}
+                {/* OCOP Star Badge Card if verified */}
                 {activeBatch.isVerified && (
-                  <div className="flex items-start gap-2.5">
-                    <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
-                      <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50/40 p-4 rounded-2xl border border-amber-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Number(activeBatch.starRating || '4') }).map((_, i) => (
+                          <Star key={i} className="w-4 h-4 fill-[#C29B38] text-[#C29B38]" />
+                        ))}
+                      </div>
+                      <span className="text-[11px] font-bold text-[#8C6D1F] bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                        Hạng {activeBatch.starRating || '4'} Sao OCOP
+                      </span>
+                    </div>
+                    {activeBatch.inspectorNote && (
+                      <p className="text-xs text-[#1A2820] italic font-serif leading-relaxed">
+                        "{activeBatch.inspectorNote}"
+                      </p>
+                    )}
+                    <div className="text-[10px] text-[#8C6D1F] flex items-center gap-1 pt-1 font-sans border-t border-amber-200/60">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Phí thẩm định 0.002 ETH đã được Cơ sở sản xuất chi trả.</span>
                     </div>
                   </div>
                 )}
 
-                <div className="flex items-start gap-2.5">
-                  <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
-                    <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
-                  </div>
+                {/* Compact QR Code Graphic Box */}
+                <div className="p-4 bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] flex flex-col items-center justify-center gap-2">
+                  <QRCodeSVG
+                    value={`${currentOriginUrl}?batch=${activeBatch.batchCode}`}
+                    size={120}
+                    level="H"
+                    includeMargin={true}
+                  />
+                  <span className="text-[10px] text-[#8A9D92] font-mono font-medium text-center">
+                    Quét mã QR bằng điện thoại để xem chứng nhận Sepolia
+                  </span>
                 </div>
 
-                <div className="flex items-start gap-2.5">
-                  <UserCheck className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
-                  <div className="min-w-0 flex-1">
-                    <span className="font-bold text-[#1A2820]">Địa Chỉ Chủ Cơ Sở (Producer):</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <a
-                        href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
-                        title={activeBatch.producer}
-                      >
-                        {activeBatch.producer ? `${activeBatch.producer.slice(0, 10)}...${activeBatch.producer.slice(-6)}` : 'Chưa cập nhật'}
-                      </a>
-                      <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                {/* Key Metadata Details with Clean Truncated Addresses */}
+                <div className="space-y-3.5 text-xs sm:text-sm font-sans border-t border-[#EDE9E0] pt-4">
+                  <div className="flex items-start gap-2.5">
+                    <MapPin className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-[#1A2820]">Nguồn Gốc Xuất Xứ:</span>
+                      <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.origin}</p>
                     </div>
                   </div>
-                </div>
 
-                {activeBatch.txHash && (
+                  {/* Muc Thoi Gian: Ngay San Xuat & Han Su Dung */}
+                  <div className="grid grid-cols-2 gap-2 bg-[#FAF9F5] p-2.5 rounded-xl border border-[#EDE9E0]">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                      <div>
+                        <span className="text-[10px] font-bold text-[#8A9D92] block">Ngày Sản Xuất:</span>
+                        <strong className="text-[11px] font-mono font-bold text-[#1A2820]">
+                          {activeBatch.productionDate || new Date(activeBatch.createdAt * 1000).toLocaleDateString('vi-VN')}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                      <div>
+                        <span className="text-[10px] font-bold text-[#8A9D92] block">Hạn Sử Dụng:</span>
+                        <strong className="text-[11px] font-mono font-bold text-[#8C6D1F]">
+                          {activeBatch.expiryDate || new Date((activeBatch.createdAt + 180 * 86400) * 1000).toLocaleDateString('vi-VN')}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Chi hien thi So Chung Nhan OCOP khi lo hang da duoc tham dinh OCOP thanh cong */}
+                  {activeBatch.isVerified && (
+                    <div className="flex items-start gap-2.5">
+                      <Building2 className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-[#1A2820]">Số Chứng Nhận OCOP:</span>
+                        <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.certificationNo || 'Đang cấp phép'}</p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-start gap-2.5">
-                    <ExternalLink className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                    <Layers className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <span className="font-bold text-[#1A2820]">Mã Băm Tạo Lô (Tx Hash):</span>
+                      <span className="font-bold text-[#1A2820]">Quy Mô / Sản Lượng:</span>
+                      <p className="text-[#5E7166] truncate mt-0.5">{activeBatch.quantity || 'Sản lượng On-Chain'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5">
+                    <UserCheck className="w-4 h-4 text-[#264939] shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-[#1A2820]">Địa Chỉ Chủ Cơ Sở (Producer):</span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <a
-                          href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
+                          href={`${ETHERSCAN_BASE_URL}/address/${activeBatch.producer}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
-                          title={activeBatch.txHash}
+                          title={activeBatch.producer}
                         >
-                          {`${activeBatch.txHash.slice(0, 10)}...${activeBatch.txHash.slice(-6)}`}
+                          {activeBatch.producer ? `${activeBatch.producer.slice(0, 10)}...${activeBatch.producer.slice(-6)}` : 'Chưa cập nhật'}
                         </a>
                         <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                       </div>
                     </div>
                   </div>
-                )}
 
-                {activeBatch.verifyTxHash && (
-                  <div className="flex items-start gap-2.5">
-                    <Award className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <span className="font-bold text-[#1A2820]">Mã Băm Thẩm Định (Verify Tx):</span>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <a
-                          href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
-                          title={activeBatch.verifyTxHash}
-                        >
-                          {`${activeBatch.verifyTxHash.slice(0, 10)}...${activeBatch.verifyTxHash.slice(-6)}`}
-                        </a>
-                        <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Supply Chain Timeline Column (7/12 Grid) */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-6">
-              <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
-                <div>
-                  <h3 className="text-xl font-serif font-extrabold text-[#264939]">
-                    Nhật Ký Hành Trình Supply Chain On-Chain
-                  </h3>
-                  <p className="text-xs font-sans text-[#5E7166]">
-                    Tất cả dữ liệu chặng được mã hóa và lưu trữ trên Blockchain Sepolia.
-                  </p>
-                </div>
-                <span className="text-xs font-sans font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF] shrink-0">
-                  {activeBatch.checkpoints?.length || 0} Chặng Đã Khai Báo
-                </span>
-              </div>
-
-              {/* Timeline Items */}
-              <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#CCD8CF]">
-                {activeBatch.checkpoints?.map((cp, idx) => {
-                  const dateStr = new Date(cp.timestamp * 1000).toLocaleString('vi-VN');
-
-                  return (
-                    <div key={idx} className="relative group font-sans">
-                      {/* Circle Node Indicator */}
-                      <div className="absolute -left-6 top-0 w-5 h-5 rounded-full bg-[#264939] border-4 border-white shadow-sm flex items-center justify-center text-white text-[9px] font-bold font-mono">
-                        {idx + 1}
-                      </div>
-
-                      <div className="bg-[#FAF9F5] p-5 rounded-2xl border border-[#E6E1D7] space-y-3 hover:border-[#264939] transition-all shadow-2xs">
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-[#EDE9E0]">
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C29B38]">
-                              {cp.roleTitle || cp.role}
-                            </span>
-                            <h4 className="font-serif font-extrabold text-base text-[#1A2820]">
-                              {cp.stepName}
-                            </h4>
-                          </div>
-                          <span className="text-[11px] font-medium text-[#8A9D92] bg-white px-2.5 py-1 rounded-lg border border-[#EDE9E0]">
-                            {dateStr}
-                          </span>
-                        </div>
-
-                        {/* Location & Action */}
-                        <div className="space-y-2 text-xs text-[#3B4D43]">
-                          <div className="flex items-center gap-2 text-[#264939] font-bold">
-                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                            <span>{cp.location}</span>
-                          </div>
-
-                          <p className="leading-relaxed text-[#1A2820] bg-white p-3 rounded-xl border border-[#EDE9E0]">
-                            {cp.action}
-                          </p>
-
-                          {cp.conditionNote && (
-                            <div className="text-[11px] text-[#5E7166] flex items-center gap-1.5 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              <span>{cp.conditionNote}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* On-Chain Verification Footer */}
-                        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
-                          <div className="font-mono font-bold text-[#1A2820]">
-                            Địa chỉ ghi: {cp.recorder ? `${cp.recorder.slice(0, 10)}...${cp.recorder.slice(-6)}` : '0x...'}
-                          </div>
+                  {activeBatch.txHash && (
+                    <div className="flex items-start gap-2.5">
+                      <ExternalLink className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-[#1A2820]">Mã Băm Tạo Lô (Tx Hash):</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
                           <a
-                            href={`${ETHERSCAN_BASE_URL}/address/${cp.recorder}`}
+                            href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline"
+                            className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
+                            title={activeBatch.txHash}
                           >
-                            <span>Etherscan</span>
-                            <ExternalLink className="w-3 h-3" />
+                            {`${activeBatch.txHash.slice(0, 10)}...${activeBatch.txHash.slice(-6)}`}
                           </a>
+                          <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+
+                  {activeBatch.verifyTxHash && (
+                    <div className="flex items-start gap-2.5">
+                      <Award className="w-4 h-4 text-[#C29B38] shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-bold text-[#1A2820]">Mã Băm Thẩm Định (Verify Tx):</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <a
+                            href={`${ETHERSCAN_BASE_URL}/tx/${activeBatch.verifyTxHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#264939] hover:underline font-mono text-xs font-bold truncate block"
+                            title={activeBatch.verifyTxHash}
+                          >
+                            {`${activeBatch.verifyTxHash.slice(0, 10)}...${activeBatch.verifyTxHash.slice(-6)}`}
+                          </a>
+                          <ExternalLink className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Supply Chain Timeline Column (7/12 Grid) - Chi tiet hoa 4 chang hanh trinh chuoi cung ung */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-6">
+                <div className="flex flex-wrap items-center justify-between pb-4 border-b border-[#EDE9E0] gap-2">
+                  <div>
+                    <h3 className="text-xl font-serif font-extrabold text-[#264939] flex items-center gap-2">
+                      <FileCheck className="w-5 h-5 text-[#C29B38]" />
+                      <span>Nhật Ký Hành Trình Supply Chain On-Chain</span>
+                    </h3>
+                    <p className="text-xs font-sans text-[#5E7166] mt-0.5">
+                      Toàn bộ 4 chặng từ sản xuất, thẩm định OCOP, kho cold-chain đến cửa hàng được xác thực cryptographic on-chain.
+                    </p>
+                  </div>
+                  <span className="text-xs font-sans font-extrabold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF] shrink-0">
+                    {enrichedCheckpoints.filter(c => c.isCompleted).length}/{enrichedCheckpoints.length} Chặng Đã Xác Thực
+                  </span>
+                </div>
+
+                {/* Micro Status Summary Banner */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-sans">
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+                    <span className="text-[#8A9D92] block font-bold text-[10px]">1. SẢN XUẤT</span>
+                    <strong className="text-emerald-700 font-extrabold">Đã Đóng Dấu Ví</strong>
+                  </div>
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+                    <span className="text-[#8A9D92] block font-bold text-[10px]">2. KIỂM ĐỊNH OCOP</span>
+                    <strong className={activeBatch.isVerified ? 'text-amber-700 font-extrabold' : 'text-gray-500 font-semibold'}>
+                      {activeBatch.isVerified ? `${activeBatch.starRating || '4'} Sao OCOP` : 'Chờ Duyệt'}
+                    </strong>
+                  </div>
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+                    <span className="text-[#8A9D92] block font-bold text-[10px]">3. KHO COLD-CHAIN</span>
+                    <strong className="text-blue-700 font-extrabold">Đã Kiểm Định</strong>
+                  </div>
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+                    <span className="text-[#8A9D92] block font-bold text-[10px]">4. SHOWROOM</span>
+                    <strong className={activeBatch.isListed ? 'text-purple-700 font-extrabold' : 'text-gray-500 font-semibold'}>
+                      {activeBatch.isListed ? 'Đã Niêm Yết' : 'Chờ Niêm Yết'}
+                    </strong>
+                  </div>
+                </div>
+
+                {/* Timeline Items - Detailed Step Breakdown */}
+                <div className="relative pl-7 space-y-6 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#CCD8CF]">
+                  {enrichedCheckpoints.map((cp, idx) => {
+                    const StageIconComponent = cp.stageIcon || CheckCircle2;
+                    const dateStr = cp.timestamp
+                      ? new Date(cp.timestamp * 1000).toLocaleString('vi-VN')
+                      : 'Đã mã hóa on-chain';
+
+                    return (
+                      <div key={idx} className="relative group font-sans">
+                        {/* Circle Node Indicator */}
+                        <div className={`absolute -left-7 top-1 w-7 h-7 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-xs font-bold font-mono transition-transform group-hover:scale-110 ${
+                          cp.isCompleted ? 'bg-[#264939]' : 'bg-gray-400'
+                        }`}>
+                          {idx + 1}
+                        </div>
+
+                        <div className={`p-5 rounded-2xl border transition-all shadow-2xs space-y-3.5 ${
+                          cp.isCompleted ? 'bg-[#FAF9F5] border-[#E6E1D7] hover:border-[#264939]' : 'bg-gray-50/70 border-gray-200 opacity-80'
+                        }`}>
+                          {/* Step Header */}
+                          <div className="flex flex-wrap items-start justify-between gap-2 pb-2.5 border-b border-[#EDE9E0]">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-md border ${cp.stageBadgeColor}`}>
+                                  {cp.roleTitle || cp.role}
+                                </span>
+                                {cp.isCompleted ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Hợp Lệ On-Chain</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                    <Clock className="w-3 h-3 text-gray-400" />
+                                    <span>Đang Chờ Thực Hiện</span>
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-serif font-extrabold text-base sm:text-lg text-[#1A2820] flex items-center gap-2">
+                                <StageIconComponent className="w-4 h-4 text-[#C29B38] shrink-0" />
+                                <span>{cp.stepName}</span>
+                              </h4>
+                            </div>
+
+                            <span className="text-[11px] font-mono font-semibold text-[#5E7166] bg-white px-3 py-1 rounded-xl border border-[#EDE9E0] shrink-0 shadow-2xs">
+                              {dateStr}
+                            </span>
+                          </div>
+
+                          {/* Location & Action Breakdown */}
+                          <div className="space-y-2.5 text-xs text-[#3B4D43]">
+                            <div className="flex items-center gap-2 text-[#264939] font-bold">
+                              <MapPin className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                              <span>Địa Điểm: {cp.location}</span>
+                            </div>
+
+                            <div className="bg-white p-3.5 rounded-xl border border-[#EDE9E0] space-y-1.5 shadow-2xs">
+                              <span className="text-[10px] font-extrabold text-[#8A9D92] uppercase block">
+                                Nội Dung Thao Tác Supply Chain:
+                              </span>
+                              <p className="leading-relaxed text-[#1A2820] font-sans">
+                                {cp.action}
+                              </p>
+                            </div>
+
+                            {/* Sensor & Environmental Note Block */}
+                            {cp.envNote && (
+                              <div className="flex items-center gap-2 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/80 text-[11px] text-[#264939] font-medium">
+                                <Thermometer className="w-4 h-4 text-emerald-600 shrink-0" />
+                                <span><strong>Thông Số Cảm Biến:</strong> {cp.envNote}</span>
+                              </div>
+                            )}
+
+                            {cp.conditionNote && (
+                              <div className="flex items-start gap-1.5 bg-[#E0ECE4]/60 p-2.5 rounded-xl border border-[#CCD8CF] text-[11px] text-[#264939]">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[#264939] shrink-0 mt-0.5" />
+                                <span><strong>Ghi Chú Niêm Phong:</strong> {cp.conditionNote}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Cryptographic Verification Footer */}
+                          <div className="pt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-mono text-[#1A2820] font-semibold truncate">
+                                Ví Ghi: {cp.recorder ? `${cp.recorder.slice(0, 8)}...${cp.recorder.slice(-6)}` : '0x...'}
+                              </span>
+                              {cp.recorder && (
+                                <button
+                                  onClick={() => handleCopyText(cp.recorder)}
+                                  className="text-[#5E7166] hover:text-[#264939] transition-colors"
+                                  title="Sao chép địa chỉ ví"
+                                >
+                                  {copiedTx === cp.recorder ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              {cp.metadataURI && (
+                                <span className="font-mono text-[10px] text-[#5E7166] bg-white px-2 py-0.5 rounded border border-[#EDE9E0]">
+                                  {cp.metadataURI.slice(0, 18)}...
+                                </span>
+                              )}
+                              <a
+                                href={`${ETHERSCAN_BASE_URL}/tx/${cp.txHash || activeBatch.txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF]"
+                              >
+                                <span>Sepolia Block</span>
+                                <ExternalLink className="w-3 h-3 text-[#C29B38]" />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       ) : (
         <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-3 font-sans">
           <Package className="w-12 h-12 text-gray-300 mx-auto" />
@@ -525,3 +734,4 @@ export const LookupTab: React.FC<LookupTabProps> = ({
     </div>
   );
 };
+

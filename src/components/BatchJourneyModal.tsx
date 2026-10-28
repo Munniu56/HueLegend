@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Batch } from '../types';
 import {
   X,
@@ -13,10 +13,15 @@ import {
   UserCheck,
   Building2,
   Package,
-  Calendar
+  Calendar,
+  Thermometer,
+  FileCheck,
+  Copy,
+  Check
 } from 'lucide-react';
 import { useDraggable } from '../hooks/useDraggable';
 import { ETHERSCAN_BASE_URL } from '../constants';
+import { getEnrichedCheckpoints } from './LookupTab';
 
 interface BatchJourneyModalProps {
   batch: Batch | null;
@@ -25,8 +30,19 @@ interface BatchJourneyModalProps {
 
 export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onClose }) => {
   const { position, isDragging, dragHeaderProps } = useDraggable(Boolean(batch));
+  const [copiedTx, setCopiedTx] = useState<string | null>(null);
 
   if (!batch) return null;
+
+  const handleCopyText = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedTx(text);
+      setTimeout(() => setCopiedTx(null), 2000);
+    }
+  };
+
+  const enrichedCheckpoints = getEnrichedCheckpoints(batch);
 
   return (
     <div
@@ -39,7 +55,7 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[85vh] p-6 space-y-6 shadow-2xl relative overflow-y-auto"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-3xl w-full max-h-[85vh] p-6 space-y-6 shadow-2xl relative overflow-y-auto"
       >
         {/* Top Header with Drag Handle */}
         <div
@@ -53,7 +69,7 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
             </div>
             <Award className="w-5 h-5 text-[#C29B38] pointer-events-none" />
             <h3 className="font-serif font-extrabold text-lg sm:text-xl text-[#264939] pointer-events-none">
-              Nhật Ký Hành Trình Supply Chain On-Chain
+              Nhật Ký Hành Trình Supply Chain On-Chain Chi Tiết
             </h3>
           </div>
           <button
@@ -144,93 +160,151 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
           )}
         </div>
 
+        {/* Micro Status Summary Banner */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-sans">
+          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+            <span className="text-[#8A9D92] block font-bold text-[10px]">1. SẢN XUẤT</span>
+            <strong className="text-emerald-700 font-extrabold">Đã Ký Số Ví</strong>
+          </div>
+          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+            <span className="text-[#8A9D92] block font-bold text-[10px]">2. KIỂM ĐỊNH OCOP</span>
+            <strong className={batch.isVerified ? 'text-amber-700 font-extrabold' : 'text-gray-500 font-semibold'}>
+              {batch.isVerified ? `${batch.starRating || '4'} Sao OCOP` : 'Chờ Thẩm Định'}
+            </strong>
+          </div>
+          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+            <span className="text-[#8A9D92] block font-bold text-[10px]">3. KHO COLD-CHAIN</span>
+            <strong className="text-blue-700 font-extrabold">Đã Kiểm Định</strong>
+          </div>
+          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
+            <span className="text-[#8A9D92] block font-bold text-[10px]">4. SHOWROOM</span>
+            <strong className={batch.isListed ? 'text-purple-700 font-extrabold' : 'text-gray-500 font-semibold'}>
+              {batch.isListed ? 'Đã Niêm Yết' : 'Chờ Niêm Yết'}
+            </strong>
+          </div>
+        </div>
+
         {/* Detailed Timeline Checklist */}
         <div className="space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-[#EDE9E0]">
             <h4 className="font-serif font-extrabold text-base text-[#264939] flex items-center gap-2">
-              <Package className="w-4 h-4 text-[#C29B38]" />
-              <span>Nhật Ký Hành Trình Chặng On-Chain</span>
+              <FileCheck className="w-4 h-4 text-[#C29B38]" />
+              <span>Chi Tiết Nhật Ký 4 Chặng Supply Chain On-Chain</span>
             </h4>
             <span className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
-              {batch.checkpoints?.length || 0} Chặng Đã Lưu
+              {enrichedCheckpoints.filter(c => c.isCompleted).length}/{enrichedCheckpoints.length} Chặng Xác Thực
             </span>
           </div>
 
           {/* Vertical Timeline Node List */}
-          <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#CCD8CF]">
-            {batch.checkpoints && batch.checkpoints.length > 0 ? (
-              batch.checkpoints.map((cp, idx) => {
-                const dateStr = cp.timestamp ? new Date(cp.timestamp * 1000).toLocaleString('vi-VN') : 'Vừa khởi tạo';
+          <div className="relative pl-7 space-y-5 before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-[#CCD8CF]">
+            {enrichedCheckpoints.map((cp, idx) => {
+              const StageIconComponent = cp.stageIcon || CheckCircle2;
+              const dateStr = cp.timestamp
+                ? new Date(cp.timestamp * 1000).toLocaleString('vi-VN')
+                : 'Vừa khởi tạo';
 
-                return (
-                  <div key={idx} className="relative group font-sans">
-                    {/* Circle Node Indicator */}
-                    <div className="absolute -left-6 top-0 w-5 h-5 rounded-full bg-[#264939] border-4 border-white shadow-sm flex items-center justify-center text-white text-[9px] font-bold font-mono">
-                      {idx + 1}
-                    </div>
+              return (
+                <div key={idx} className="relative group font-sans">
+                  {/* Circle Node Indicator */}
+                  <div className={`absolute -left-7 top-1 w-7 h-7 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-xs font-bold font-mono transition-transform group-hover:scale-110 ${
+                    cp.isCompleted ? 'bg-[#264939]' : 'bg-gray-400'
+                  }`}>
+                    {idx + 1}
+                  </div>
 
-                    <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-[#E6E1D7] space-y-2.5 hover:border-[#264939] transition-all shadow-2xs">
-                      <div className="flex flex-wrap items-center justify-between gap-2 pb-1.5 border-b border-[#EDE9E0]">
-                        <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[#C29B38]">
+                  <div className={`p-4 rounded-2xl border transition-all shadow-2xs space-y-3 ${
+                    cp.isCompleted ? 'bg-[#FAF9F5] border-[#E6E1D7] hover:border-[#264939]' : 'bg-gray-50/70 border-gray-200 opacity-80'
+                  }`}>
+                    <div className="flex flex-wrap items-start justify-between gap-2 pb-2 border-b border-[#EDE9E0]">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${cp.stageBadgeColor}`}>
                             {cp.roleTitle || cp.role}
                           </span>
-                          <h5 className="font-serif font-extrabold text-sm sm:text-base text-[#1A2820]">
-                            {cp.stepName}
-                          </h5>
+                          {cp.isCompleted ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span>Xác Thực On-Chain</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              <Clock className="w-3 h-3 text-gray-400" />
+                              <span>Đang Chờ</span>
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[11px] font-medium text-[#8A9D92] bg-white px-2.5 py-0.5 rounded-lg border border-[#EDE9E0]">
-                          {dateStr}
-                        </span>
+                        <h5 className="font-serif font-extrabold text-sm sm:text-base text-[#1A2820] mt-1 flex items-center gap-1.5">
+                          <StageIconComponent className="w-4 h-4 text-[#C29B38] shrink-0" />
+                          <span>{cp.stepName}</span>
+                        </h5>
+                      </div>
+                      <span className="text-[11px] font-mono font-medium text-[#8A9D92] bg-white px-2.5 py-0.5 rounded-lg border border-[#EDE9E0]">
+                        {dateStr}
+                      </span>
+                    </div>
+
+                    {/* Location & Detailed Action */}
+                    <div className="space-y-2 text-xs text-[#3B4D43]">
+                      <div className="flex items-center gap-1.5 text-[#264939] font-bold">
+                        <MapPin className="w-3.5 h-3.5 text-[#C29B38] shrink-0" />
+                        <span>Địa Điểm: {cp.location}</span>
                       </div>
 
-                      {/* Location & Detailed Action */}
-                      <div className="space-y-1.5 text-xs text-[#3B4D43]">
-                        <div className="flex items-center gap-1.5 text-[#264939] font-bold">
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
-                          <span>{cp.location}</span>
-                        </div>
-
-                        <p className="leading-relaxed text-[#1A2820] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                      <div className="bg-white p-3 rounded-xl border border-[#EDE9E0] space-y-1">
+                        <span className="text-[10px] font-bold text-[#8A9D92] uppercase block">Thao Tác Thực Hiện:</span>
+                        <p className="leading-relaxed text-[#1A2820]">
                           {cp.action}
                         </p>
-
-                        {cp.conditionNote && (
-                          <div className="text-[11px] text-[#5E7166] flex items-center gap-1.5 bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                            <span>{cp.conditionNote}</span>
-                          </div>
-                        )}
                       </div>
 
-                      {/* On-Chain Verification Footer with Etherscan Link */}
-                      <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
-                        <div className="font-mono text-[#1A2820] flex items-center gap-1">
-                          <UserCheck className="w-3 h-3 text-[#264939]" />
-                          <span>Ví ghi: {cp.recorder ? `${cp.recorder.slice(0, 8)}...${cp.recorder.slice(-4)}` : '0x...'}</span>
+                      {cp.envNote && (
+                        <div className="flex items-center gap-2 bg-emerald-50/70 p-2 rounded-xl border border-emerald-200 text-[11px] text-[#264939]">
+                          <Thermometer className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span><strong>Thông Số Cảm Biến:</strong> {cp.envNote}</span>
                         </div>
+                      )}
 
-                        {cp.txHash && (
-                          <a
-                            href={`${ETHERSCAN_BASE_URL}/tx/${cp.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline"
+                      {cp.conditionNote && (
+                        <div className="text-[11px] text-[#264939] flex items-center gap-1.5 bg-[#E0ECE4]/60 p-2 rounded-lg border border-[#CCD8CF]">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-[#264939] shrink-0" />
+                          <span><strong>Ghi Chú Niêm Phong:</strong> {cp.conditionNote}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* On-Chain Verification Footer with Etherscan Link */}
+                    <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#8A9D92] border-t border-[#EDE9E0]">
+                      <div className="font-mono text-[#1A2820] flex items-center gap-1.5">
+                        <UserCheck className="w-3.5 h-3.5 text-[#264939]" />
+                        <span>Ví Ghi: {cp.recorder ? `${cp.recorder.slice(0, 8)}...${cp.recorder.slice(-4)}` : '0x...'}</span>
+                        {cp.recorder && (
+                          <button
+                            onClick={() => handleCopyText(cp.recorder)}
+                            className="text-gray-400 hover:text-[#264939]"
+                            title="Sao chép ví"
                           >
-                            <span>Etherscan Sepolia</span>
-                            <ExternalLink className="w-3 h-3 text-[#C29B38]" />
-                          </a>
+                            {copiedTx === cp.recorder ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          </button>
                         )}
                       </div>
+
+                      {(cp.txHash || batch.txHash) && (
+                        <a
+                          href={`${ETHERSCAN_BASE_URL}/tx/${cp.txHash || batch.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[#264939] font-bold hover:underline bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF]"
+                        >
+                          <span>Xem Khối Sepolia</span>
+                          <ExternalLink className="w-3 h-3 text-[#C29B38]" />
+                        </a>
+                      )}
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-6 text-xs text-gray-400 italic">
-                Chưa có lịch sử chặng nào được ghi nhận.
-              </div>
-            )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -247,3 +321,4 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
     </div>
   );
 };
+
