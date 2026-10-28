@@ -1086,15 +1086,39 @@ export const App: React.FC = () => {
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
+
+        // Tao checkpoint dac thu cho Chang 2 Kiem dinh OCOP
+        const inspectorCheckpoint = {
+          stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
+          role: ROLE_HASHES.ROLE_INSPECTOR,
+          roleTitle: 'Kiểm Định Viên OCOP',
+          location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+          action: `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm và chất lượng đặc sản Thừa Thiên Huế.'}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          recorder: cleanUserAddress,
+          metadataURI: certificateURI || `ipfs://huelegend/cert/${batchCode}`,
+          txHash: tx.hash,
+          conditionNote: `Cấp mã số OCOP: ${target.certificationNo || 'OCOP-HUE-2026'}. Đã xác thực phí 0.002 ETH.`
+        };
+
+        const existingCps = target.checkpoints || [];
+        const hasCp2 = existingCps.some((cp) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop'))));
+        const updatedCheckpoints = hasCp2
+          ? existingCps.map((cp) => (cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && cp.stepName.toLowerCase().includes('chặng 2')) ? inspectorCheckpoint : cp))
+          : [...existingCps, inspectorCheckpoint];
+
         const updatedBatch: Batch = {
           ...target,
           isVerified: true,
           starRating,
           inspectorNote,
           verifyTxHash: tx.hash,
+          certificateURI: certificateURI || target.certificateURI,
           ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
-          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
+          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)',
+          checkpoints: updatedCheckpoints
         };
+
         const updatedAll = { ...prev, [batchCode]: updatedBatch };
         if (typeof window !== 'undefined') {
           try {
@@ -1112,19 +1136,43 @@ export const App: React.FC = () => {
       });
 
       setSelectedLookupBatch(batchCode);
-      if (journeyBatch && journeyBatch.batchCode === batchCode) {
-        setJourneyBatch((prev) => prev ? {
+
+      // Cap nhat ngay lap tuc cho popup hanh trinh va cloud sync
+      setJourneyBatch((prev) => {
+        const inspectorCheckpoint = {
+          stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
+          role: ROLE_HASHES.ROLE_INSPECTOR,
+          roleTitle: 'Kiểm Định Viên OCOP',
+          location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+          action: `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm và chất lượng đặc sản Thừa Thiên Huế.'}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          recorder: cleanUserAddress,
+          metadataURI: certificateURI || `ipfs://huelegend/cert/${batchCode}`,
+          txHash: tx.hash,
+          conditionNote: `Cấp mã số OCOP: OCOP-HUE-2026. Đã xác thực phí 0.002 ETH.`
+        };
+        if (!prev) return null;
+        const existingCps = prev.checkpoints || [];
+        const hasCp2 = existingCps.some((cp) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop'))));
+        const updatedCheckpoints = hasCp2
+          ? existingCps.map((cp) => (cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && cp.stepName.toLowerCase().includes('chặng 2')) ? inspectorCheckpoint : cp))
+          : [...existingCps, inspectorCheckpoint];
+
+        return {
           ...prev,
           isVerified: true,
           starRating,
           inspectorNote,
           verifyTxHash: tx.hash,
+          certificateURI: certificateURI || prev.certificateURI,
           ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
-          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
-        } : null);
-      }
+          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)',
+          checkpoints: updatedCheckpoints
+        };
+      });
+
       notifyDataSync();
-      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao và lưu vĩnh viễn.`, 'success');
+      addToast('Chứng Nhận OCOP Thành Công!', `Lô ${batchCode} đã đạt chứng nhận OCOP ${starRating} Sao và ghi nhận Chặng 2.`, 'success');
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
