@@ -160,29 +160,6 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
           )}
         </div>
 
-        {/* Micro Status Summary Banner */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-sans">
-          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-            <span className="text-[#8A9D92] block font-bold text-[10px]">1. SẢN XUẤT</span>
-            <strong className="text-emerald-700 font-extrabold">Đã Ký Số Ví</strong>
-          </div>
-          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-            <span className="text-[#8A9D92] block font-bold text-[10px]">2. KIỂM ĐỊNH OCOP</span>
-            <strong className={batch.isVerified ? 'text-amber-700 font-extrabold' : 'text-gray-500 font-semibold'}>
-              {batch.isVerified ? `${batch.starRating || '4'} Sao OCOP` : 'Chờ Thẩm Định'}
-            </strong>
-          </div>
-          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-            <span className="text-[#8A9D92] block font-bold text-[10px]">3. KHO COLD-CHAIN</span>
-            <strong className="text-blue-700 font-extrabold">Đã Kiểm Định</strong>
-          </div>
-          <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-[#E6E1D7] text-center">
-            <span className="text-[#8A9D92] block font-bold text-[10px]">4. SHOWROOM</span>
-            <strong className={batch.isListed ? 'text-purple-700 font-extrabold' : 'text-gray-500 font-semibold'}>
-              {batch.isListed ? 'Đã Niêm Yết' : 'Chờ Niêm Yết'}
-            </strong>
-          </div>
-        </div>
 
         {/* Detailed Timeline Checklist */}
         <div className="space-y-4">

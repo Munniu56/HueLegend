@@ -335,17 +335,39 @@ export const App: React.FC = () => {
           channel.postMessage({ type: 'SYNC_RELOAD', timestamp: Date.now() });
           channel.close();
         }
+
+        // Gui du lieu cap nhat len cloud sync endpoint de Mobile khac thiet bi tu dong dong bo
+        const savedBatchesStr = localStorage.getItem('hl_local_batches');
+        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
+        const savedRole = localStorage.getItem('hl_user_role') || 'ALL';
+        const savedAccount = localStorage.getItem('hl_connected_account');
+
+        const payload = {
+          batches: savedBatchesStr ? JSON.parse(savedBatchesStr) : batches,
+          grantedWallets: savedWalletsStr ? JSON.parse(savedWalletsStr) : grantedWallets,
+          activeTab,
+          selectedLookupBatch,
+          simulatedRole: savedRole,
+          currentAccount: savedAccount,
+          updatedAt: Date.now()
+        };
+
+        fetch('/api/sync?code=huelegend_global_sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).catch(() => {});
       } catch (e) {}
     }
-  }, []);
+  }, [batches, grantedWallets, activeTab, selectedLookupBatch]);
 
   // Tu dong ket noi va dong bo du lieu theo thoi gian thuc giua giao dien May Tinh (Desktop) va Dien Thoai (Mobile)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const syncLocalState = () => {
+    const syncLocalState = async () => {
       try {
-        // 1. Dong bo danh sach lo hang (batches)
+        // 1. Dong bo danh sach lo hang (batches) tu local
         const savedBatchesStr = localStorage.getItem('hl_local_batches');
         if (savedBatchesStr) {
           const parsed = JSON.parse(savedBatchesStr);
@@ -359,7 +381,7 @@ export const App: React.FC = () => {
           }
         }
 
-        // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets)
+        // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets) tu local
         const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
         if (savedWalletsStr) {
           const parsed = JSON.parse(savedWalletsStr);
@@ -396,6 +418,39 @@ export const App: React.FC = () => {
         if (savedAccount !== currentAccount) {
           setCurrentAccount(savedAccount || null);
         }
+
+        // 7. Dong bo cloud tu /api/sync neu co du lieu moi tu thiet bi khac (Desktop -> Mobile)
+        try {
+          const res = await fetch('/api/sync?code=huelegend_global_sync');
+          if (res.ok) {
+            const json = await res.json();
+            if (json?.data && json.data.batches && typeof json.data.batches === 'object') {
+              const cloudBatches = json.data.batches;
+              setBatches((prev) => {
+                const merged = { ...prev, ...cloudBatches };
+                if (JSON.stringify(prev) !== JSON.stringify(merged)) {
+                  try {
+                    localStorage.setItem('hl_local_batches', JSON.stringify(merged));
+                  } catch (e) {}
+                  return merged;
+                }
+                return prev;
+              });
+
+              if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
+                setGrantedWallets((prev) => {
+                  if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
+                    try {
+                      localStorage.setItem('hl_granted_wallets', JSON.stringify(json.data.grantedWallets));
+                    } catch (e) {}
+                    return json.data.grantedWallets;
+                  }
+                  return prev;
+                });
+              }
+            }
+          }
+        } catch (e) {}
       } catch (e) {
         console.warn('Loi dong bo thoi gian thuc:', e);
       }
@@ -417,17 +472,18 @@ export const App: React.FC = () => {
       } catch (e) {}
     }
 
-    // Polling heartbeat (800ms) dam bao giao dien Mobile tu dong cap nhat lap tuc khi Desktop co thay doi
+    // Polling heartbeat (1000ms) dam bao giao dien Mobile tu dong cap nhat lap tuc khi Desktop co thay doi
     const syncInterval = setInterval(() => {
       syncLocalState();
-    }, 800);
+    }, 1000);
 
     return () => {
       window.removeEventListener('storage', syncLocalState);
       if (channel) channel.close();
       clearInterval(syncInterval);
     };
-  }, []);
+  }, [currentAccount]);
+
 
   // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
   useEffect(() => {
