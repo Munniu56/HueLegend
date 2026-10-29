@@ -27,6 +27,7 @@ import { RoleConnectModal } from './components/RoleConnectModal';
 import { WalletDetailsModal } from './components/WalletDetailsModal';
 import { BatchJourneyModal } from './components/BatchJourneyModal';
 import { MobileMetaMaskModal } from './components/MobileMetaMaskModal';
+import persistedCodeBatches from './data/persistedBatches.json';
 
 export const App: React.FC = () => {
   // Global State
@@ -303,6 +304,7 @@ export const App: React.FC = () => {
         }
 
         const baseBatches: Record<string, Batch> = {
+          ...(persistedCodeBatches as Record<string, Batch>),
           ...prevBatches,
           ...localBatches,
           ...currentLocalStorage
