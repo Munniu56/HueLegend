@@ -907,7 +907,8 @@ export const App: React.FC = () => {
     metadataURI: string,
     imageUrl?: string,
     productionDate?: string,
-    expiryDate?: string
+    expiryDate?: string,
+    quantity?: string
   ) => {
     // Bat buoc phai ket noi vi MetaMask truoc khi khoi tao
     if (!currentAccount) {
@@ -919,6 +920,7 @@ export const App: React.FC = () => {
     const cleanBatchCode = batchCode.trim();
     const cleanProductName = productName.trim();
     const cleanOrigin = origin.trim();
+    const cleanQuantity = quantity?.trim() || '500 Hộp';
     const cleanMetadataURI = metadataURI.trim();
     const finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 
@@ -981,7 +983,7 @@ export const App: React.FC = () => {
         exists: true,
         ocopStandard: 'Chưa Thẩm Định OCOP',
         certificationNo: `OCOP-HUE-2026-${cleanBatchCode.slice(-3)}`,
-        quantity: 'Sản lượng Khởi Tạo On-Chain',
+        quantity: cleanQuantity,
         currentStage: 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
         certificateURI: `ipfs://huelegend/cert/${cleanBatchCode}`,
         txHash: tx.hash,

@@ -55,6 +55,13 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
 
   const selectedBatch = batches[selectedBatchCode];
 
+  // Tu dong dong bo So Luong Nhap Kho voi San Luong duoc khoi tao tu Step 1 (CreateBatchTab)
+  React.useEffect(() => {
+    if (selectedBatch?.quantity) {
+      setStockQuantity(selectedBatch.quantity);
+    }
+  }, [selectedBatchCode, selectedBatch]);
+
   // Mac dinh lay anh dac san cua don vi tao lo hang
   const defaultProductImageUrl = selectedBatch?.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 
@@ -348,13 +355,18 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 Số Lượng Nhập Kho (Đơn Vị) *
               </label>
               <input
-                type="number"
+                type="text"
                 required
                 value={stockQuantity}
                 onChange={(e) => setStockQuantity(e.target.value)}
-                placeholder="Ví dụ: 100"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono focus:outline-none focus:border-[#264939]"
+                placeholder="Ví dụ: 500 Hộp"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               />
+              {selectedBatch?.quantity && (
+                <p className="text-[10px] text-[#264939] font-medium mt-1">
+                  ⚡ Tự động lấy từ <strong>Sản Lượng ({selectedBatch.quantity})</strong> khi khởi tạo lô hàng On-Chain.
+                </p>
+              )}
             </div>
 
             <div className="pt-3 border-t border-[#EDE9E0] flex items-center justify-between">

@@ -14,7 +14,8 @@ interface CreateBatchTabProps {
     metadataURI: string,
     imageUrl?: string,
     productionDate?: string,
-    expiryDate?: string
+    expiryDate?: string,
+    quantity?: string
   ) => Promise<void>;
   onDepositStake?: (amountEth: string) => Promise<void>;
   onWithdrawStake?: () => Promise<void>;
@@ -29,6 +30,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   const [batchCode, setBatchCode] = useState('');
   const [productName, setProductName] = useState('');
   const [origin, setOrigin] = useState('');
+  const [quantity, setQuantity] = useState('500 Hộp');
   const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600');
 
   // Thoi gian: Ngay san xuat va Han su dung
@@ -115,11 +117,13 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
         generatedMetadataURI,
         imageUrl,
         productionDate,
-        expiryDate
+        expiryDate,
+        quantity.trim()
       );
       setBatchCode('');
       setProductName('');
       setOrigin('');
+      setQuantity('500 Hộp');
       const freshToday = new Date().toISOString().split('T')[0];
       const freshDefaultExp = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       setProductionDate(freshToday);
@@ -232,6 +236,23 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               placeholder="Ví dụ: Phường Hương Long, TP Huế, Thừa Thiên Huế..."
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#1A2820] mb-1">
+              Sản Lượng (Quy Mô / Số Lượng Khởi Tạo) *
+            </label>
+            <input
+              type="text"
+              required
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="Ví dụ: 500 Hộp, 1.000 Gói, 200 Chai..."
+              className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
+            />
+            <p className="text-[10px] text-[#8A9D92] mt-1">
+              * Số lượng này sẽ tự động hiển thị ở mục <strong>Quy Mô / Sản Lượng</strong> khi tra cứu và làm mặc định cho <strong>Số Lượng Nhập Kho</strong> khi niêm yết bán lẻ.
+            </p>
           </div>
 
           {/* Mục Thời Gian: Ngày Sản Xuất & Hạn Sử Dụng */}
