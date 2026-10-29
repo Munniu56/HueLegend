@@ -23,7 +23,9 @@ import {
   FileCheck,
   Copy,
   Check,
-  Lock
+  Lock,
+  ArrowLeft,
+  ArrowRight
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ETHERSCAN_BASE_URL, ROLE_HASHES, DEFAULT_ADMIN_ADDRESS } from '../constants';
@@ -202,19 +204,19 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   onConnectWallet,
 }) => {
   const batchKeys = Object.keys(batches);
-  const initialBatchCode = selectedBatchCode || batchKeys[0] || '';
+  const batchList = Object.values(batches);
 
-  // Khoi tao searchCode="" de khong nhap san gia tri vao o tim kiem
+  // Khoi tao searchCode va activeBatch chi khi duoc chon
   const [searchCode, setSearchCode] = useState('');
-  const [activeBatch, setActiveBatch] = useState<Batch | null>(batches[initialBatchCode] || null);
+  const [activeBatch, setActiveBatch] = useState<Batch | null>(
+    selectedBatchCode && batches[selectedBatchCode] ? batches[selectedBatchCode] : null
+  );
   const [isScanning, setIsScanning] = useState(false);
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedBatchCode && batches[selectedBatchCode]) {
       setActiveBatch(batches[selectedBatchCode]);
-    } else if (batchKeys.length > 0 && !activeBatch) {
-      setActiveBatch(batches[batchKeys[0]]);
     }
   }, [selectedBatchCode, batches]);
 
@@ -365,9 +367,25 @@ export const LookupTab: React.FC<LookupTabProps> = ({
         </div>
       </div>
 
-      {/* Main Result Display - Tu dong hien thi Lich su chi tiet khi quet tem QR */}
+      {/* Main Result Display - Tu dong hien thi Lich su chi tiet khi quet tem QR HOAC khi bam Xem Chi Tiet */}
       {activeBatch ? (
         <div className="space-y-4">
+          {/* Back Button to Product List */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FAF9F5] p-3 sm:p-4 rounded-2xl border border-[#E6E1D7] shadow-2xs font-sans">
+            <button
+              onClick={() => {
+                setActiveBatch(null);
+                setSearchCode('');
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#CCD8CF] text-[#264939] hover:bg-[#E0ECE4] font-bold text-xs transition-all shadow-2xs cursor-pointer active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4 text-[#264939]" />
+              <span>Quay Lại Danh Sách Sản Phẩm</span>
+            </button>
+            <span className="text-xs text-[#5E7166] font-medium">
+              Đang tra cứu chi tiết lô hàng: <strong className="font-mono text-[#264939] text-sm">{activeBatch.batchCode}</strong> — {activeBatch.productName}
+            </span>
+          </div>
           {!currentAccount && (
             <div className="bg-[#E0ECE4] border border-[#CCD8CF] p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-sans text-[#264939]">
               <div className="flex items-center gap-2">
@@ -730,16 +748,111 @@ export const LookupTab: React.FC<LookupTabProps> = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white p-12 rounded-2xl border border-dashed border-[#E6E1D7] text-center space-y-3 font-sans">
-          <Package className="w-12 h-12 text-gray-300 mx-auto" />
-          <h3 className="text-xl font-serif font-extrabold text-[#1A2820]">
-            Chưa có sản phẩm nào trên Blockchain
-          </h3>
-          <p className="text-xs text-[#5E7166] max-w-md mx-auto">
-            {searchCode
-              ? `Không tìm thấy lô hàng "${searchCode}" trên Smart Contract Sepolia.`
-              : 'Hãy kết nối ví MetaMask và tạo lô hàng đặc sản đầu tiên.'}
-          </p>
+        <div className="space-y-5 font-sans">
+          <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-sm space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#EDE9E0]">
+              <div>
+                <h3 className="text-xl font-serif font-extrabold text-[#264939] flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#C29B38]" />
+                  <span>Danh Sách Tất Cả Sản Phẩm & Lô Hàng Đặc Sản</span>
+                </h3>
+                <p className="text-xs text-[#5E7166] mt-0.5">
+                  Bấm "Xem Chi Tiết Tra Cứu" trên từng sản phẩm để xem tem QR niêm phong và nhật ký hành trình 4 chặng on-chain.
+                </p>
+              </div>
+              <span className="text-xs font-bold px-3 py-1 bg-[#E0ECE4] text-[#264939] rounded-full border border-[#CCD8CF]">
+                Tổng số: {batchList.length} lô hàng
+              </span>
+            </div>
+
+            {batchList.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2">
+                {batchList.map((batch) => (
+                  <div
+                    key={batch.batchCode}
+                    className="bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] hover:border-[#264939] p-5 space-y-4 transition-all shadow-2xs hover:shadow-md flex flex-col justify-between group"
+                  >
+                    <div className="space-y-3">
+                      {/* Batch Header & Star Rating */}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold bg-[#E0ECE4] text-[#264939] px-2.5 py-1 rounded-lg border border-[#CCD8CF] truncate">
+                          {batch.batchCode}
+                        </span>
+                        {batch.isVerified ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-[#8C6D1F] bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                            <Star className="w-3 h-3 fill-[#C29B38] text-[#C29B38]" />
+                            <span>OCOP {batch.starRating || '4'} Sao</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Chờ Kiểm Định</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Product Thumbnail & Name */}
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={batch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
+                          alt={batch.productName}
+                          className="w-16 h-16 rounded-xl object-cover border border-[#EDE9E0] shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-serif font-extrabold text-base text-[#1A2820] truncate group-hover:text-[#264939] transition-colors">
+                            {batch.productName}
+                          </h4>
+                          <p className="text-xs text-[#5E7166] truncate mt-0.5">{batch.ocopStandard}</p>
+                        </div>
+                      </div>
+
+                      {/* Meta Info */}
+                      <div className="space-y-1.5 text-xs text-[#3B4D43] bg-white p-3 rounded-xl border border-[#EDE9E0]">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#8A9D92]">Xuất xứ:</span>
+                          <span className="font-medium text-[#1A2820] truncate max-w-[160px]">{batch.origin}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#8A9D92]">Ngày sản xuất:</span>
+                          <span className="font-mono text-[#1A2820]">
+                            {batch.productionDate || new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#8A9D92]">Sản lượng:</span>
+                          <span className="font-medium text-[#1A2820]">{batch.quantity || 'Chưa cập nhật'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      onClick={() => {
+                        setActiveBatch(batch);
+                        setSearchCode(batch.batchCode);
+                      }}
+                      className="w-full py-2.5 px-4 bg-[#264939] hover:bg-[#1c372b] text-white font-sans font-bold text-xs rounded-xl transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                    >
+                      <QrCode className="w-4 h-4 text-[#C29B38]" />
+                      <span>Xem Chi Tiết Tra Cứu</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center space-y-3 font-sans">
+                <Package className="w-12 h-12 text-gray-300 mx-auto" />
+                <h4 className="text-lg font-serif font-extrabold text-[#1A2820]">
+                  Chưa có sản phẩm nào trên Blockchain
+                </h4>
+                <p className="text-xs text-[#5E7166] max-w-md mx-auto">
+                  {searchCode
+                    ? `Không tìm thấy lô hàng "${searchCode}" trên Smart Contract Sepolia.`
+                    : 'Hãy kết nối ví quản trị hoặc sản xuất để khởi tạo lô hàng đặc sản đầu tiên.'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
