@@ -66,13 +66,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
   const [revokeReason, setRevokeReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Auto initialize first batch on load
-  useEffect(() => {
-    if (!hasInitialized && pendingBatches.length > 0) {
-      setSelectedBatchCode(pendingBatches[0].batchCode);
-      setHasInitialized(true);
-    }
-  }, [batches, hasInitialized]);
+
 
   const selectedBatch = selectedBatchCode ? batches[selectedBatchCode] : undefined;
 

@@ -29,7 +29,7 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({
   const verifiedBatches = Object.values(batches).filter((b) => b.isVerified);
   const verifiedBatchCodes = verifiedBatches.map((b) => b.batchCode);
 
-  const [selectedBatchCode, setSelectedBatchCode] = useState(verifiedBatchCodes[0] || '');
+  const [selectedBatchCode, setSelectedBatchCode] = useState('');
   const [role, setRole] = useState('ROLE_LOGISTICS');
   const [stepName, setStepName] = useState('');
   const [location, setLocation] = useState('');
@@ -190,15 +190,13 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({
                 onChange={(e) => setSelectedBatchCode(e.target.value)}
                 className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               >
-                {verifiedBatches.length > 0 ? (
+                <option value="">-- Chọn Lô Hàng Đã Thẩm Định OCOP --</option>
+                {verifiedBatches.length > 0 &&
                   verifiedBatches.map((batch) => (
                     <option key={batch.batchCode} value={batch.batchCode}>
                       {batch.batchCode} — {batch.productName} (Đã Thẩm Định OCOP)
                     </option>
-                  ))
-                ) : (
-                  <option value="">Chưa có lô hàng nào được kiểm định OCOP để vận chuyển</option>
-                )}
+                  ))}
               </select>
             </div>
 

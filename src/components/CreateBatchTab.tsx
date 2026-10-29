@@ -31,7 +31,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
   const [productName, setProductName] = useState('');
   const [origin, setOrigin] = useState('');
   const [quantity, setQuantity] = useState('');
-  const [imageUrl, setImageUrl] = useState('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600');
+  const [imageUrl, setImageUrl] = useState('');
 
   // Thoi gian: Ngay san xuat va Han su dung
   const todayStr = new Date().toISOString().split('T')[0];
@@ -124,6 +124,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
       setProductName('');
       setOrigin('');
       setQuantity('');
+      setImageUrl('');
       const freshToday = new Date().toISOString().split('T')[0];
       const freshDefaultExp = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       setProductionDate(freshToday);
