@@ -18,18 +18,43 @@ export function useDraggable(
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
 
-        // Offset tu tam man hinh toi toa do da bam
-        const rawOffsetX = clickPos.x - screenW / 2;
-        const rawOffsetY = clickPos.y - screenH / 2;
+        const modalW = estimatedModalSize.width;
+        const modalH = estimatedModalSize.height;
 
-        // Tinh toan gioi han an toan (clamping) de popup khong bi tran hoac khuat qua mep man hinh
-        const maxDx = Math.max(0, (screenW - estimatedModalSize.width) / 2 - 20);
-        const maxDy = Math.max(0, (screenH - estimatedModalSize.height) / 2 - 20);
+        let targetLeft: number;
+        let targetTop: number;
 
-        const clampedX = Math.max(-maxDx, Math.min(maxDx, rawOffsetX));
-        const clampedY = Math.max(-maxDy, Math.min(maxDy, rawOffsetY));
+        // Neu bam o ben phai man hinh (vi tri vi Wallet nut bam top-right), dat popup can phai o vi tri da bam
+        if (clickPos.x > screenW / 2) {
+          targetLeft = clickPos.x - modalW + 20;
+        } else {
+          targetLeft = clickPos.x - 20;
+        }
 
-        setPosition({ x: clampedX, y: clampedY });
+        // Neu bam o phan tren man hinh, xuat hien ngay phia duoi diem bam
+        if (clickPos.y > screenH / 2) {
+          targetTop = clickPos.y - modalH - 10;
+        } else {
+          targetTop = clickPos.y + 12;
+        }
+
+        // Gioi han an toan 12px ngat khuat khoi mep man hinh
+        const minLeft = 12;
+        const maxLeft = Math.max(minLeft, screenW - modalW - 12);
+        targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
+
+        const minTop = 12;
+        const maxTop = Math.max(minTop, screenH - modalH - 12);
+        targetTop = Math.max(minTop, Math.min(maxTop, targetTop));
+
+        // Tinh gia tri translate so voi vi tri giua mac dinh cua container flex
+        const defaultCenteredLeft = (screenW - modalW) / 2;
+        const defaultCenteredTop = (screenH - modalH) / 2;
+
+        const translateX = targetLeft - defaultCenteredLeft;
+        const translateY = targetTop - defaultCenteredTop;
+
+        setPosition({ x: translateX, y: translateY });
       } else {
         setPosition({ x: 0, y: 0 });
       }
