@@ -13,8 +13,7 @@ import {
   Activity,
   ExternalLink,
   Users,
-  Search,
-  Download
+  Search
 } from 'lucide-react';
 import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress } from '../constants';
 
@@ -512,22 +511,13 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 {allocatedSubtext}
               </p>
 
-              {!currentAccount ? (
+              {!currentAccount && (
                 <button
                   onClick={onConnectWallet}
                   className="w-full mt-2 py-2.5 px-4 bg-[#C29B38] text-white rounded-xl font-bold text-xs hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-2xs"
                 >
                   <Wallet className="w-4 h-4 text-white" />
                   <span>Đăng Nhập Ví Để Xem Số Dư Thật</span>
-                </button>
-              ) : (
-                <button
-                  onClick={onWithdrawFees}
-                  disabled={isSubmitting || !isAdminRole}
-                  className="w-full mt-2 py-2.5 px-4 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-50"
-                >
-                  <Download className="w-4 h-4 text-[#C29B38]" />
-                  <span>Rút Phí Về Ví Admin</span>
                 </button>
               )}
             </div>
