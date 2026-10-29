@@ -3,8 +3,44 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 
-// Bo nho luu tru du lieu dong bo giua Desktop va Mobile
+import fs from 'fs';
+
+// Bo nho va file luu tru du lieu dong bo giua Desktop, Mobile & Web Preview
 const memorySyncStore = new Map<string, any>();
+const SYNC_FILE_PATH = path.resolve(__dirname, './.sync_store.json');
+
+// Ham doc du lieu dong bo tu File hoac Memory
+function readSyncStoreFromFile(code: string) {
+  if (memorySyncStore.has(code)) {
+    return memorySyncStore.get(code);
+  }
+  try {
+    if (fs.existsSync(SYNC_FILE_PATH)) {
+      const content = fs.readFileSync(SYNC_FILE_PATH, 'utf-8');
+      const json = JSON.parse(content);
+      if (json && json[code]) {
+        memorySyncStore.set(code, json[code]);
+        return json[code];
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+// Ham ghi du lieu dong bo sang File va Memory
+function writeSyncStoreToFile(code: string, data: any) {
+  memorySyncStore.set(code, data);
+  try {
+    let allData: Record<string, any> = {};
+    if (fs.existsSync(SYNC_FILE_PATH)) {
+      try {
+        allData = JSON.parse(fs.readFileSync(SYNC_FILE_PATH, 'utf-8'));
+      } catch (e) {}
+    }
+    allData[code] = data;
+    fs.writeFileSync(SYNC_FILE_PATH, JSON.stringify(allData, null, 2), 'utf-8');
+  } catch (e) {}
+}
 
 function syncServerPlugin(): Plugin {
   return {
@@ -16,7 +52,7 @@ function syncServerPlugin(): Plugin {
 
         // Doc du lieu dong bo
         if (req.method === 'GET') {
-          const data = memorySyncStore.get(code) || null;
+          const data = readSyncStoreFromFile(code);
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({ success: true, data, timestamp: Date.now() }));
           return;
@@ -31,7 +67,7 @@ function syncServerPlugin(): Plugin {
           req.on('end', () => {
             try {
               const parsed = JSON.parse(body);
-              const existing = memorySyncStore.get(code) || {};
+              const existing = readSyncStoreFromFile(code) || {};
               const mergedBatches = {
                 ...(existing.batches || {}),
                 ...(parsed.batches || {})
@@ -51,7 +87,7 @@ function syncServerPlugin(): Plugin {
                 updatedAt: Date.now()
               };
 
-              memorySyncStore.set(code, fullPayload);
+              writeSyncStoreToFile(code, fullPayload);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ success: true, timestamp: Date.now() }));
             } catch (err) {
