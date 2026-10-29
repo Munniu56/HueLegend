@@ -224,14 +224,16 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
   const handleSearch = (code: string) => {
     const formatted = code.trim().toUpperCase();
-    const targetCode = formatted || selectedBatchCode || batchKeys[0] || '';
-    if (formatted) {
-      setSearchCode(formatted);
+    if (!formatted) {
+      setActiveBatch(null);
+      setSearchCode('');
+      return;
     }
-    if (batches[targetCode]) {
-      setActiveBatch(batches[targetCode]);
+    setSearchCode(formatted);
+    if (batches[formatted]) {
+      setActiveBatch(batches[formatted]);
       if (onOpenJourneyModal) {
-        onOpenJourneyModal(targetCode);
+        onOpenJourneyModal(formatted);
       }
     } else {
       setActiveBatch(null);

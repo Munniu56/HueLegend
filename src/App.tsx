@@ -569,7 +569,6 @@ export const App: React.FC = () => {
           const parsed = JSON.parse(savedBatchesStr);
           if (parsed && Object.keys(parsed).length > 0) {
             setBatches(parsed);
-            setSelectedLookupBatch((prev) => prev || Object.keys(parsed)[0]);
           }
         }
 
