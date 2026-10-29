@@ -47,7 +47,7 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in font-sans overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in font-sans overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -55,7 +55,7 @@ export const BatchJourneyModal: React.FC<BatchJourneyModalProps> = ({ batch, onC
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-3xl w-full max-h-[85vh] p-6 space-y-6 shadow-2xl relative overflow-y-auto"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-3xl w-full max-h-[88vh] p-5 sm:p-6 space-y-5 shadow-2xl relative overflow-y-auto my-auto"
       >
         {/* Top Header with Drag Handle */}
         <div

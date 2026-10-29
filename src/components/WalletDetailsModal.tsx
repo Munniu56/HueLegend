@@ -56,7 +56,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -64,7 +64,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto my-0 space-y-4"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[88vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-y-auto my-auto space-y-4"
       >
         {/* Header with Drag Handle */}
         <div

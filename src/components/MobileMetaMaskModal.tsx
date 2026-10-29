@@ -30,7 +30,7 @@ export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -38,7 +38,7 @@ export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden my-0"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full p-5 sm:p-6 shadow-2xl relative overflow-hidden my-auto"
       >
         {/* Header drag bar */}
         <div

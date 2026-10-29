@@ -73,7 +73,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-hidden"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans overflow-y-auto"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -81,9 +81,9 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
           transform: `translate(${position.x}px, ${position.y}px)`,
           transition: isDragging ? 'none' : 'transform 0.05s ease-out',
         }}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-hidden my-auto max-h-[90vh]"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full flex flex-col p-5 sm:p-6 shadow-2xl relative my-auto max-h-[92vh] overflow-hidden"
       >
-        {/* Modal Header VOI Drag handle giup keo thả linh hoat */}
+        {/* Modal Header VOI Drag handle giup keo tha linh hoat */}
         <div
           {...dragHeaderProps}
           className="flex items-center justify-between pb-3.5 shrink-0 border-b border-[#EDE9E0] select-none touch-none"
@@ -102,7 +102,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
               }}
             />
             <span className="text-[#CCD8CF] font-light hidden sm:inline">|</span>
-            <h3 className="font-serif font-extrabold text-base sm:text-lg text-[#264939] pointer-events-none">
+            <h3 className="font-serif font-extrabold text-base sm:text-lg text-[#264939] pointer-events-none whitespace-nowrap">
               Kết Nối Ví MetaMask
             </h3>
           </div>
@@ -110,7 +110,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
           <button
             onClick={onClose}
             onPointerDown={(e) => e.stopPropagation()}
-            className="p-2 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-[#E0ECE4] transition-all min-h-[38px] min-w-[38px] flex items-center justify-center"
+            className="p-2 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-[#E0ECE4] transition-all min-h-[38px] min-w-[38px] flex items-center justify-center cursor-pointer"
             title="Đóng popup"
           >
             <X className="w-4 h-4" />
@@ -135,7 +135,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
               <button
                 key={role.id}
                 onClick={() => onSelectRoleAndConnect(role.id)}
-                className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] hover:border-[#264939] hover:bg-[#E0ECE4]/70 transition-all text-left group shadow-2xs relative overflow-hidden active:scale-[0.98]"
+                className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] hover:border-[#264939] hover:bg-[#E0ECE4]/70 transition-all text-left group shadow-2xs relative overflow-hidden active:scale-[0.98] cursor-pointer"
               >
                 <div className="text-2xl p-2 bg-white rounded-xl border border-[#E6E1D7] shrink-0 shadow-2xs group-hover:scale-110 transition-transform">
                   {role.icon}
@@ -143,14 +143,14 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between gap-1 flex-wrap">
-                    <h4 className="font-serif font-extrabold text-xs sm:text-sm text-[#1A2820] group-hover:text-[#264939] transition-colors truncate">
+                    <h4 className="font-serif font-extrabold text-xs sm:text-sm text-[#1A2820] group-hover:text-[#264939] transition-colors">
                       {role.title}
                     </h4>
                     <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border shrink-0 ${role.badgeColor}`}>
                       {role.badge}
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#5E7166] leading-relaxed line-clamp-2">
+                  <p className="text-[11px] text-[#5E7166] leading-relaxed">
                     {role.description}
                   </p>
                 </div>
@@ -164,13 +164,13 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
         {/* Footer Info & Quick Connect Button */}
         <div className="pt-3 border-t border-[#EDE9E0] shrink-0 flex flex-wrap items-center justify-between gap-2 text-[11px] font-sans text-[#5E7166]">
           <div className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
-            <span>Mở cửa sổ ví MetaMask để xác nhận chữ ký số EIP-55</span>
+            <ShieldCheck className="w-4 h-4 text-[#C29B38] shrink-0" />
+            <span className="leading-tight">Xác nhận chữ ký số EIP-55 trên ví MetaMask</span>
           </div>
 
           <button
             onClick={() => onSelectRoleAndConnect('CUSTOMER')}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#264939] text-white rounded-xl font-bold text-xs hover:bg-[#1c372b] transition-all shadow-2xs cursor-pointer"
           >
             <Wallet className="w-3.5 h-3.5 text-[#C29B38]" />
             <span>Đăng Nhập Nhanh</span>
