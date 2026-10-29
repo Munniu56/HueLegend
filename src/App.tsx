@@ -881,16 +881,21 @@ export const App: React.FC = () => {
   // Navigation Helper voi tinh nang luu va dong bo thoi gian thuc
   const handleNavigateTab = (tab: string, batchCodeSelect?: string) => {
     setActiveTab(tab);
+    if (batchCodeSelect) {
+      setSelectedLookupBatch(batchCodeSelect);
+    } else if (tab === 'lookup') {
+      setSelectedLookupBatch('');
+    }
+
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('hl_active_tab', tab);
         if (batchCodeSelect) {
           localStorage.setItem('hl_selected_lookup_batch', batchCodeSelect);
+        } else if (tab === 'lookup') {
+          localStorage.removeItem('hl_selected_lookup_batch');
         }
       } catch (e) {}
-    }
-    if (batchCodeSelect) {
-      setSelectedLookupBatch(batchCodeSelect);
     }
     notifyDataSync();
   };

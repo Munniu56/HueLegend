@@ -217,6 +217,8 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   useEffect(() => {
     if (selectedBatchCode && batches[selectedBatchCode]) {
       setActiveBatch(batches[selectedBatchCode]);
+    } else {
+      setActiveBatch(null);
     }
   }, [selectedBatchCode, batches]);
 
@@ -247,7 +249,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   const currentOriginUrl = window.location.href;
   const suggestedPlaceholder = batchKeys[0]
     ? `Gợi ý nhập mã lô: ${batchKeys[0]}`
-    : 'Nhập mã lô đặc sản (Ví dụ: HL-MEXUNGD-2026-001)...';
+    : 'Nhập mã lô đặc sản (Ví dụ: HL-MEXUNG-2026-001)...';
 
   const enrichedCheckpoints = activeBatch ? getEnrichedCheckpoints(activeBatch) : [];
 
@@ -271,9 +273,9 @@ export const LookupTab: React.FC<LookupTabProps> = ({
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
-              onClick={() => onOpenQRStampModal(activeBatch?.batchCode || '')}
-              disabled={!activeBatch}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C29B38] text-white text-xs font-sans font-bold hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-50"
+              onClick={() => onOpenQRStampModal(activeBatch?.batchCode || batchKeys[0] || '')}
+              disabled={batchKeys.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C29B38] text-white text-xs font-sans font-bold hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-50 cursor-pointer active:scale-95"
             >
               <Printer className="w-4 h-4" />
               <span>In Tem QR Niêm Phong</span>
