@@ -1,12 +1,16 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, CSSProperties } from 'react';
 
-// Hook tro giup keo tha popup (draggable modal) cho phep di chuyen va xuat hien ngay vi tri da bam
+// Hook tro giup keo tha popup (draggable modal) dinh vi truc tiep tai vi tri con tro chuot/nut da bam
 export function useDraggable(
   isOpen: boolean,
   clickPos?: { x: number; y: number } | null,
-  estimatedModalSize: { width: number; height: number } = { width: 560, height: 480 }
+  estimatedModalSize: { width: number; height: number } = { width: 520, height: 460 }
 ) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [position, setPosition] = useState<{ x: number; y: number; isAbsolute: boolean }>({
+    x: 0,
+    y: 0,
+    isAbsolute: false,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPosRef = useRef({ x: 0, y: 0 });
@@ -18,24 +22,26 @@ export function useDraggable(
         const screenW = window.innerWidth;
         const screenH = window.innerHeight;
 
-        const modalW = estimatedModalSize.width;
-        const modalH = estimatedModalSize.height;
+        const modalW = Math.min(screenW - 24, estimatedModalSize.width);
+        const modalH = Math.min(screenH - 24, estimatedModalSize.height);
 
         let targetLeft: number;
         let targetTop: number;
 
-        // Neu bam o ben phai man hinh (vi tri vi Wallet nut bam top-right), dat popup can phai o vi tri da bam
+        // Neu bam o ben phai man hinh (nhu nut vi o Header), can mep phai theo diem bam
         if (clickPos.x > screenW / 2) {
-          targetLeft = clickPos.x - modalW + 20;
+          targetLeft = clickPos.x - modalW;
         } else {
-          targetLeft = clickPos.x - 20;
+          // Neu bam o ben trai man hinh, can mep trai theo diem bam
+          targetLeft = clickPos.x;
         }
 
-        // Neu bam o phan tren man hinh, xuat hien ngay phia duoi diem bam
+        // Neu bam o phan duoi man hinh, dat phia tren diem bam
         if (clickPos.y > screenH / 2) {
-          targetTop = clickPos.y - modalH - 10;
+          targetTop = clickPos.y - modalH - 8;
         } else {
-          targetTop = clickPos.y + 12;
+          // Neu bam o phan tren man hinh, dat phia duoi diem bam
+          targetTop = clickPos.y + 8;
         }
 
         // Gioi han an toan 12px ngat khuat khoi mep man hinh
@@ -47,25 +53,16 @@ export function useDraggable(
         const maxTop = Math.max(minTop, screenH - modalH - 12);
         targetTop = Math.max(minTop, Math.min(maxTop, targetTop));
 
-        // Tinh gia tri translate so voi vi tri giua mac dinh cua container flex
-        const defaultCenteredLeft = (screenW - modalW) / 2;
-        const defaultCenteredTop = (screenH - modalH) / 2;
-
-        const translateX = targetLeft - defaultCenteredLeft;
-        const translateY = targetTop - defaultCenteredTop;
-
-        setPosition({ x: translateX, y: translateY });
+        setPosition({ x: targetLeft, y: targetTop, isAbsolute: true });
       } else {
-        setPosition({ x: 0, y: 0 });
+        setPosition({ x: 0, y: 0, isAbsolute: false });
       }
     }
   }, [isOpen, clickPos?.x, clickPos?.y, estimatedModalSize.width, estimatedModalSize.height]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    // Chi cho phep keo qua chuot trai hoac cam ung truyen thong
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     
-    // Khong kich hoat keo neu bam vao nut bam hoac input inside header
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('input') || target.closest('a')) {
       return;
@@ -73,23 +70,22 @@ export function useDraggable(
 
     setIsDragging(true);
     dragStartRef.current = { x: e.clientX, y: e.clientY };
-    initialPosRef.current = { ...position };
+    initialPosRef.current = { x: position.x, y: position.y };
 
     try {
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch (err) {
-      // Ignored fallback
-    }
-  }, [position]);
+    } catch (err) {}
+  }, [position.x, position.y]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-    setPosition({
+    setPosition((prev) => ({
       x: initialPosRef.current.x + dx,
       y: initialPosRef.current.y + dy,
-    });
+      isAbsolute: prev.isAbsolute,
+    }));
   }, [isDragging]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -97,14 +93,25 @@ export function useDraggable(
     setIsDragging(false);
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch (err) {
-      // Ignored fallback
-    }
+    } catch (err) {}
   }, [isDragging]);
+
+  const modalStyle: CSSProperties = position.isAbsolute
+    ? {
+        position: 'absolute',
+        left: `${position.x}px`,
+        top: `${position.y}px`,
+        transition: isDragging ? 'none' : 'transform 0.05s ease-out, left 0.05s ease-out, top 0.05s ease-out',
+      }
+    : {
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        transition: isDragging ? 'none' : 'transform 0.05s ease-out',
+      };
 
   return {
     position,
     isDragging,
+    modalStyle,
     dragHeaderProps: {
       onPointerDown: handlePointerDown,
       onPointerMove: handlePointerMove,
