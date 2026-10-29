@@ -42,6 +42,7 @@ export const App: React.FC = () => {
   const [isOpenMobileMenu, setIsOpenMobileMenu] = useState(false);
   const [isMobileMetaMaskModalOpen, setIsMobileMetaMaskModalOpen] = useState(false);
   const [mobileMetaMaskDeepLink, setMobileMetaMaskDeepLink] = useState('');
+  const [modalClickPos, setModalClickPos] = useState<{ x: number; y: number } | null>(null);
 
   // Web3 Connection State
   const [currentAccount, setCurrentAccount] = useState<string | null>(null);
@@ -782,8 +783,14 @@ export const App: React.FC = () => {
     }
   };
 
-  // Mo modal hoac xem chi tiet vi tuy theo trang thai
-  const handleOpenRoleConnectModal = () => {
+  // Mo modal hoac xem chi tiet vi tuy theo trang thai va vi tri bam
+  const handleOpenRoleConnectModal = (e?: React.MouseEvent) => {
+    if (e && e.clientX && e.clientY) {
+      setModalClickPos({ x: e.clientX, y: e.clientY });
+    } else {
+      setModalClickPos(null);
+    }
+
     if (currentAccount) {
       setIsWalletDetailsModalOpen(true);
     } else {
@@ -1746,6 +1753,7 @@ export const App: React.FC = () => {
         isOpen={isRoleModalOpen}
         onClose={() => setIsRoleModalOpen(false)}
         onSelectRoleAndConnect={handleRoleSelectAndConnect}
+        clickPos={modalClickPos}
       />
 
       {/* Connected Wallet Details Modal */}
@@ -1763,6 +1771,7 @@ export const App: React.FC = () => {
         producerStakeBalance={producerStakeBalance}
         contractBalanceEth={contractBalanceEth}
         onDisconnect={handleDisconnectWallet}
+        clickPos={modalClickPos}
       />
 
       {/* QR Stamp Printable Modal */}

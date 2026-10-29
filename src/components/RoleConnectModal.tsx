@@ -7,14 +7,16 @@ interface RoleConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectRoleAndConnect: (roleKey: string) => void;
+  clickPos?: { x: number; y: number } | null;
 }
 
 export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   isOpen,
   onClose,
   onSelectRoleAndConnect,
+  clickPos,
 }) => {
-  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
+  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen, clickPos, { width: 560, height: 500 });
 
   if (!isOpen) return null;
 

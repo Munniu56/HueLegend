@@ -6,7 +6,7 @@ interface HeaderProps {
   currentAccount: string | null;
   isDemoMode: boolean;
   simulatedRole: string;
-  onConnectWallet: () => void;
+  onConnectWallet: (e?: React.MouseEvent) => void;
   onToggleDemoMode: () => void;
   onSimulatedRoleChange: (role: string) => void;
   onToggleMobileMenu?: () => void;
@@ -82,8 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Connect Wallet Button */}
         <button
-          onClick={onConnectWallet}
-          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs min-h-[40px] ${
+          onClick={(e) => onConnectWallet(e)}
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-2xs min-h-[40px] cursor-pointer ${
             currentAccount
               ? 'bg-[#264939] text-white hover:bg-[#1c372b]'
               : 'bg-[#C29B38] text-white hover:bg-[#8C6D1F]'

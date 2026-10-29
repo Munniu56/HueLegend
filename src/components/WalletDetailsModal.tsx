@@ -12,6 +12,7 @@ interface WalletDetailsModalProps {
   producerStakeBalance: string;
   contractBalanceEth?: string;
   onDisconnect: () => void;
+  clickPos?: { x: number; y: number } | null;
 }
 
 export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
@@ -23,8 +24,9 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   producerStakeBalance,
   contractBalanceEth = '0.00',
   onDisconnect,
+  clickPos,
 }) => {
-  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
+  const { position, isDragging, dragHeaderProps } = useDraggable(isOpen, clickPos, { width: 440, height: 450 });
 
   if (!isOpen) return null;
 

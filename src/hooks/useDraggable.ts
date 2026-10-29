@@ -1,18 +1,40 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-// Hook tro giup keo tha popup (draggable modal) cho phep di chuyen linh hoat tren man hinh
-export function useDraggable(isOpen: boolean) {
+// Hook tro giup keo tha popup (draggable modal) cho phep di chuyen va xuat hien ngay vi tri da bam
+export function useDraggable(
+  isOpen: boolean,
+  clickPos?: { x: number; y: number } | null,
+  estimatedModalSize: { width: number; height: number } = { width: 560, height: 480 }
+) {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPosRef = useRef({ x: 0, y: 0 });
 
-  // Reset vi tri ve chinh dien giua man hinh khi popup duoc mo
+  // Tinh toan vi tri popup xuat hien ngay tai toa do con tro chuot/nut da bam khi mo
   useEffect(() => {
     if (isOpen) {
-      setPosition({ x: 0, y: 0 });
+      if (clickPos && typeof window !== 'undefined' && clickPos.x > 0 && clickPos.y > 0) {
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+
+        // Offset tu tam man hinh toi toa do da bam
+        const rawOffsetX = clickPos.x - screenW / 2;
+        const rawOffsetY = clickPos.y - screenH / 2;
+
+        // Tinh toan gioi han an toan (clamping) de popup khong bi tran hoac khuat qua mep man hinh
+        const maxDx = Math.max(0, (screenW - estimatedModalSize.width) / 2 - 20);
+        const maxDy = Math.max(0, (screenH - estimatedModalSize.height) / 2 - 20);
+
+        const clampedX = Math.max(-maxDx, Math.min(maxDx, rawOffsetX));
+        const clampedY = Math.max(-maxDy, Math.min(maxDy, rawOffsetY));
+
+        setPosition({ x: clampedX, y: clampedY });
+      } else {
+        setPosition({ x: 0, y: 0 });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, clickPos?.x, clickPos?.y, estimatedModalSize.width, estimatedModalSize.height]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // Chi cho phep keo qua chuot trai hoac cam ung truyen thong
