@@ -85,7 +85,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     },
   ];
 
-  // Loc danh sach muc theo vai tro nguoi dung (RBAC)
+  // Loc danh sach muc: Khi chua ket noi vi hoac o che do xem chung, hien thi DAY DU 8 CHUC NANG
   const filteredNavItems = navItems.filter((item) => {
     if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
       return ['overview', 'lookup', 'store', 'create-batch', 'inspector', 'checkpoint'].includes(item.id);
@@ -96,10 +96,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     if (userRole === 'INSPECTOR') {
       return ['overview', 'lookup', 'store', 'inspector', 'checkpoint'].includes(item.id);
     }
-    if (userRole === 'CUSTOMER') {
-      return ['overview', 'lookup', 'store'].includes(item.id);
-    }
-    return true; // ADMIN hoac ALL
+    // Hien thi day du 8 chuc nang khi chua ket noi vi hoac o vai tro ALL / ADMIN / CUSTOMER
+    return true;
   });
 
   // Top 4 tab truy cap nhanh cho thanh bottom navigation mobile

@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
     },
   ];
 
-  // Loc cac muc menu theo vai tro nguoi dung
+  // Loc cac muc menu: Khi chua ket noi vi hoac o che do xem chung, hien thi DẦY ĐỦ 8 CHỨC NĂNG
   const filteredNavItems = navItems.filter((item) => {
     if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
       return ['overview', 'lookup', 'store', 'create-batch', 'inspector', 'checkpoint'].includes(item.id);
@@ -85,10 +85,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
     if (userRole === 'INSPECTOR') {
       return ['overview', 'lookup', 'store', 'inspector', 'checkpoint'].includes(item.id);
     }
-    if (userRole === 'CUSTOMER') {
-      return ['overview', 'lookup', 'store'].includes(item.id);
-    }
-    return true; // ADMIN hoac ALL
+    // Hien thi day du 8 chuc nang khi chua ket noi vi hoac o vai tro ALL / ADMIN / CUSTOMER
+    return true;
   });
 
   return (
