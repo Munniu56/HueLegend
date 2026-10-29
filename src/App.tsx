@@ -920,7 +920,7 @@ export const App: React.FC = () => {
     const cleanBatchCode = batchCode.trim();
     const cleanProductName = productName.trim();
     const cleanOrigin = origin.trim();
-    const cleanQuantity = quantity?.trim() || '500 Hộp';
+    const cleanQuantity = quantity?.trim() || '';
     const cleanMetadataURI = metadataURI.trim();
     const finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 

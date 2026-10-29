@@ -44,7 +44,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     return Boolean(hasLogisticsCp);
   });
 
-  const [selectedBatchCode, setSelectedBatchCode] = useState(transportBatches[0]?.batchCode || '');
+  const [selectedBatchCode, setSelectedBatchCode] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
   const [storeName, setStoreName] = useState('');
   const [listingPriceEth, setListingPriceEth] = useState('');
@@ -57,8 +57,10 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
 
   // Tu dong dong bo So Luong Nhap Kho voi San Luong duoc khoi tao tu Step 1 (CreateBatchTab)
   React.useEffect(() => {
-    if (selectedBatch?.quantity) {
+    if (selectedBatchCode && selectedBatch?.quantity) {
       setStockQuantity(selectedBatch.quantity);
+    } else if (!selectedBatchCode) {
+      setStockQuantity('');
     }
   }, [selectedBatchCode, selectedBatch]);
 
@@ -245,15 +247,13 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 onChange={(e) => setSelectedBatchCode(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               >
-                {transportBatches.length > 0 ? (
+                <option value="">-- Chọn Lô Hàng từ đơn vị vận chuyển --</option>
+                {transportBatches.length > 0 &&
                   transportBatches.map((batch) => (
                     <option key={batch.batchCode} value={batch.batchCode}>
                       {batch.batchCode} — {batch.productName} (Đã Qua Vận Chuyển)
                     </option>
-                  ))
-                ) : (
-                  <option value="">Chưa có lô hàng nào từ đơn vị vận chuyển</option>
-                )}
+                  ))}
               </select>
             </div>
 
