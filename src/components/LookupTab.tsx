@@ -26,7 +26,7 @@ import {
   Lock
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ETHERSCAN_BASE_URL, ROLE_HASHES } from '../constants';
+import { ETHERSCAN_BASE_URL, ROLE_HASHES, DEFAULT_ADMIN_ADDRESS } from '../constants';
 
 interface LookupTabProps {
   batches: Record<string, Batch>;
@@ -93,7 +93,7 @@ export const getEnrichedCheckpoints = (batch: Batch): (Checkpoint & { stageIcon:
       ? `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${batch.starRating || '4'} Sao. Ghi chú: ${batch.inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm và chất lượng đặc sản Thừa Thiên Huế.'}`
       : 'Hồ sơ lô hàng đang chờ Hội đồng thẩm định OCOP tỉnh xét duyệt và ký số chứng nhận on-chain.',
     timestamp: isCp2Done ? batch.createdAt + 3600 : batch.createdAt + 1800,
-    recorder: isCp2Done ? '0x82d022a704706B2f144863D619D7418F8a0f19A7' : '0x0000...0000',
+    recorder: isCp2Done ? DEFAULT_ADMIN_ADDRESS : '0x0000...0000',
     metadataURI: batch.certificateURI || `ipfs://huelegend/cert/${batch.batchCode}`,
     txHash: batch.verifyTxHash || (isCp2Done ? '0xa19c...982f' : ''),
     conditionNote: isCp2Done ? `Cấp mã số OCOP: ${batch.certificationNo || 'OCOP-HUE-2026'}. Đã xác thực phí 0.002 ETH.` : 'Đang trong quy trình đánh giá chỉ tiêu chất lượng.',

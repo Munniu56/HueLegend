@@ -21,7 +21,7 @@ export const SEPOLIA_DECIMAL_ID = 11155111;
 export const ETHERSCAN_BASE_URL = "https://sepolia.etherscan.io";
 
 // Vi quan tri vien mac dinh
-export const DEFAULT_ADMIN_ADDRESS = safeGetAddress("0x82d022a704706B2f144863D619D7418F8a0f19A7");
+export const DEFAULT_ADMIN_ADDRESS = safeGetAddress("0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5");
 
 export const ROLE_HASHES = {
   ROLE_ADMIN: "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42",

@@ -676,7 +676,7 @@ export const App: React.FC = () => {
           if (activeRole === 'ADMIN' && !isDefaultAdmin) {
             addToast(
               'Từ Chối Quyền Quản Trị Viên',
-              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} không phải ví Admin mặc định (0x82d0...19A7). Đã chuyển về vai trò Khách Hàng.`,
+              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} không phải ví Admin mặc định (${DEFAULT_ADMIN_ADDRESS.slice(0, 6)}...${DEFAULT_ADMIN_ADDRESS.slice(-4)}). Đã chuyển về vai trò Khách Hàng.`,
               'warning',
               7000
             );
