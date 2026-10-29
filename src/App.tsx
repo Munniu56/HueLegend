@@ -798,16 +798,27 @@ export const App: React.FC = () => {
     }
   };
 
-  // Ngat ket noi vi
+  // Ngat ket noi vi - Tra ve giao dien ban dau voi day du tinh nang
   const handleDisconnectWallet = () => {
     setCurrentAccount(null);
+    setSimulatedRole('ALL');
+    setActiveTab('overview');
+    setIsCurrentAccountAdmin(false);
+    setIsCurrentAccountRetailer(true);
+    setIsCurrentAccountInspector(true);
+    setIsCurrentAccountLogistics(true);
     setIsWalletDetailsModalOpen(false);
+
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem('hl_connected_account');
+        localStorage.setItem('hl_user_role', 'ALL');
+        localStorage.setItem('hl_active_tab', 'overview');
       } catch (e) {}
     }
-    addToast('Đã Ngắt Kết Nối Ví', 'Đã xoá phiên đăng nhập. Lần đăng nhập tới sẽ yêu cầu mở cửa sổ MetaMask mới.', 'info');
+
+    addToast('Đã Đăng Xuất', 'Đã quay lại giao diện ban đầu với đầy đủ tính năng.', 'info');
+    fetchContractData();
   };
 
   // Chon vai tro trong Modal -> Ket noi vi MetaMask
