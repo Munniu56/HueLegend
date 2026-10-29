@@ -55,26 +55,26 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'form' | 'verified'>('form');
 
   // Form state cho tham dinh lo hang
-  const [selectedBatchCode, setSelectedBatchCode] = useState(pendingBatches[0]?.batchCode || batchList[0]?.batchCode || '');
+  const [selectedBatchCode, setSelectedBatchCode] = useState<string>('');
   const [starRating, setStarRating] = useState('4');
   const [inspectorNote, setInspectorNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Modal State cho Thu Hoi OCOP
   const [revokingBatch, setRevokingBatch] = useState<Batch | null>(null);
   const [revokeReason, setRevokeReason] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Tu dong cap nhat selectedBatchCode neu danh sach pendingBatches thay doi
+  // Auto initialize first batch on load
   useEffect(() => {
-    if (pendingBatches.length > 0 && (!selectedBatchCode || batches[selectedBatchCode]?.isVerified)) {
+    if (!hasInitialized && pendingBatches.length > 0) {
       setSelectedBatchCode(pendingBatches[0].batchCode);
-    } else if (batchList.length > 0 && !selectedBatchCode) {
-      setSelectedBatchCode(batchList[0].batchCode);
+      setHasInitialized(true);
     }
-  }, [batches]);
+  }, [batches, hasInitialized]);
 
-  const selectedBatch = batches[selectedBatchCode];
+  const selectedBatch = selectedBatchCode ? batches[selectedBatchCode] : undefined;
 
   // Ham xu ly Ky Xac Nhan & Cap OCOP
   const handleVerify = async (e: React.FormEvent) => {
@@ -86,9 +86,10 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
       const generatedCertURI = `ipfs://huelegend/cert/${selectedBatchCode}`;
       await onVerifyBatch(selectedBatchCode, inspectorNote, generatedCertURI, starRating);
 
-      // Chuyen sang Tab Danh Sach Da Kiem Dinh va xoa note
-      setActiveSubTab('verified');
+      // Khi cap chung nhan thành cong, an tat ca thong tin tao lo hang bang cach reset selectedBatchCode ve rông
+      setSelectedBatchCode('');
       setInspectorNote('');
+      setActiveSubTab('verified');
     } catch (err) {
       console.error(err);
     } finally {
@@ -258,6 +259,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                   onChange={(e) => setSelectedBatchCode(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] text-[#1A2820] shadow-inner"
                 >
+                  <option value="">-- Chọn lô hàng mới cần thẩm định OCOP --</option>
                   {pendingBatches.length > 0 ? (
                     pendingBatches.map((batch) => (
                       <option key={batch.batchCode} value={batch.batchCode}>
@@ -265,7 +267,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                       </option>
                     ))
                   ) : (
-                    <option value="">Tất cả các lô hàng đã được kiểm định OCOP</option>
+                    <option value="" disabled>Tất cả các lô hàng đã được kiểm định OCOP</option>
                   )}
                 </select>
               </div>
@@ -347,7 +349,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
 
           {/* Cot Phai (5/12): Chi Tiet Lo Hang Dang Chon */}
           <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
-            {selectedBatch ? (
+            {selectedBatch && selectedBatchCode ? (
               <div className="space-y-4 font-sans">
                 <div className="pb-3 border-b border-[#EDE9E0] flex items-center justify-between">
                   <div>
@@ -459,8 +461,16 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="bg-[#FAF9F5] p-8 rounded-2xl border border-dashed border-[#E6E1D7] text-center text-xs text-gray-400">
-                Chưa có lô hàng nào trên Blockchain.
+              <div className="bg-[#FAF9F5] p-8 sm:p-10 rounded-3xl border-2 border-dashed border-[#E6E1D7] text-center space-y-3 font-sans">
+                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#8C6D1F] flex items-center justify-center mx-auto border border-amber-200">
+                  <Package className="w-6 h-6 text-[#C29B38]" />
+                </div>
+                <h4 className="font-serif font-extrabold text-base text-[#264939]">
+                  Thông Tin Tạo Lô Hàng Đã Được Ẩn
+                </h4>
+                <p className="text-xs text-[#5E7166] leading-relaxed max-w-xs mx-auto">
+                  Đã cấp chứng nhận OCOP thành công hoặc chưa chọn lô hàng. Vui lòng chọn một lô hàng mới từ danh sách thả xuống để xem tất cả thông tin tạo lô hàng.
+                </p>
               </div>
             )}
           </div>
