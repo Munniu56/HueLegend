@@ -47,11 +47,12 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   const [selectedBatchCode, setSelectedBatchCode] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
   const [storeName, setStoreName] = useState('');
+  const [storeLocation, setStoreLocation] = useState('');
   const [listingPriceEth, setListingPriceEth] = useState('');
   const [stockQuantity, setStockQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; stock: string; category: string; sellerAddr: string }>>({});
+  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; storeLocation: string; stock: string; category: string; sellerAddr: string }>>({});
 
   const selectedBatch = batches[selectedBatchCode];
 
@@ -74,14 +75,15 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     setIsSubmitting(true);
     try {
       if (onAddCheckpoint) {
+        const fullLocation = storeLocation ? `${storeName} - ${storeLocation}` : storeName;
         await onAddCheckpoint(
           selectedBatchCode,
           'RETAILER',
-          storeName,
-          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH) — [Danh mục: ${selectedCategory}]`,
+          fullLocation,
+          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH) — [Cửa Hàng: ${storeName} | Điểm Bán: ${storeLocation}] — [Danh mục: ${selectedCategory}]`,
           'ipfs://QmHueRetailerListing2026',
           'Niêm Yết Bán Lẻ',
-          `Danh mục: ${selectedCategory} — Giá niêm yết: ${listingPriceEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`
+          `Tên Cửa Hàng: ${storeName} — Điểm Bán: ${storeLocation} — Danh mục: ${selectedCategory} — Giá niêm yết: ${listingPriceEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`
         );
       }
 
@@ -90,6 +92,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         [selectedBatchCode]: {
           price: listingPriceEth,
           store: storeName,
+          storeLocation: storeLocation,
           stock: stockQuantity,
           category: selectedCategory,
           sellerAddr: currentAccount || 'Ví Đại Lý Sepolia'
@@ -316,18 +319,34 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#1A2820] mb-1">
-                  Địa Điểm Cửa Hàng / Điểm Bán *
+                  Tên Cửa Hàng *
                 </label>
                 <input
                   type="text"
                   required
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="Ví dụ: Cửa Hàng Đặc Sản Cố Đô Huế - 12 Lê Lợi"
+                  placeholder="Ví dụ: Cửa Hàng Đặc Sản Cố Đô Huế"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-[#1A2820] mb-1">
+                  Điểm Bán *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={storeLocation}
+                  onChange={(e) => setStoreLocation(e.target.value)}
+                  placeholder="Ví dụ: 12 Lê Lợi, TP. Huế, Thừa Thiên Huế"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-[#1A2820] mb-1">
                   Giá Niêm Yết Bán Lẻ (Sepolia ETH) *
@@ -348,25 +367,25 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                   </span>
                 </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-xs font-bold text-[#1A2820] mb-1">
-                Số Lượng Nhập Kho (Đơn Vị) *
-              </label>
-              <input
-                type="text"
-                required
-                value={stockQuantity}
-                onChange={(e) => setStockQuantity(e.target.value)}
-                placeholder="Ví dụ: 500 Hộp"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
-              />
-              {selectedBatch?.quantity && (
-                <p className="text-[10px] text-[#264939] font-medium mt-1">
-                  ⚡ Tự động lấy từ <strong>Sản Lượng ({selectedBatch.quantity})</strong> khi khởi tạo lô hàng On-Chain.
-                </p>
-              )}
+              <div>
+                <label className="block text-xs font-bold text-[#1A2820] mb-1">
+                  Số Lượng Nhập Kho (Đơn Vị) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={stockQuantity}
+                  onChange={(e) => setStockQuantity(e.target.value)}
+                  placeholder="Ví dụ: 500 Hộp"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+                />
+                {selectedBatch?.quantity && (
+                  <p className="text-[10px] text-[#264939] font-medium mt-1">
+                    ⚡ Tự động lấy từ <strong>Sản Lượng ({selectedBatch.quantity})</strong> khi khởi tạo lô hàng On-Chain.
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="pt-3 border-t border-[#EDE9E0] flex items-center justify-between">
@@ -439,6 +458,18 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                     </div>
 
                     <div className="text-xs text-[#5E7166] space-y-1 bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                      <div className="flex justify-between">
+                        <span>Tên cửa hàng:</span>
+                        <span className="font-bold text-[#1A2820] truncate max-w-[160px]">
+                          {listingInfo?.store || storeName || 'Đại Lý Cố Đô'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Điểm bán:</span>
+                        <span className="font-medium text-[#264939] truncate max-w-[160px]">
+                          {listingInfo?.storeLocation || storeLocation || 'Thừa Thiên Huế'}
+                        </span>
+                      </div>
                       <div className="flex justify-between">
                         <span>Danh mục đặc sản:</span>
                         <span className="font-bold text-[#264939] truncate max-w-[160px]">
