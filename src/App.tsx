@@ -1044,7 +1044,7 @@ export const App: React.FC = () => {
     }
   };
 
-  // 2. Add Checkpoint (Wallet Connection Mandatory + Permanent Persistence)
+  // 2. Add Checkpoint (Wallet Connection Mandatory + Permanent Persistence + Optional Listing Fee)
   const handleAddCheckpoint = async (
     batchCode: string,
     role: string,
@@ -1052,7 +1052,8 @@ export const App: React.FC = () => {
     action: string,
     metadataURI: string,
     stepName: string,
-    conditionNote: string
+    conditionNote: string,
+    valueEth?: string | number
   ) => {
     // Bat buoc phai ket noi vi MetaMask truoc khi ghi chang
     if (!currentAccount) {
@@ -1061,7 +1062,16 @@ export const App: React.FC = () => {
       return;
     }
 
-    const loadingToastId = addToast('Yêu Cầu MetaMask', 'Vui lòng xác nhận giao dịch addCheckpoint() trên MetaMask...', 'loading', 0);
+    const valueWei = valueEth && Number(valueEth) > 0 ? ethers.parseEther(Number(valueEth).toFixed(6)) : undefined;
+
+    const loadingToastId = addToast(
+      'Yêu Cầu MetaMask',
+      valueWei
+        ? `Vui lòng xác nhận giao dịch niêm yết (${Number(valueEth).toFixed(4)} ETH) trên MetaMask...`
+        : 'Vui lòng xác nhận giao dịch addCheckpoint() trên MetaMask...',
+      'loading',
+      0
+    );
 
     try {
       const provider = new ethers.BrowserProvider((window as any).ethereum);
@@ -1073,7 +1083,21 @@ export const App: React.FC = () => {
       const roleHash = ROLE_HASHES[role as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_LOGISTICS;
       const fullActionText = conditionNote ? `${action} (Ghi chú: ${conditionNote})` : action;
 
-      const tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+      let tx;
+      if (valueWei) {
+        try {
+          tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI, { value: valueWei });
+        } catch (callErr) {
+          // Fallback neu hop dong khong phai payable tren bytecode: thuc hien addCheckpoint va transfer ETH
+          tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+          await signer.sendTransaction({
+            to: safeGetAddress(CONTRACT_ADDRESS),
+            value: valueWei
+          });
+        }
+      } else {
+        tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chờ xác nhận...`, 'loading', 0);
@@ -1094,14 +1118,15 @@ export const App: React.FC = () => {
         conditionNote: conditionNote || 'Ghi chặng mới thành công.'
       };
 
+      const isListingAction =
+        role === 'RETAILER' ||
+        role === ROLE_HASHES.ROLE_RETAILER ||
+        (stepName && stepName.toLowerCase().includes('niêm yết')) ||
+        (action && action.toLowerCase().includes('niêm yết'));
+
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
-        const isListingAction =
-          role === 'RETAILER' ||
-          role === ROLE_HASHES.ROLE_RETAILER ||
-          (stepName && stepName.toLowerCase().includes('niêm yết')) ||
-          (action && action.toLowerCase().includes('niêm yết'));
         const updatedBatch = {
           ...target,
           currentStage: action,
@@ -1127,12 +1152,18 @@ export const App: React.FC = () => {
         } : null);
       }
       notifyDataSync();
-      addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu vĩnh viễn on-chain.`, 'success');
+
+      if (isListingAction) {
+        addToast('Xác Nhận Niêm Yết Thành Công!', `Lô hàng ${batchCode} đã niêm yết bán lẻ thành công (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
+      } else {
+        addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu vĩnh viễn on-chain.`, 'success');
+      }
       await fetchContractData();
       handleNavigateTab('lookup', batchCode);
     } catch (err: any) {
       removeToast(loadingToastId);
       addToast('Giao Dịch Thất Bại', err?.reason || err?.message || 'Lỗi ghi chặng lên Blockchain.', 'error');
+      throw err;
     }
   };
 

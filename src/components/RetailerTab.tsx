@@ -16,7 +16,8 @@ interface RetailerTabProps {
     action: string,
     metadataURI: string,
     stepName: string,
-    conditionNote: string
+    conditionNote: string,
+    valueEth?: string | number
   ) => Promise<void>;
   onWithdrawEarnings?: () => Promise<void>;
 }
@@ -72,6 +73,9 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     e.preventDefault();
     if (!selectedBatchCode) return;
 
+    const numericQty = parseFloat(stockQuantity.replace(/[^0-9.]/g, '')) || 0;
+    const calculatedListingFeeEth = (numericQty * 0.001 + 0.005).toFixed(6);
+
     setIsSubmitting(true);
     try {
       if (onAddCheckpoint) {
@@ -80,10 +84,11 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           selectedBatchCode,
           'RETAILER',
           fullLocation,
-          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH) — [Cửa Hàng: ${storeName} | Điểm Bán: ${storeLocation}] — [Danh mục: ${selectedCategory}]`,
+          `Đã Nhập Kho & Niêm Yết Giá Bán (${listingPriceEth} ETH) — [Phí On-Chain: ${calculatedListingFeeEth} ETH] — [Cửa Hàng: ${storeName} | Điểm Bán: ${storeLocation}] — [Danh mục: ${selectedCategory}]`,
           'ipfs://QmHueRetailerListing2026',
           'Niêm Yết Bán Lẻ',
-          `Tên Cửa Hàng: ${storeName} — Điểm Bán: ${storeLocation} — Danh mục: ${selectedCategory} — Giá niêm yết: ${listingPriceEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`
+          `Tên Cửa Hàng: ${storeName} — Điểm Bán: ${storeLocation} — Danh mục: ${selectedCategory} — Giá niêm yết: ${listingPriceEth} ETH — Số lượng nhập kho: ${stockQuantity} — Phí MetaMask Sepolia: ${calculatedListingFeeEth} ETH — Người bán (Retailer): ${currentAccount || 'Chưa xác định'}`,
+          calculatedListingFeeEth
         );
       }
 
@@ -387,6 +392,26 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Khối hiển thị Phí Niêm Yết MetaMask On-Chain = (Số Lượng x 0.001) + 0.005 ETH */}
+            {selectedBatchCode && (
+              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#CCD8CF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#264939]">
+                <div className="flex items-start gap-2.5">
+                  <Wallet className="w-4 h-4 text-[#C29B38] mt-0.5 shrink-0" />
+                  <div className="space-y-0.5">
+                    <span className="font-extrabold text-[#264939]">Giao Dịch MetaMask Niêm Yết On-Chain:</span>
+                    <div className="text-[11px] text-[#5E7166]">
+                      Công thức: (Số lượng nhập kho × 0.001 ETH) + 0.005 ETH
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-mono font-black text-sm text-[#264939] bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs inline-block">
+                    {((parseFloat(stockQuantity.replace(/[^0-9.]/g, '')) || 0) * 0.001 + 0.005).toFixed(4)} ETH
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="pt-3 border-t border-[#EDE9E0] flex items-center justify-between">
               <span className="text-[11px] text-[#8A9D92]">

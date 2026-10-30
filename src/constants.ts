@@ -64,7 +64,7 @@ export const PROJECT_CORE_ABI = [
   "function ROLE_LOGISTICS() view returns (bytes32)",
   "function ROLE_PRODUCER() view returns (bytes32)",
   "function ROLE_RETAILER() view returns (bytes32)",
-  "function addCheckpoint(string batchCode, bytes32 role, string location, string action, string metadataURI)",
+  "function addCheckpoint(string batchCode, bytes32 role, string location, string action, string metadataURI) payable",
   "function batchCreationFee() view returns (uint256)",
   "function createBatch(string batchCode, string productName, string origin, string initialMetadataURI) payable",
   "function depositStake() payable",
