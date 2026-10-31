@@ -87,6 +87,28 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     }
   }
 
+  // Tinh tong so phi kiem dinh ma Quan tri vien tra cho Kiem dinh vien (0.002 ETH/lan kiem dinh)
+  let inspectorFeePaidEth = '0.000';
+  if (batches) {
+    let verifiedCount = 0;
+    Object.values(batches).forEach((b) => {
+      const hasInspectorVerification = Boolean(
+        b.isVerified ||
+        (b.checkpoints && b.checkpoints.some(
+          (c) =>
+            c.role === 'ROLE_INSPECTOR' ||
+            c.role === 'INSPECTOR' ||
+            (c.stepName && (c.stepName.toLowerCase().includes('thẩm định') || c.stepName.toLowerCase().includes('ocop')))
+        ))
+      );
+      if (hasInspectorVerification) {
+        verifiedCount += 1;
+      }
+    });
+    const feeVal = verifiedCount * 0.002;
+    inspectorFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
+  }
+
   // Xac dinh nhan va so du ETH tich luy theo vai tro vi
   let roleLabel = 'On-Chain';
   let roleSubtext = 'Số dư ETH tích lũy tương tác Smart Contract';
@@ -98,8 +120,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleBalance = producerRetailerPaidEth;
   } else if (userRole === 'INSPECTOR') {
     roleLabel = 'Kiểm Định Viên OCOP';
-    roleSubtext = 'Tích lũy phí thẩm định & cấp chứng nhận';
-    roleBalance = contractBalanceEth !== '0.00' ? contractBalanceEth : '0.002';
+    roleSubtext = 'Phí thẩm định do Quản trị viên trả (0.002 ETH / lần kiểm định thành công)';
+    roleBalance = inspectorFeePaidEth;
   } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
     roleLabel = 'Đại Lý Thương Mại';
     roleSubtext = 'Tích lũy giao dịch niêm yết & nhập kho';
@@ -109,6 +131,10 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleSubtext = 'Tổng phí tích lũy Treasury Smart Contract';
     roleBalance = contractBalanceEth;
   }
+
+  const balanceBoxTitle = userRole === 'INSPECTOR'
+    ? 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ THẨM ĐỊNH'
+    : 'SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT';
 
   return (
     <div
@@ -203,7 +229,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
                   <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
-                    SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
+                    {balanceBoxTitle}
                   </span>
                 </div>
                 <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
