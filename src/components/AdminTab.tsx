@@ -679,7 +679,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 {/* Cong cu dem chặng van chuyen */}
                 <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
                   <div className="text-center border-r border-gray-100 pr-1">
-                    <span className="text-gray-400 block text-[10px]">TỔNG CHẶNG</span>
+                    <span className="text-gray-400 block text-[10px]">ĐÃ THẨM ĐỊNH (CHẶNG)</span>
                     <span className="font-bold text-[#1A2820] text-xs">{allLogisticsBatches.length} chặng</span>
                   </div>
                   <div className="text-center border-r border-gray-100 px-1">
