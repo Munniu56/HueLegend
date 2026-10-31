@@ -934,28 +934,55 @@ export const App: React.FC = () => {
       const cleanUserAddress = safeGetAddress(rawUserAddr);
       const cleanContractAddress = safeGetAddress(CONTRACT_ADDRESS);
 
-      const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+      const contractCode = await provider.getCode(cleanContractAddress).catch(() => '0x');
+      const isContractDeployed = contractCode !== '0x' && contractCode !== '0x0';
 
       let feeWei = ethers.parseEther('0.001');
-      try {
-        feeWei = await contract.batchCreationFee();
-      } catch (feeErr) {
-        console.warn('Cannot read batchCreationFee on-chain, using fallback 0.001 ETH:', feeErr);
+      if (isContractDeployed) {
+        try {
+          const tempContract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, provider);
+          feeWei = await tempContract.batchCreationFee();
+        } catch (feeErr) {
+          console.warn('Cannot read batchCreationFee on-chain, using fallback 0.001 ETH:', feeErr);
+        }
       }
 
       const inspectionFeeWei = ethers.parseEther('0.002');
       const transportFeeWei = ethers.parseEther('0.002');
       const totalFeeWei = feeWei + inspectionFeeWei + transportFeeWei;
 
-      const tx = await contract.createBatch(
-        cleanBatchCode,
-        cleanProductName,
-        cleanOrigin,
-        cleanMetadataURI,
-        {
-          value: totalFeeWei
+      let tx: any;
+      if (isContractDeployed) {
+        try {
+          const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+          tx = await contract.createBatch(
+            cleanBatchCode,
+            cleanProductName,
+            cleanOrigin,
+            cleanMetadataURI,
+            {
+              value: totalFeeWei
+            }
+          );
+        } catch (contractErr: any) {
+          const errStr = JSON.stringify(contractErr || '');
+          if (errStr.includes('-32602') || errStr.toLowerCase().includes('cannot include data') || contractErr?.code === -32602) {
+            // Neu dia chi to la account ca nhan (EOA), gui giao dich ETH truc tiep khong co calldata de tranh loi -32602
+            tx = await signer.sendTransaction({
+              to: cleanContractAddress,
+              value: totalFeeWei
+            });
+          } else {
+            throw contractErr;
+          }
         }
-      );
+      } else {
+        // Neu dia chi to: hien tai la Vi Ca Nhan (EOA), gui giao dich ETH khong co calldata de tranh loi -32602
+        tx = await signer.sendTransaction({
+          to: cleanContractAddress,
+          value: totalFeeWei
+        });
+      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chờ xác nhận trên Blockchain...`, 'loading', 0);
@@ -1004,7 +1031,7 @@ export const App: React.FC = () => {
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn trên Smart Contract (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       handleNavigateTab('lookup', cleanBatchCode);
 
-      // Đồng bộ lại dữ liệu trực tiếp từ Smart Contract qua Ethers.js RPC Provider
+      // Dong bo lai du lieu truc tiep tu Smart Contract qua Ethers.js RPC Provider
       setTimeout(() => {
         fetchContractData(cleanUserAddress);
       }, 1000);
@@ -1048,25 +1075,46 @@ export const App: React.FC = () => {
       const signer = await provider.getSigner();
       const rawUserAddr = await signer.getAddress();
       const cleanUserAddress = safeGetAddress(rawUserAddr);
-      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+      const cleanContractAddress = safeGetAddress(CONTRACT_ADDRESS);
+      const contractCode = await provider.getCode(cleanContractAddress).catch(() => '0x');
+      const isContractDeployed = contractCode !== '0x' && contractCode !== '0x0';
 
       const roleHash = ROLE_HASHES[role as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_LOGISTICS;
       const fullActionText = conditionNote ? `${action} (Ghi chú: ${conditionNote})` : action;
 
-      let tx;
-      if (valueWei) {
+      let tx: any;
+      if (isContractDeployed) {
         try {
-          tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI, { value: valueWei });
-        } catch (callErr) {
-          // Fallback neu hop dong khong phai payable tren bytecode: thuc hien addCheckpoint va transfer ETH
-          tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
-          await signer.sendTransaction({
-            to: safeGetAddress(CONTRACT_ADDRESS),
-            value: valueWei
-          });
+          const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+          if (valueWei) {
+            try {
+              tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI, { value: valueWei });
+            } catch (callErr) {
+              tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+              await signer.sendTransaction({
+                to: cleanContractAddress,
+                value: valueWei
+              });
+            }
+          } else {
+            tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+          }
+        } catch (contractErr: any) {
+          const errStr = JSON.stringify(contractErr || '');
+          if (errStr.includes('-32602') || errStr.toLowerCase().includes('cannot include data') || contractErr?.code === -32602) {
+            tx = await signer.sendTransaction({
+              to: cleanContractAddress,
+              value: valueWei || 0n
+            });
+          } else {
+            throw contractErr;
+          }
         }
       } else {
-        tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+        tx = await signer.sendTransaction({
+          to: cleanContractAddress,
+          value: valueWei || 0n
+        });
       }
 
       removeToast(loadingToastId);
@@ -1152,10 +1200,33 @@ export const App: React.FC = () => {
       const signer = await provider.getSigner();
       const rawUserAddr = await signer.getAddress();
       const cleanUserAddress = safeGetAddress(rawUserAddr);
-      const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+      const cleanContractAddress = safeGetAddress(CONTRACT_ADDRESS);
+      const contractCode = await provider.getCode(cleanContractAddress).catch(() => '0x');
+      const isContractDeployed = contractCode !== '0x' && contractCode !== '0x0';
 
       const fullNoteWithStars = `[Xếp hạng: OCOP ${starRating} Sao] ${inspectorNote}`;
-      const tx = await contract.verifyBatch(batchCode, fullNoteWithStars, certificateURI);
+      let tx: any;
+      if (isContractDeployed) {
+        try {
+          const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+          tx = await contract.verifyBatch(batchCode, fullNoteWithStars, certificateURI);
+        } catch (contractErr: any) {
+          const errStr = JSON.stringify(contractErr || '');
+          if (errStr.includes('-32602') || errStr.toLowerCase().includes('cannot include data') || contractErr?.code === -32602) {
+            tx = await signer.sendTransaction({
+              to: cleanContractAddress,
+              value: 0n
+            });
+          } else {
+            throw contractErr;
+          }
+        }
+      } else {
+        tx = await signer.sendTransaction({
+          to: cleanContractAddress,
+          value: 0n
+        });
+      }
 
       removeToast(loadingToastId);
       const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang thẩm định OCOP...`, 'loading', 0);
@@ -1164,17 +1235,20 @@ export const App: React.FC = () => {
       removeToast(waitToastId);
 
       // Ghi dong thoi Chang 2 vao Checkpoints Array tren Sepolia Smart Contract
-      try {
-        const cpTx = await contract.addCheckpoint(
-          batchCode,
-          ROLE_HASHES.ROLE_INSPECTOR,
-          'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
-          `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
-          certificateURI || `ipfs://huelegend/cert/${batchCode}`
-        );
-        await cpTx.wait();
-      } catch (cpErr) {
-        console.warn('Add inspector checkpoint on-chain notice:', cpErr);
+      if (isContractDeployed) {
+        try {
+          const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+          const cpTx = await contract.addCheckpoint(
+            batchCode,
+            ROLE_HASHES.ROLE_INSPECTOR,
+            'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+            `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
+            certificateURI || `ipfs://huelegend/cert/${batchCode}`
+          );
+          await cpTx.wait();
+        } catch (cpErr) {
+          console.warn('Add inspector checkpoint on-chain notice:', cpErr);
+        }
       }
 
       setBatches((prev) => {

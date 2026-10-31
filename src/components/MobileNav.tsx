@@ -91,7 +91,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       return ['overview', 'lookup', 'store', 'checkpoint'].includes(item.id);
     }
     if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
-      return ['overview', 'lookup', 'store', 'create-batch', 'checkpoint'].includes(item.id);
+      // Co so san xuat chi hien thi: Tong quan, Tra cuu, Cua hang, Tao lo hang (An van chuyen)
+      return ['overview', 'lookup', 'store', 'create-batch'].includes(item.id);
     }
     if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
       return ['overview', 'lookup', 'store', 'checkpoint', 'retailer'].includes(item.id);
@@ -106,13 +107,19 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     return true;
   });
 
-  // Top 4 tab truy cap nhanh cho thanh bottom navigation mobile
-  const quickTabs = [
+  // Top tab truy cap nhanh cho thanh bottom navigation mobile theo vai tro
+  const allQuickTabs = [
     { id: 'overview', label: 'Tổng Quan', icon: LayoutDashboard },
     { id: 'lookup', label: 'Tra Cứu', icon: QrCode },
+    { id: 'store', label: 'Cửa Hàng', icon: Store },
     { id: 'create-batch', label: 'Tạo Lô', icon: PlusCircle },
     { id: 'checkpoint', label: 'Vận Chuyển', icon: Truck },
+    { id: 'retailer', label: 'Niêm Yết', icon: Tag },
   ];
+
+  const quickTabs = allQuickTabs
+    .filter((tab) => filteredNavItems.some((item) => item.id === tab.id))
+    .slice(0, 4);
 
   const handleSelectTab = (tabId: string) => {
     onTabChange(tabId);
