@@ -173,10 +173,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
             <span>Danh Sách Đã Kiểm Định OCOP ({verifiedBatches.length})</span>
           </button>
         </div>
-
-        <div className="text-xs text-[#5E7166] font-medium hidden sm:block">
-          Vai trò: <strong className="text-[#264939]">Kiểm Định Viên OCOP (ROLE_INSPECTOR)</strong>
-        </div>
       </div>
 
       {/* Unconnected Wallet Warning */}
@@ -190,7 +186,7 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
               Yêu Cầu Kết Nối Ví Để Thẩm Định OCOP
             </h3>
             <p className="text-xs text-[#5E7166] leading-relaxed">
-              Vui lòng kết nối ví MetaMask có quyền Kiểm Định Viên OCOP (ROLE_INSPECTOR) để thực hiện thẩm định & quản lý danh sách chứng nhận On-Chain.
+              Vui lòng kết nối ví MetaMask có quyền Kiểm Định Viên OCOP để thực hiện thẩm định & quản lý danh sách chứng nhận On-Chain.
             </p>
           </div>
           {onConnectWallet && (
@@ -222,23 +218,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                   </p>
                 </div>
               </div>
-              <span className="text-[11px] font-mono font-bold px-2.5 py-1 rounded-full bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
-                ROLE_INSPECTOR
-              </span>
-            </div>
-
-            {/* Fee Paid Status Banner */}
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-[#E6E1D7] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                <div>
-                  <span className="font-bold text-[#1A2820] block">Phí Thẩm Định Gộp On-Chain:</span>
-                  <span className="text-[11px] text-[#5E7166]">Đã được Cơ sở sản xuất chi trả khi khởi tạo lô (0.002 ETH)</span>
-                </div>
-              </div>
-              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[11px] border border-emerald-200 shrink-0 text-center">
-                0.002 ETH Đã Thu
-              </span>
             </div>
 
             <form onSubmit={handleVerify} className="space-y-5 font-sans">
@@ -315,14 +294,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                   placeholder="Nhập ghi chú thẩm định (Ví dụ: Sản phẩm đạt chuẩn an toàn vệ sinh thực phẩm, quy trình sản xuất truyền thống Cố Đô Huế đạt tiêu chuẩn OCOP 4 sao tỉnh Thừa Thiên Huế...)"
                   className="w-full px-4 py-3 rounded-2xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939] bg-white placeholder:text-[#8A9D92]"
                 />
-              </div>
-
-              {/* Gas Note */}
-              <div className="text-[11px] text-[#5E7166] bg-[#FAF9F5] p-3 rounded-2xl border border-[#EDE9E0] flex items-center gap-2">
-                <Coins className="w-4 h-4 text-[#C29B38] shrink-0" />
-                <span>
-                  ⚡ <strong>Lưu ý Kiểm Định Viên:</strong> Thao tác ký duyệt OCOP <strong>KHÔNG MẤT PHÍ THẨM ĐỊNH (0 ETH)</strong>. Bạn chỉ cần trả một lượng nhỏ gas Sepolia để ghi nhận chữ ký lên Smart Contract.
-                </span>
               </div>
 
               {/* Submit Button */}
@@ -548,9 +519,6 @@ export const InspectorTab: React.FC<InspectorTabProps> = ({
                               <span className="inline-flex items-center gap-1 bg-[#264939] text-amber-300 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
                                 <Star className="w-3 h-3 fill-amber-300 text-amber-300" />
                                 <span>OCOP {batch.starRating || '4'} SAO</span>
-                              </span>
-                              <span className="text-[10px] text-[#5E7166] font-medium">
-                                ROLE_INSPECTOR
                               </span>
                             </div>
                           </div>
