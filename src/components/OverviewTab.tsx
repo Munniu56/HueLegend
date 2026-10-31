@@ -205,7 +205,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBatches.map((batch) => {
           const checkpointCount = batch.checkpoints?.length || 0;
-          const createdDate = new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN');
+          const displayProductionDate = batch.productionDate || new Date(batch.createdAt * 1000).toLocaleDateString('vi-VN');
 
           return (
             <div
@@ -251,7 +251,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
                   <div className="flex items-center gap-2">
                     <Calendar className="w-3.5 h-3.5 text-[#5E7166] shrink-0" />
-                    <span>Khởi tạo: {createdDate}</span>
+                    <span>Khởi tạo: {displayProductionDate}</span>
                   </div>
                 </div>
 
