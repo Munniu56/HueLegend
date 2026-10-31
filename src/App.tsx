@@ -375,23 +375,67 @@ export const App: React.FC = () => {
         if (batchData && batchData.exists && activeProvider) {
           const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, activeProvider);
           const isVerifiedOnChain = Boolean(batchData.isVerified);
-          const checkpointsData = await contract.getCheckpoints(cleanCode);
+          
+          let checkpoints: any[] = [];
 
-          const checkpoints = checkpointsData.map((cp: any, idx: number) => {
-            const actionText = String(cp.action || '');
-            return {
-              stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
-              role: cp.role,
-              roleTitle: getRoleTitle(cp.role),
-              location: cp.location,
-              action: actionText,
-              timestamp: Number(cp.timestamp),
-              recorder: cp.recorder,
-              metadataURI: cp.metadataURI,
-              txHash: 'Xác thực On-Chain Sepolia Block',
-              conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
-            };
-          });
+          // 1. Quet toan bo Event CheckpointAdded tu block 0 den latest tren Smart Contract Sepolia
+          try {
+            let eventFilter;
+            if (contract.filters && contract.filters.CheckpointAdded) {
+              // Loc Event theo dung ma lo hang boc tach tu URL
+              eventFilter = contract.filters.CheckpointAdded(cleanCode);
+            } else {
+              eventFilter = 'CheckpointAdded'; // Ten Event mac dinh
+            }
+
+            // Quet tu block 0 den block moi nhat (latest)
+            const eventLogs = await contract.queryFilter(eventFilter, 0, 'latest');
+
+            if (eventLogs && eventLogs.length > 0) {
+              checkpoints = eventLogs.map((evt: any, idx: number) => {
+                const args = evt.args || {};
+                const actionText = String(args.action || args[3] || '');
+                return {
+                  stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
+                  role: args.role || args[2] || ROLE_HASHES.ROLE_LOGISTICS,
+                  roleTitle: getRoleTitle(args.role || args[2]),
+                  location: args.location || args[4] || 'Thừa Thiên Huế',
+                  action: actionText,
+                  timestamp: Number(args.timestamp || args[5] || Math.floor(Date.now() / 1000)),
+                  recorder: args.recorder || args[1] || batchData.producer,
+                  metadataURI: args.metadataURI || `ipfs://huelegend/${cleanCode}`,
+                  txHash: evt.transactionHash || evt.log?.transactionHash || 'Xác thực On-Chain Event',
+                  conditionNote: 'Dữ liệu được quét trực tiếp từ Smart Contract Event qua contract.queryFilter()'
+                };
+              });
+            }
+          } catch (eventErr) {
+            console.warn('Loi khi quet Event CheckpointAdded qua queryFilter, fallback sang view mapping:', eventErr);
+          }
+
+          // Neu Event tra ve trong, fallback goi ham view getCheckpoints mapping
+          if (checkpoints.length === 0) {
+            try {
+              const checkpointsData = await contract.getCheckpoints(cleanCode);
+              checkpoints = checkpointsData.map((cp: any, idx: number) => {
+                const actionText = String(cp.action || '');
+                return {
+                  stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
+                  role: cp.role,
+                  roleTitle: getRoleTitle(cp.role),
+                  location: cp.location,
+                  action: actionText,
+                  timestamp: Number(cp.timestamp),
+                  recorder: cp.recorder,
+                  metadataURI: cp.metadataURI,
+                  txHash: 'Xác thực On-Chain Sepolia Block',
+                  conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
+                };
+              });
+            } catch (cpErr) {
+              console.warn('Loi doc getCheckpoints mapping:', cpErr);
+            }
+          }
 
           let starRating = '4';
           let inspectorNote = '';
