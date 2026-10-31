@@ -983,11 +983,14 @@ export const LookupTab: React.FC<LookupTabProps> = ({
                       </div>
                     </div>
 
-                    {/* Action Button */}
+                    {/* Action Button: Mo day du cac muc chi tiet & nhat ky 4 chang */}
                     <button
                       onClick={() => {
                         setActiveBatch(batch);
                         setSearchCode(batch.batchCode);
+                        if (onOpenJourneyModal) {
+                          onOpenJourneyModal(batch.batchCode);
+                        }
                       }}
                       className="w-full py-2.5 px-4 bg-[#264939] hover:bg-[#1c372b] text-white font-sans font-bold text-xs rounded-xl transition-all shadow-2xs flex items-center justify-center gap-2 cursor-pointer active:scale-98"
                     >
