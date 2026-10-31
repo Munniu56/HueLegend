@@ -75,24 +75,28 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchRoleQuery, setSearchRoleQuery] = useState('');
 
-  // Dem so lo hang da kiem dinh nhung CHUA duoc Admin tra phi tham dinh (0.002 ETH/lo)
-  const unpaidInspectorBatches = Object.values(batches).filter(
-    (b) => b.isVerified && !b.adminPaidInspectorFee
-  );
-  const totalInspectorFeeEth = (unpaidInspectorBatches.length * 0.002).toFixed(3);
+  // Cong cu dem so kiem dinh OCOP va so chang van chuyen
+  const batchArray = Object.values(batches);
 
-  // Dem so lo hang da co chang van chuyen nhung CHUA duoc Admin tra phi van chuyen (0.002 ETH/chang)
-  const unpaidLogisticsBatches = Object.values(batches).filter((b) => {
-    const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
+  // 1. Dem kiem dinh OCOP
+  const totalVerifiedInspectorBatches = batchArray.filter((b) => b.isVerified);
+  const unpaidInspectorBatches = batchArray.filter((b) => b.isVerified && !b.adminPaidInspectorFee);
+  const paidInspectorBatchesCount = totalVerifiedInspectorBatches.length - unpaidInspectorBatches.length;
+  const totalInspectorFeeEth = (unpaidInspectorBatches.length * 0.002).toFixed(4);
+
+  // 2. Dem chang van chuyen
+  const allLogisticsBatches = batchArray.filter((b) => {
+    return b.checkpoints && b.checkpoints.some(
       (c) =>
         c.role === 'ROLE_LOGISTICS' ||
         c.role === 'LOGISTICS' ||
         c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
         (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
     );
-    return hasLogisticsCp && !b.adminPaidLogisticsFee;
   });
-  const totalLogisticsFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(3);
+  const unpaidLogisticsBatches = allLogisticsBatches.filter((b) => !b.adminPaidLogisticsFee);
+  const paidLogisticsBatchesCount = allLogisticsBatches.length - unpaidLogisticsBatches.length;
+  const totalLogisticsFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(4);
 
   const handlePayInspector = async () => {
     if (!onPayInspectorFees) return;
@@ -593,25 +597,54 @@ export const AdminTab: React.FC<AdminTabProps> = ({
             </form>
 
             {/* Sub-section: Chi Trả Phí Kiểm Định Viên & Phí Vận Chuyển Từ Quỹ Treasury Smart Contract */}
-            <div className="pt-3 border-t border-[#EDE9E0] space-y-3 font-sans">
-              <span className="block text-xs font-extrabold text-[#264939] uppercase tracking-wider">
-                CHI TRẢ PHÍ TỪ QUỸ TREASURY SMART CONTRACT
-              </span>
+            <div className="pt-3 border-t border-[#EDE9E0] space-y-4 font-sans">
+              <div className="flex items-center justify-between">
+                <span className="block text-xs font-extrabold text-[#264939] uppercase tracking-wider">
+                  CÔNG CỤ ĐẾM & CHI TRẢ PHÍ SỐ LÔ / CHẶNG THÀNH CÔNG
+                </span>
+                <span className="text-[10px] font-mono font-bold text-[#8A9D92] bg-[#FAF9F5] px-2 py-0.5 rounded border border-[#E6E1D7]">
+                  0.002 ETH / Lượt
+                </span>
+              </div>
 
               {/* Button 1: Trả phí Kiểm định viên */}
-              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2">
+              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-[#264939] flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
                     <span>Trả Phí Kiểm Định Viên (0.002 ETH/lô)</span>
                   </span>
-                  <span className="font-mono font-black text-[#264939] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <span className={`font-mono font-black text-xs px-2.5 py-0.5 rounded border ${
+                    unpaidInspectorBatches.length > 0
+                      ? 'text-[#264939] bg-emerald-50 border-emerald-200'
+                      : 'text-gray-500 bg-gray-100 border-gray-200'
+                  }`}>
                     {totalInspectorFeeEth} ETH
                   </span>
                 </div>
+
+                {/* Cong cu dem kiem dinh OCOP */}
+                <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                  <div className="text-center border-r border-gray-100 pr-1">
+                    <span className="text-gray-400 block text-[10px]">ĐÃ THẨM ĐỊNH</span>
+                    <span className="font-bold text-[#1A2820] text-xs">{totalVerifiedInspectorBatches.length} lô</span>
+                  </div>
+                  <div className="text-center border-r border-gray-100 px-1">
+                    <span className="text-emerald-700 font-bold block text-[10px]">CHỜ THANH TOÁN</span>
+                    <span className="font-black text-amber-600 text-xs">{unpaidInspectorBatches.length} lô</span>
+                  </div>
+                  <div className="text-center pl-1">
+                    <span className="text-gray-400 block text-[10px]">ĐÃ THANH TOÁN</span>
+                    <span className="font-bold text-emerald-800 text-xs">{paidInspectorBatchesCount} lô</span>
+                  </div>
+                </div>
+
                 <p className="text-[11px] text-[#5E7166] leading-relaxed">
-                  Trích từ Quỹ Treasury Smart Contract chuyển cho Kiểm Định Viên OCOP ({unpaidInspectorBatches.length} lô kiểm định chưa trả phí).
+                  {unpaidInspectorBatches.length > 0
+                    ? `Chuyển đúng ${totalInspectorFeeEth} ETH cho ${unpaidInspectorBatches.length} lô kiểm định OCOP thành công chưa trả phí.`
+                    : 'Tất cả các lô kiểm định OCOP thành công đều đã được thanh toán hoàn tất.'}
                 </p>
+
                 <button
                   type="button"
                   onClick={handlePayInspector}
@@ -619,24 +652,52 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl bg-[#264939] text-white font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Coins className="w-4 h-4 text-[#C29B38]" />
-                  <span>Trả Phí Kiểm Định Viên ({totalInspectorFeeEth} ETH)</span>
+                  <span>
+                    {unpaidInspectorBatches.length > 0
+                      ? `Trả Phí Kiểm Định Viên (${unpaidInspectorBatches.length} lô - ${totalInspectorFeeEth} ETH)`
+                      : 'Đã Thanh Toán Đủ (0 Lô Chờ Trả)'}
+                  </span>
                 </button>
               </div>
 
               {/* Button 2: Trả phí Vận Chuyển */}
-              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2">
+              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-[#264939] flex items-center gap-1.5">
                     <RefreshCw className="w-4 h-4 text-[#C29B38]" />
                     <span>Trả Phí Vận Chuyển (0.002 ETH/chặng)</span>
                   </span>
-                  <span className="font-mono font-black text-[#264939] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <span className={`font-mono font-black text-xs px-2.5 py-0.5 rounded border ${
+                    unpaidLogisticsBatches.length > 0
+                      ? 'text-[#264939] bg-emerald-50 border-emerald-200'
+                      : 'text-gray-500 bg-gray-100 border-gray-200'
+                  }`}>
                     {totalLogisticsFeeEth} ETH
                   </span>
                 </div>
+
+                {/* Cong cu dem chặng van chuyen */}
+                <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                  <div className="text-center border-r border-gray-100 pr-1">
+                    <span className="text-gray-400 block text-[10px]">TỔNG CHẶNG</span>
+                    <span className="font-bold text-[#1A2820] text-xs">{allLogisticsBatches.length} chặng</span>
+                  </div>
+                  <div className="text-center border-r border-gray-100 px-1">
+                    <span className="text-emerald-700 font-bold block text-[10px]">CHỜ THANH TOÁN</span>
+                    <span className="font-black text-amber-600 text-xs">{unpaidLogisticsBatches.length} chặng</span>
+                  </div>
+                  <div className="text-center pl-1">
+                    <span className="text-gray-400 block text-[10px]">ĐÃ THANH TOÁN</span>
+                    <span className="font-bold text-emerald-800 text-xs">{paidLogisticsBatchesCount} chặng</span>
+                  </div>
+                </div>
+
                 <p className="text-[11px] text-[#5E7166] leading-relaxed">
-                  Trích từ Quỹ Treasury Smart Contract chuyển cho Đơn Vị Vận Chuyển ({unpaidLogisticsBatches.length} chặng vận chuyển chưa trả phí).
+                  {unpaidLogisticsBatches.length > 0
+                    ? `Chuyển đúng ${totalLogisticsFeeEth} ETH cho ${unpaidLogisticsBatches.length} chặng vận chuyển thành công chưa trả phí.`
+                    : 'Tất cả các chặng vận chuyển thành công đều đã được thanh toán hoàn tất.'}
                 </p>
+
                 <button
                   type="button"
                   onClick={handlePayLogistics}
@@ -644,7 +705,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl bg-[#C29B38] text-white font-bold text-xs hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Wallet className="w-4 h-4 text-white" />
-                  <span>Trả Phí Vận Chuyển ({totalLogisticsFeeEth} ETH)</span>
+                  <span>
+                    {unpaidLogisticsBatches.length > 0
+                      ? `Trả Phí Vận Chuyển (${unpaidLogisticsBatches.length} chặng - ${totalLogisticsFeeEth} ETH)`
+                      : 'Đã Thanh Toán Đủ (0 Chặng Chờ Trả)'}
+                  </span>
                 </button>
               </div>
             </div>
