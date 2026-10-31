@@ -33,7 +33,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   onWithdrawEarnings,
 }) => {
   const batchList = Object.values(batches);
-  // Loc danh sach cac lo hang da qua kiem dinh OCOP (Chang 2) VA da duoc don vi van chuyen ghi nhat ky (Chang 3)
+  // Loc danh sach cac lo hang da qua kiem dinh OCOP (Chang 2) VA da duoc don vi van chuyen ghi nhat ky (Chang 3) CHUA DUOC NIÊM YẾT (Chang 4)
   const transportBatches = batchList.filter((b) => {
     if (!b.isVerified) return false;
     const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
@@ -42,7 +42,22 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
         (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
     );
-    return Boolean(hasLogisticsCp);
+    if (!hasLogisticsCp) return false;
+
+    // Kiem tra lo hang da duoc niem yet chua -> Neu da niem yet thi KHONG HIÊN trong dropdown nua
+    const isAlreadyListedInState = Boolean(listedPrices[b.batchCode]);
+    const isAlreadyListedInBatch = Boolean(
+      b.isListed ||
+      b.listingPriceEth ||
+      (b.checkpoints && b.checkpoints.some(
+        (c) =>
+          c.role === 'ROLE_RETAILER' ||
+          c.role === 'RETAILER' ||
+          (c.stepName && (c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('bán lẻ')))
+      ))
+    );
+
+    return !isAlreadyListedInState && !isAlreadyListedInBatch;
   });
 
   const [selectedBatchCode, setSelectedBatchCode] = useState('');
