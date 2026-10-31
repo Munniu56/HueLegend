@@ -380,6 +380,7 @@ export const App: React.FC = () => {
         const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
         const rpcEndpoints = [
           RPC_URL,
+          'https://publicnode.com',
           'https://ethereum-sepolia-rpc.publicnode.com',
           'https://rpc.sepolia.org',
           'https://rpc2.sepolia.org'
@@ -592,10 +593,14 @@ export const App: React.FC = () => {
             }
             return singleBatch;
           });
+        } else {
+          // Neu RPC chua phan hoi data moi, van chon ma lo hang de render timeline cuc bo
+          setSelectedLookupBatch(maLoHang);
         }
       } catch (err: any) {
         console.warn('Loi khi doc Blockchain ngam cho QR URL:', err);
         setBlockchainErrorMessage(err?.message || 'Lỗi kết nối mạng Blockchain');
+        setSelectedLookupBatch(maLoHang);
       } finally {
         // DAM BAO TUYET DOI: Du loi gi cung phai tat vong xoay Loading de hien giao dien
         if (!isSilentUpdate) {
