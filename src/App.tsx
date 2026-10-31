@@ -337,11 +337,11 @@ export const App: React.FC = () => {
     setActiveTab('lookup');
     setSelectedLookupBatch(cleanCode);
 
-    // Ham truy van du lieu tu Smart Contract Sepolia qua RPC Provider bang Safe-Catch
-    const fetchBatchFromRpc = async (isSilentUpdate = false) => {
+    // 2. Ham layLichSuTuEventContract: Truy van du lieu tu Smart Contract Sepolia qua queryFilter qua RPC Provider
+    const layLichSuTuEventContract = async (maLoHang: string, isSilentUpdate = false) => {
       if (!isSilentUpdate) {
         setIsQrLoading(true);
-        setQrLoadingBatchCode(cleanCode);
+        setQrLoadingBatchCode(maLoHang);
       }
       setBlockchainErrorMessage(''); // Xoa loi cu truoc khi goi
 
@@ -361,7 +361,7 @@ export const App: React.FC = () => {
           try {
             const tempProvider = createSafeJsonRpcProvider(url);
             const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
-            const data = await contract.getBatch(cleanCode);
+            const data = await contract.getBatch(maLoHang);
             if (data && data.exists) {
               activeProvider = tempProvider;
               batchData = data;
@@ -378,12 +378,12 @@ export const App: React.FC = () => {
           
           let checkpoints: any[] = [];
 
-          // 1. Quet toan bo Event CheckpointAdded tu block 0 den latest tren Smart Contract Sepolia
+          // 3. Quet toan bo Event CheckpointAdded tu block 0 den latest tren Smart Contract Sepolia bang queryFilter
           try {
             let eventFilter;
             if (contract.filters && contract.filters.CheckpointAdded) {
               // Loc Event theo dung ma lo hang boc tach tu URL
-              eventFilter = contract.filters.CheckpointAdded(cleanCode);
+              eventFilter = contract.filters.CheckpointAdded(maLoHang);
             } else {
               eventFilter = 'CheckpointAdded'; // Ten Event mac dinh
             }
@@ -403,7 +403,7 @@ export const App: React.FC = () => {
                   action: actionText,
                   timestamp: Number(args.timestamp || args[5] || Math.floor(Date.now() / 1000)),
                   recorder: args.recorder || args[1] || batchData.producer,
-                  metadataURI: args.metadataURI || `ipfs://huelegend/${cleanCode}`,
+                  metadataURI: args.metadataURI || `ipfs://huelegend/${maLoHang}`,
                   txHash: evt.transactionHash || evt.log?.transactionHash || 'Xác thực On-Chain Event',
                   conditionNote: 'Dữ liệu được quét trực tiếp từ Smart Contract Event qua contract.queryFilter()'
                 };
@@ -416,7 +416,7 @@ export const App: React.FC = () => {
           // Neu Event tra ve trong, fallback goi ham view getCheckpoints mapping
           if (checkpoints.length === 0) {
             try {
-              const checkpointsData = await contract.getCheckpoints(cleanCode);
+              const checkpointsData = await contract.getCheckpoints(maLoHang);
               checkpoints = checkpointsData.map((cp: any, idx: number) => {
                 const actionText = String(cp.action || '');
                 return {
@@ -476,7 +476,7 @@ export const App: React.FC = () => {
             ocopStandard: isVerifiedOnChain
               ? `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`
               : 'Chưa Thẩm Định OCOP',
-            certificationNo: `OCOP-HUE-2026-${cleanCode.slice(-3)}`,
+            certificationNo: `OCOP-HUE-2026-${maLoHang.slice(-3)}`,
             quantity: onChainQuantity,
             currentStage:
               checkpoints.length > 0
@@ -484,15 +484,15 @@ export const App: React.FC = () => {
                 : isVerifiedOnChain
                 ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
                 : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
-            certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${cleanCode}`,
+            certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${maLoHang}`,
             txHash: 'Xác nhận từ Smart Contract',
             inspectionFeePaid: '0.002 ETH',
             checkpoints
           };
 
           // Cap nhat state de giao dien render ra Timeline lich su
-          setBatches((prev) => ({ ...prev, [cleanCode]: singleBatch }));
-          setSelectedLookupBatch(cleanCode);
+          setBatches((prev) => ({ ...prev, [maLoHang]: singleBatch }));
+          setSelectedLookupBatch(maLoHang);
           setJourneyBatch(singleBatch);
         }
       } catch (err: any) {
@@ -506,19 +506,19 @@ export const App: React.FC = () => {
       }
     };
 
-    // Goi ngay lan dau khi trang load
-    fetchBatchFromRpc(false);
+    // Goi ngay layLichSuTuEventContract lan dau khi trang load
+    layLichSuTuEventContract(cleanCode, false);
 
     // Real-time Polling: Tu dong cap nhat ngam du lieu moi tu Blockchain moi 5 giay
     const pollInterval = setInterval(() => {
-      fetchBatchFromRpc(true);
+      layLichSuTuEventContract(cleanCode, true);
     }, 5000);
 
     // Xoa bo Interval khi nguoi dung thoat trang hoac quet QR khac de tranh memory leak
     return () => {
       clearInterval(pollInterval);
     };
-  }, [urlBatchCode]);
+  }, [urlBatchCode]); // 4. Dat urlBatchCode vao Mang Phu Thuoc (Dependency Array)
 
   // Helper phat tin hieu dong bo du lieu thoi gian thuc giua cac phien Desktop & Mobile
   const notifyDataSync = useCallback(() => {
