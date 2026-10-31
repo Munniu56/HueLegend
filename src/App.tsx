@@ -47,11 +47,49 @@ import {
 import { isSupabaseConfigured } from './lib/supabase';
 
 export const App: React.FC = () => {
-  // Global State - Khoi tao danh sach lo hang tu persisted json
-  const [batches, setBatches] = useState<Record<string, Batch>>(
-    () => (persistedCodeBatches as Record<string, Batch>) || {}
-  );
-  const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
+  // Global State - Khoi tao danh sach lo hang tu persisted json va LocalStorage
+  const [batches, setBatches] = useState<Record<string, Batch>>(() => {
+    const staticBatches = (persistedCodeBatches as Record<string, Batch>) || {};
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('huelegend_local_batches_v2');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return { ...staticBatches, ...parsed };
+        }
+      }
+    } catch (e) {
+      console.warn('Loi doc huelegend_local_batches_v2:', e);
+    }
+    return staticBatches;
+  });
+
+  const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('huelegend_local_wallets_v2');
+        if (saved) return JSON.parse(saved);
+      }
+    } catch (e) {}
+    return [];
+  });
+
+  // Luu thay doi cua batches va grantedWallets vao LocalStorage lam ban sao du phong
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && batches && Object.keys(batches).length > 0) {
+        localStorage.setItem('huelegend_local_batches_v2', JSON.stringify(batches));
+      }
+    } catch (e) {}
+  }, [batches]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && grantedWallets && grantedWallets.length > 0) {
+        localStorage.setItem('huelegend_local_wallets_v2', JSON.stringify(grantedWallets));
+      }
+    } catch (e) {}
+  }, [grantedWallets]);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
   const [qrStampBatch, setQrStampBatch] = useState<Batch | null>(null);
@@ -1233,24 +1271,40 @@ export const App: React.FC = () => {
         conditionNote: conditionNote || 'Ghi chặng mới thành công.'
       };
 
-      // 1. Cap nhat React State va luu ban sao dong thoi vao LocalStorage cuc bo
-      setBatches((prev) => {
-        const target = prev[batchCode];
-        if (!target) return prev;
+      // 1. Cap nhat React State va luu va dong bo toan bo du lieu lo hang vao Supabase + LocalStorage
+      const targetBatch = batches[batchCode];
+      let updatedBatchObj: Batch | null = null;
 
+      if (targetBatch) {
         const catMatch = fullActionText.match(/Danh mục:\s*([^—\n\]]+)/i) || (conditionNote && conditionNote.match(/Danh mục:\s*([^—\n\]]+)/i));
         const extractedCategory = catMatch ? catMatch[1].trim() : undefined;
 
-        const updatedBatch = {
-          ...target,
+        updatedBatchObj = {
+          ...targetBatch,
           currentStage: action,
-          category: extractedCategory || target.category || SPECIALTY_CATEGORIES[0],
-          isListed: isListingAction ? true : target.isListed,
-          storeName: isListingAction && location ? location : target.storeName,
-          checkpoints: [...target.checkpoints, newCheckpoint]
+          category: extractedCategory || targetBatch.category || SPECIALTY_CATEGORIES[0],
+          isListed: isListingAction ? true : targetBatch.isListed,
+          storeName: isListingAction && location ? location : targetBatch.storeName,
+          checkpoints: [...(targetBatch.checkpoints || []), newCheckpoint]
         };
-        return { ...prev, [batchCode]: updatedBatch };
-      });
+
+        setBatches((prev) => ({ ...prev, [batchCode]: updatedBatchObj! }));
+      } else {
+        setBatches((prev) => {
+          const t = prev[batchCode];
+          if (!t) return prev;
+          return {
+            ...prev,
+            [batchCode]: {
+              ...t,
+              currentStage: action,
+              isListed: isListingAction ? true : t.isListed,
+              storeName: isListingAction && location ? location : t.storeName,
+              checkpoints: [...(t.checkpoints || []), newCheckpoint]
+            }
+          };
+        });
+      }
 
       setSelectedLookupBatch(batchCode);
       if (journeyBatch && journeyBatch.batchCode === batchCode) {
@@ -1261,13 +1315,22 @@ export const App: React.FC = () => {
         } : null);
       }
 
-      // Luu checkpoint vao Supabase database va phat Realtime
-      const cpDbSaved = await addCheckpointToSupabase(batchCode, newCheckpoint);
-      if (!cpDbSaved) {
-        enqueueOfflineTask('ADD_CHECKPOINT', { batchCode, checkpoint: newCheckpoint }, tx.hash, batchCode);
-        if (isSupabaseConfigured) {
-          addToast('Lưu Ý Đồng Bộ', `Chặng đã ghi On-Chain (${tx.hash.slice(0, 8)}...) nhưng chưa lưu vào Supabase. Đã đưa vào hàng đợi tự động thử lại.`, 'warning');
+      // Luu va dong bo toan bo lo hang va checkpoint vao Supabase database
+      let dbSaved = false;
+      if (updatedBatchObj) {
+        dbSaved = await saveBatchToSupabase(updatedBatchObj);
+        if (!dbSaved) {
+          enqueueOfflineTask('SAVE_BATCH', updatedBatchObj, tx.hash, batchCode);
         }
+      } else {
+        dbSaved = await addCheckpointToSupabase(batchCode, newCheckpoint);
+        if (!dbSaved) {
+          enqueueOfflineTask('ADD_CHECKPOINT', { batchCode, checkpoint: newCheckpoint }, tx.hash, batchCode);
+        }
+      }
+
+      if (!dbSaved && isSupabaseConfigured) {
+        addToast('Lưu Ý Đồng Bộ', `Chặng đã ghi On-Chain (${tx.hash.slice(0, 8)}...) nhưng chưa lưu vào Supabase. Đã đưa vào hàng đợi tự động thử lại.`, 'warning');
       }
       notifyDataSync();
 
