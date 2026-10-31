@@ -101,10 +101,51 @@ export const App: React.FC = () => {
   const [mobileMetaMaskDeepLink, setMobileMetaMaskDeepLink] = useState('');
   const [modalClickPos, setModalClickPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Web3 Connection State
-  const [currentAccount, setCurrentAccount] = useState<string | null>(null);
+  // Web3 Connection State - Doc va duy tri phien ket noi vi tu LocalStorage khi F5 / reload
+  const [currentAccount, setCurrentAccount] = useState<string | null>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedAccount = localStorage.getItem('huelegend_connected_account');
+        if (savedAccount) return savedAccount;
+      }
+    } catch (e) {}
+    return null;
+  });
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [simulatedRole, setSimulatedRole] = useState('ALL');
+  const [simulatedRole, setSimulatedRole] = useState<string>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const savedRole = localStorage.getItem('huelegend_connected_role');
+        if (savedRole) return savedRole;
+      }
+    } catch (e) {}
+    return 'ALL';
+  });
+
+  // Luu phien ket noi vi vao LocalStorage khi dang nhap va xoa khi bấm Ngắt kết nối
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (currentAccount) {
+          localStorage.setItem('huelegend_connected_account', currentAccount);
+        } else {
+          localStorage.removeItem('huelegend_connected_account');
+        }
+      }
+    } catch (e) {}
+  }, [currentAccount]);
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        if (simulatedRole && simulatedRole !== 'ALL') {
+          localStorage.setItem('huelegend_connected_role', simulatedRole);
+        } else {
+          localStorage.removeItem('huelegend_connected_role');
+        }
+      }
+    } catch (e) {}
+  }, [simulatedRole]);
   const [isCurrentAccountAdmin, setIsCurrentAccountAdmin] = useState(true);
   const [isCurrentAccountRetailer, setIsCurrentAccountRetailer] = useState(true);
   const [isCurrentAccountInspector, setIsCurrentAccountInspector] = useState(true);
@@ -907,6 +948,13 @@ export const App: React.FC = () => {
     setIsCurrentAccountInspector(true);
     setIsCurrentAccountLogistics(true);
     setIsWalletDetailsModalOpen(false);
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('huelegend_connected_account');
+        localStorage.removeItem('huelegend_connected_role');
+      }
+    } catch (e) {}
 
     addToast('Đã Đăng Xuất', 'Đã quay lại giao diện ban đầu với đầy đủ tính năng.', 'info');
     fetchContractData();
