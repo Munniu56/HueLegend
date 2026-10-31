@@ -709,12 +709,32 @@ export const App: React.FC = () => {
           setCurrentAccount(savedAccount || null);
         }
 
-        // 7. Dong bo cloud tu /api/sync neu co du lieu moi tu thiet bi khac (Desktop -> Mobile)
+        // 7. Dong bo cloud tu /api/sync de cap nhat lo hang (batches) va vi cap quyen (grantedWallets) tu May Tinh sang Dien Thoai
         try {
           const res = await fetch('/api/sync?code=huelegend_global_sync');
           if (res.ok) {
             const json = await res.json();
             if (json?.data) {
+              if (json.data.batches && typeof json.data.batches === 'object' && Object.keys(json.data.batches).length > 0) {
+                setBatches((prev) => {
+                  let isDifferent = false;
+                  const merged = { ...prev };
+                  for (const [code, bData] of Object.entries(json.data.batches as Record<string, Batch>)) {
+                    if (!prev[code] || JSON.stringify(prev[code]) !== JSON.stringify(bData)) {
+                      merged[code] = bData;
+                      isDifferent = true;
+                    }
+                  }
+                  if (isDifferent) {
+                    try {
+                      localStorage.setItem('hl_local_batches', JSON.stringify(merged));
+                    } catch (e) {}
+                    return merged;
+                  }
+                  return prev;
+                });
+              }
+
               if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
                 setGrantedWallets((prev) => {
                   if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
