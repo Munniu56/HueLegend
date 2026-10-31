@@ -93,55 +93,38 @@ export const App: React.FC = () => {
     return 'Đơn Vị Tham Gia';
   };
 
-  // Fetch real Smart Contract data from Sepolia Testnet with Guaranteed Local Data Retention
+  // Truy vấn dữ liệu trực tiếp từ Smart Contract Sepolia thông qua Ethers.js RPC Provider (Không sử dụng LocalStorage)
   const fetchContractData = useCallback(async (accountAddr?: string) => {
-    // 1. Luon khoi phuc du lieu LocalStorage TRUOC TIEN ngay khi goi ham
-    let localBatches: Record<string, Batch> = {};
-    if (typeof window !== 'undefined') {
-      try {
-        const localBatchesStr = localStorage.getItem('hl_local_batches');
-        if (localBatchesStr) {
-          localBatches = JSON.parse(localBatchesStr);
-          if (Object.keys(localBatches).length > 0) {
-            setBatches(localBatches);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not parse local batches from localStorage:', e);
-      }
-    }
-
-    if (typeof window === 'undefined') {
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     setIsLoadingContract(true);
     try {
       const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
-      // Su dung BrowserProvider neu co window.ethereum, hoac JsonRpcProvider fallback cho Mobile
+
+      // Khởi tạo Ethers.js Provider: Ưu tiên BrowserProvider nếu kết nối ví, hoặc JsonRpcProvider Sepolia RPC
       const provider = (window as any).ethereum
         ? new ethers.BrowserProvider((window as any).ethereum)
-        : new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+        : new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
 
       const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, provider);
 
-      // Read real Smart Contract ETH balance from Sepolia Testnet
+      // 1. Truy vấn số dư ETH của Smart Contract từ Sepolia Testnet
       try {
         const balanceWei = await provider.getBalance(normalizedContractAddr);
         setContractBalanceEth(ethers.formatEther(balanceWei));
       } catch (err) {
-        console.warn('Could not read contract ETH balance:', err);
+        console.warn('Khong the lay so du ETH cua contract:', err);
       }
 
-      // Read Batch Creation Fee
+      // 2. Truy vấn phí khởi tạo lô hàng từ Smart Contract
       try {
         const feeWei = await contract.batchCreationFee();
         setBatchCreationFeeEth(ethers.formatEther(feeWei));
       } catch (err) {
-        console.warn('Could not read batchCreationFee:', err);
+        console.warn('Khong the lay phi tao lo hang:', err);
       }
 
-      // Check account roles if account connected
+      // 3. Kiểm tra vai trò và số tiền ký quỹ On-Chain
       const activeAccount = accountAddr || currentAccount;
       if (activeAccount) {
         const normalizedActiveAccount = safeGetAddress(activeAccount);
@@ -149,7 +132,7 @@ export const App: React.FC = () => {
           const stakeInfo = await contract.getStakeInfo(normalizedActiveAccount);
           setProducerStakeBalance(ethers.formatEther(stakeInfo.balance));
         } catch (err) {
-          console.warn('Could not read stake info:', err);
+          console.warn('Khong the lay stake info:', err);
         }
 
         try {
@@ -188,7 +171,7 @@ export const App: React.FC = () => {
           setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || isSpecifiedAdmin || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
           setIsCurrentAccountLogistics(isOwner || isAdmin || isLogistics || isSpecifiedAdmin || simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
         } catch (roleErr) {
-          console.warn('Could not check on-chain roles:', roleErr);
+          console.warn('Khong the kiem tra vai tro on-chain:', roleErr);
         }
       } else {
         setIsCurrentAccountAdmin(false);
@@ -197,12 +180,12 @@ export const App: React.FC = () => {
         setIsCurrentAccountLogistics(simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
       }
 
-      // Query total batches count
+      // 4. Truy vấn toàn bộ danh sách lô hàng trực tiếp từ Smart Contract qua Ethers.js
       let total = 0n;
       try {
         total = await contract.getTotalBatches();
       } catch (err) {
-        console.warn('Could not read totalBatches from contract getters:', err);
+        console.warn('Khong the lay totalBatches tu Smart Contract:', err);
       }
 
       const fetchedBatches: Record<string, Batch> = {};
@@ -213,53 +196,53 @@ export const App: React.FC = () => {
             const batchCode = await contract.getBatchCodeByIndex(i);
             const batchData = await contract.getBatch(batchCode);
             const isVerifiedOnChain = Boolean(batchData.isVerified);
-            const savedStarRating =
-              (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}')[batchCode]) || '4';
-            const savedInspectorNote =
-              (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}')[batchCode]) || '';
 
+            // Truy vấn mảng nhật ký chặng (checkpoints) trực tiếp từ Smart Contract
             const checkpointsData = await contract.getCheckpoints(batchCode);
 
-            const checkpoints = checkpointsData.map((cp: any, idx: number) => ({
-              stepName: `Chặng ${idx + 1}: ${cp.action.substring(0, 30)}...`,
-              role: cp.role,
-              roleTitle: getRoleTitle(cp.role),
-              location: cp.location,
-              action: cp.action,
-              timestamp: Number(cp.timestamp),
-              recorder: cp.recorder,
-              metadataURI: cp.metadataURI,
-              txHash: 'On-Chain Block Transaction',
-              conditionNote: 'Niêm phong Blockchain nguyên vẹn.'
-            }));
-
-            // Dam bao luon co Chang 2 trong Checkpoints neu batchData.isVerified === true
-            const hasInspectorCp = checkpoints.some(
-              (cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop'))
-            );
-
-            if (isVerifiedOnChain && !hasInspectorCp) {
-              const inspectorCheckpoint = {
-                stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
-                role: ROLE_HASHES.ROLE_INSPECTOR,
-                roleTitle: 'Kiểm Định Viên OCOP',
-                location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
-                action: `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${savedStarRating} Sao. Ghi chú: ${savedInspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
-                timestamp: Number(batchData.createdAt) + 300,
-                recorder: batchData.producer,
-                metadataURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
-                txHash: 'On-Chain Confirmed',
-                conditionNote: 'Đã xác thực chữ ký số Kiểm định viên OCOP on-chain Sepolia.'
+            const checkpoints = checkpointsData.map((cp: any, idx: number) => {
+              const actionText = String(cp.action || '');
+              return {
+                stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
+                role: cp.role,
+                roleTitle: getRoleTitle(cp.role),
+                location: cp.location,
+                action: actionText,
+                timestamp: Number(cp.timestamp),
+                recorder: cp.recorder,
+                metadataURI: cp.metadataURI,
+                txHash: 'Xác thực On-Chain Sepolia Block',
+                conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
               };
-              checkpoints.splice(1, 0, inspectorCheckpoint);
+            });
+
+            // Tách xếp hạng sao kiểm định OCOP từ nhật ký chặng
+            let starRating = '4';
+            let inspectorNote = '';
+            const inspectorCp = checkpoints.find((cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop')));
+            if (inspectorCp) {
+              const starMatch = inspectorCp.action.match(/(\d)\s*Sao/i);
+              if (starMatch && starMatch[1]) starRating = starMatch[1];
+              inspectorNote = inspectorCp.action;
             }
 
+            // Kiểm tra trạng thái niêm yết bán lẻ on-chain
             const isListedOnChain = checkpoints.some(
               (cp: any) =>
                 cp.role === ROLE_HASHES.ROLE_RETAILER ||
                 (cp.action && cp.action.toLowerCase().includes('niêm yết')) ||
                 (cp.action && cp.action.toLowerCase().includes('inretail'))
             );
+
+            // Trích xuất số lượng nhập kho/sản lượng từ nhật ký sản xuất ban đầu
+            let onChainQuantity = '';
+            if (checkpoints.length > 0) {
+              const cp1Action = checkpoints[0].action;
+              const qtyMatch = cp1Action.match(/Sản lượng:\s*([^—\n]+)/i);
+              if (qtyMatch && qtyMatch[1]) {
+                onChainQuantity = qtyMatch[1].trim();
+              }
+            }
 
             fetchedBatches[batchCode] = {
               batchCode: batchData.batchCode,
@@ -268,15 +251,15 @@ export const App: React.FC = () => {
               createdAt: Number(batchData.createdAt),
               producer: batchData.producer,
               isVerified: isVerifiedOnChain,
-              starRating: savedStarRating,
-              inspectorNote: savedInspectorNote,
+              starRating: isVerifiedOnChain ? starRating : '',
+              inspectorNote: isVerifiedOnChain ? inspectorNote : '',
               isListed: isListedOnChain,
               exists: batchData.exists,
               ocopStandard: isVerifiedOnChain
-                ? `Đạt Chuẩn OCOP ${savedStarRating} Sao Tỉnh Thừa Thiên Huế`
+                ? `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`
                 : 'Chưa Thẩm Định OCOP',
               certificationNo: `OCOP-HUE-2026-${batchCode.slice(-3)}`,
-              quantity: 'Sản lượng On-Chain',
+              quantity: onChainQuantity,
               currentStage:
                 checkpoints.length > 0
                   ? checkpoints[checkpoints.length - 1].action
@@ -284,68 +267,24 @@ export const App: React.FC = () => {
                   ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
                   : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
               certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${batchCode}`,
-              txHash: 'On-Chain Confirmed',
+              txHash: 'Xác nhận từ Smart Contract',
               inspectionFeePaid: '0.002 ETH',
               checkpoints
             };
           } catch (e) {
-            console.error(`Error reading batch index ${i}:`, e);
+            console.error(`Lỗi truy vấn lô hàng chỉ số ${i} từ Smart Contract:`, e);
           }
         }
       }
 
-      // Hop nhat du lieu local, current state va du lieu on-chain (KHONG BAO GIO XOA DU LIEU LOCAL)
-      setBatches((prevBatches) => {
-        let currentLocalStorage: Record<string, Batch> = {};
-        if (typeof window !== 'undefined') {
-          try {
-            const str = localStorage.getItem('hl_local_batches');
-            if (str) currentLocalStorage = JSON.parse(str);
-          } catch (e) {}
-        }
-
-        const baseBatches: Record<string, Batch> = {
-          ...(persistedCodeBatches as Record<string, Batch>),
-          ...prevBatches,
-          ...localBatches,
-          ...currentLocalStorage
-        };
-
-        const merged: Record<string, Batch> = { ...baseBatches };
-
-        Object.keys(fetchedBatches).forEach((code) => {
-          if (!merged[code]) {
-            merged[code] = fetchedBatches[code];
-          } else {
-            merged[code] = {
-              ...fetchedBatches[code],
-              ...merged[code],
-              imageUrl: merged[code].imageUrl || fetchedBatches[code].imageUrl,
-              productionDate: merged[code].productionDate || fetchedBatches[code].productionDate,
-              expiryDate: merged[code].expiryDate || fetchedBatches[code].expiryDate,
-              txHash: merged[code].txHash || fetchedBatches[code].txHash,
-              checkpoints:
-                merged[code].checkpoints && merged[code].checkpoints.length >= (fetchedBatches[code].checkpoints?.length || 0)
-                  ? merged[code].checkpoints
-                  : fetchedBatches[code].checkpoints,
-            };
-          }
-        });
-
-        if (typeof window !== 'undefined' && Object.keys(merged).length > 0) {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(merged));
-          } catch (e) {}
-        }
-
-        return merged;
-      });
+      // Cập nhật State trực tiếp từ kết quả truy vấn Ethers.js
+      setBatches(fetchedBatches);
     } catch (err: any) {
-      console.warn('Network sync notice:', err);
+      console.warn('Lỗi kết nối RPC Provider Smart Contract:', err);
     } finally {
       setIsLoadingContract(false);
     }
-  }, [currentAccount, simulatedRole, selectedLookupBatch]);
+  }, [currentAccount, simulatedRole]);
 
   // Tu dong doc tham so ?batch=... tu URL (khi quet QR) va mo Popup Nhat Ky Hanh Trinh Chi Tiet On-Chain
   useEffect(() => {
@@ -356,18 +295,102 @@ export const App: React.FC = () => {
         const batchFromUrl = urlParams.get('batch') || urlParams.get('batchCode');
         if (batchFromUrl) {
           const cleanCode = batchFromUrl.trim().toUpperCase();
-          setSelectedLookupBatch(cleanCode);
           setActiveTab('lookup');
 
-          // Neu du lieu lo hang da duoc cap nhat trong state, mo popup vinh vien hien thi cac chang chi tiet
           if (batches[cleanCode]) {
+            setSelectedLookupBatch(cleanCode);
             setJourneyBatch(batches[cleanCode]);
-          } else if (Object.keys(batches).length > 0) {
-            // Re-check target batch or use available batch
-            const targetBatch = batches[cleanCode] || batches[Object.keys(batches)[0]];
-            if (targetBatch) {
-              setJourneyBatch(targetBatch);
-            }
+          } else {
+            // Truoc khi tat ca danh sach batch duoc fetch xong, truy van RPC don le cho cleanCode
+            const fetchSingleBatch = async () => {
+              try {
+                const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
+                const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
+                const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, provider);
+
+                const batchData = await contract.getBatch(cleanCode);
+                if (batchData && batchData.exists) {
+                  const isVerifiedOnChain = Boolean(batchData.isVerified);
+                  const checkpointsData = await contract.getCheckpoints(cleanCode);
+
+                  const checkpoints = checkpointsData.map((cp: any, idx: number) => {
+                    const actionText = String(cp.action || '');
+                    return {
+                      stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
+                      role: cp.role,
+                      roleTitle: getRoleTitle(cp.role),
+                      location: cp.location,
+                      action: actionText,
+                      timestamp: Number(cp.timestamp),
+                      recorder: cp.recorder,
+                      metadataURI: cp.metadataURI,
+                      txHash: 'Xác thực On-Chain Sepolia Block',
+                      conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
+                    };
+                  });
+
+                  let starRating = '4';
+                  let inspectorNote = '';
+                  const inspectorCp = checkpoints.find((cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop')));
+                  if (inspectorCp) {
+                    const starMatch = inspectorCp.action.match(/(\d)\s*Sao/i);
+                    if (starMatch && starMatch[1]) starRating = starMatch[1];
+                    inspectorNote = inspectorCp.action;
+                  }
+
+                  const isListedOnChain = checkpoints.some(
+                    (cp: any) =>
+                      cp.role === ROLE_HASHES.ROLE_RETAILER ||
+                      (cp.action && cp.action.toLowerCase().includes('niêm yết')) ||
+                      (cp.action && cp.action.toLowerCase().includes('inretail'))
+                  );
+
+                  let onChainQuantity = '';
+                  if (checkpoints.length > 0) {
+                    const cp1Action = checkpoints[0].action;
+                    const qtyMatch = cp1Action.match(/Sản lượng:\s*([^—\n]+)/i);
+                    if (qtyMatch && qtyMatch[1]) {
+                      onChainQuantity = qtyMatch[1].trim();
+                    }
+                  }
+
+                  const singleBatch: Batch = {
+                    batchCode: batchData.batchCode,
+                    productName: batchData.productName,
+                    origin: batchData.origin,
+                    createdAt: Number(batchData.createdAt),
+                    producer: batchData.producer,
+                    isVerified: isVerifiedOnChain,
+                    starRating: isVerifiedOnChain ? starRating : '',
+                    inspectorNote: isVerifiedOnChain ? inspectorNote : '',
+                    isListed: isListedOnChain,
+                    exists: batchData.exists,
+                    ocopStandard: isVerifiedOnChain
+                      ? `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`
+                      : 'Chưa Thẩm Định OCOP',
+                    certificationNo: `OCOP-HUE-2026-${cleanCode.slice(-3)}`,
+                    quantity: onChainQuantity,
+                    currentStage:
+                      checkpoints.length > 0
+                        ? checkpoints[checkpoints.length - 1].action
+                        : isVerifiedOnChain
+                        ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
+                        : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
+                    certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${cleanCode}`,
+                    txHash: 'Xác nhận từ Smart Contract',
+                    inspectionFeePaid: '0.002 ETH',
+                    checkpoints
+                  };
+
+                  setBatches((prev) => ({ ...prev, [cleanCode]: singleBatch }));
+                  setSelectedLookupBatch(cleanCode);
+                  setJourneyBatch(singleBatch);
+                }
+              } catch (err) {
+                console.warn('Loi khi truy van lo hang tu QR URL qua RPC:', err);
+              }
+            };
+            fetchSingleBatch();
           }
         }
       } catch (e) {
@@ -419,19 +442,7 @@ export const App: React.FC = () => {
 
     const syncLocalState = async () => {
       try {
-        // 1. Dong bo danh sach lo hang (batches) tu local
-        const savedBatchesStr = localStorage.getItem('hl_local_batches');
-        if (savedBatchesStr) {
-          const parsed = JSON.parse(savedBatchesStr);
-          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-            setBatches((prev) => {
-              if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
-                return parsed;
-              }
-              return prev;
-            });
-          }
-        }
+        // 1. Du lieu lo hang (batches) duoc truy van truc tiep tu Smart Contract qua Ethers.js RPC Provider (Khong su dung LocalStorage)
 
         // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets) tu local
         const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
@@ -453,13 +464,7 @@ export const App: React.FC = () => {
           setActiveTab((prev) => (prev !== savedTab ? savedTab : prev));
         }
 
-        // 4. Dong bo lo hang dang duoc chon tra cuu (selectedLookupBatch)
-        const savedSelectedBatch = localStorage.getItem('hl_selected_lookup_batch');
-        if (savedSelectedBatch) {
-          setSelectedLookupBatch((prev) => (prev !== savedSelectedBatch ? savedSelectedBatch : prev));
-        }
-
-        // 5. Dong bo vai tro dang xem (simulatedRole)
+        // 4. Dong bo vai tro dang xem (simulatedRole)
         const savedRole = localStorage.getItem('hl_user_role');
         if (savedRole) {
           setSimulatedRole((prev) => (prev !== savedRole ? savedRole : prev));
@@ -476,19 +481,7 @@ export const App: React.FC = () => {
           const res = await fetch('/api/sync?code=huelegend_global_sync');
           if (res.ok) {
             const json = await res.json();
-            if (json?.data && json.data.batches && typeof json.data.batches === 'object') {
-              const cloudBatches = json.data.batches;
-              setBatches((prev) => {
-                const merged = { ...prev, ...cloudBatches };
-                if (JSON.stringify(prev) !== JSON.stringify(merged)) {
-                  try {
-                    localStorage.setItem('hl_local_batches', JSON.stringify(merged));
-                  } catch (e) {}
-                  return merged;
-                }
-                return prev;
-              });
-
+            if (json?.data) {
               if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
                 setGrantedWallets((prev) => {
                   if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
@@ -1004,37 +997,14 @@ export const App: React.FC = () => {
         ]
       };
 
-      // Luu vinh vien va DONG BO vao State & LocalStorage
-      setBatches((prev) => {
-        const updated = { ...prev, [cleanBatchCode]: newBatchObj };
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(updated));
-            const savedHashes = JSON.parse(localStorage.getItem('hl_batch_txhashes') || '{}');
-            savedHashes[cleanBatchCode] = tx.hash;
-            localStorage.setItem('hl_batch_txhashes', JSON.stringify(savedHashes));
-          } catch (e) {}
-        }
-        return updated;
-      });
-
-      // Dam bao truu tuong hoa luu ngay va luon trong localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          const raw = localStorage.getItem('hl_local_batches');
-          const parsed = raw ? JSON.parse(raw) : {};
-          parsed[cleanBatchCode] = newBatchObj;
-          localStorage.setItem('hl_local_batches', JSON.stringify(parsed));
-        } catch (e) {}
-      }
-
+      setBatches((prev) => ({ ...prev, [cleanBatchCode]: newBatchObj }));
       setSelectedLookupBatch(cleanBatchCode);
       setJourneyBatch(newBatchObj);
       notifyDataSync();
-      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
+      addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn trên Smart Contract (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       handleNavigateTab('lookup', cleanBatchCode);
 
-      // Delay 1000ms cho Sepolia RPC node cap nhat block ma khong ghi de du lieu batch moi
+      // Đồng bộ lại dữ liệu trực tiếp từ Smart Contract qua Ethers.js RPC Provider
       setTimeout(() => {
         fetchContractData(cleanUserAddress);
       }, 1000);
@@ -1134,13 +1104,7 @@ export const App: React.FC = () => {
           storeName: isListingAction && location ? location : target.storeName,
           checkpoints: [...target.checkpoints, newCheckpoint]
         };
-        const updatedAll = { ...prev, [batchCode]: updatedBatch };
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
-          } catch (e) {}
-        }
-        return updatedAll;
+        return { ...prev, [batchCode]: updatedBatch };
       });
 
       setSelectedLookupBatch(batchCode);
@@ -1249,20 +1213,7 @@ export const App: React.FC = () => {
           checkpoints: updatedCheckpoints
         };
 
-        const updatedAll = { ...prev, [batchCode]: updatedBatch };
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
-            const starRatings = JSON.parse(localStorage.getItem('hl_batch_starratings') || '{}');
-            starRatings[batchCode] = starRating;
-            localStorage.setItem('hl_batch_starratings', JSON.stringify(starRatings));
-
-            const notes = JSON.parse(localStorage.getItem('hl_batch_inspectornotes') || '{}');
-            notes[batchCode] = inspectorNote;
-            localStorage.setItem('hl_batch_inspectornotes', JSON.stringify(notes));
-          } catch (e) {}
-        }
-        return updatedAll;
+        return { ...prev, [batchCode]: updatedBatch };
       });
 
       setSelectedLookupBatch(batchCode);
