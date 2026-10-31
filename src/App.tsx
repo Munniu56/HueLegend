@@ -293,7 +293,38 @@ export const App: React.FC = () => {
 
       // Cap nhat State va luu tru an toan (merge fetchedBatches voi pre-existing local batches)
       setBatches((prev) => {
-        const merged = { ...prev, ...fetchedBatches };
+        const merged = { ...prev };
+        for (const [code, fetchedBatch] of Object.entries(fetchedBatches)) {
+          const localBatch = prev[code];
+          if (localBatch && localBatch.isVerified) {
+            const fetchedCheckpoints = fetchedBatch.checkpoints || [];
+            const hasInspectorCp = fetchedCheckpoints.some(
+              (cp) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop')))
+            );
+            const localInspectorCp = localBatch.checkpoints?.find(
+              (cp) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop')))
+            );
+
+            const mergedCheckpoints = hasInspectorCp
+              ? fetchedCheckpoints
+              : localInspectorCp
+              ? [...fetchedCheckpoints, localInspectorCp]
+              : fetchedCheckpoints;
+
+            merged[code] = {
+              ...fetchedBatch,
+              isVerified: true,
+              starRating: fetchedBatch.starRating || localBatch.starRating || '4',
+              inspectorNote: fetchedBatch.inspectorNote || localBatch.inspectorNote || '',
+              verifyTxHash: localBatch.verifyTxHash || fetchedBatch.verifyTxHash,
+              ocopStandard: localBatch.ocopStandard || `Đạt Chuẩn OCOP ${localBatch.starRating || '4'} Sao Tỉnh Thừa Thiên Huế`,
+              currentStage: localBatch.currentStage || fetchedBatch.currentStage,
+              checkpoints: mergedCheckpoints
+            };
+          } else {
+            merged[code] = fetchedBatch;
+          }
+        }
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('hl_local_batches', JSON.stringify(merged));
@@ -491,9 +522,63 @@ export const App: React.FC = () => {
           };
 
           // Cap nhat state de giao dien render ra Timeline lich su
-          setBatches((prev) => ({ ...prev, [maLoHang]: singleBatch }));
+          setBatches((prev) => {
+            const localBatch = prev[maLoHang];
+            let finalVerified = isVerifiedOnChain;
+            let finalStarRating = starRating;
+            let finalNote = inspectorNote;
+            let finalVerifyTxHash = localBatch?.verifyTxHash || 'Xác nhận từ Smart Contract';
+            let finalCheckpoints = checkpoints;
+
+            if (localBatch && localBatch.isVerified) {
+              finalVerified = true;
+              if (!finalStarRating && localBatch.starRating) finalStarRating = localBatch.starRating;
+              if (!finalNote && localBatch.inspectorNote) finalNote = localBatch.inspectorNote;
+              if (localBatch.verifyTxHash) finalVerifyTxHash = localBatch.verifyTxHash;
+
+              const hasInspectorCp = finalCheckpoints.some(
+                (cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop')))
+              );
+              const localInspectorCp = localBatch.checkpoints?.find(
+                (cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop')))
+              );
+              if (!hasInspectorCp && localInspectorCp) {
+                finalCheckpoints = [...finalCheckpoints, localInspectorCp];
+              }
+            }
+
+            const updatedSingle: Batch = {
+              ...singleBatch,
+              isVerified: finalVerified,
+              starRating: finalVerified ? finalStarRating : '',
+              inspectorNote: finalVerified ? finalNote : '',
+              verifyTxHash: finalVerifyTxHash,
+              ocopStandard: finalVerified
+                ? `Đạt Chuẩn OCOP ${finalStarRating || '4'} Sao Tỉnh Thừa Thiên Huế`
+                : 'Chưa Thẩm Định OCOP',
+              checkpoints: finalCheckpoints
+            };
+
+            const updatedAll = { ...prev, [maLoHang]: updatedSingle };
+            if (typeof window !== 'undefined') {
+              try {
+                localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+              } catch (e) {}
+            }
+            return updatedAll;
+          });
           setSelectedLookupBatch(maLoHang);
-          setJourneyBatch(singleBatch);
+          setJourneyBatch((prev) => {
+            const localBatch = prev?.batchCode === maLoHang ? prev : null;
+            if (localBatch && localBatch.isVerified) {
+              return {
+                ...singleBatch,
+                isVerified: true,
+                verifyTxHash: localBatch.verifyTxHash || 'Xác nhận từ Smart Contract'
+              };
+            }
+            return singleBatch;
+          });
         }
       } catch (err: any) {
         console.warn('Loi khi doc Blockchain ngam cho QR URL:', err);
@@ -1463,8 +1548,13 @@ export const App: React.FC = () => {
           currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)',
           checkpoints: updatedCheckpoints
         };
-
-        return { ...prev, [batchCode]: updatedBatch };
+        const updatedAll = { ...prev, [batchCode]: updatedBatch };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+          } catch (e) {}
+        }
+        return updatedAll;
       });
 
       setSelectedLookupBatch(batchCode);
