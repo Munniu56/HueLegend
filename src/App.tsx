@@ -8,7 +8,8 @@ import {
   ROLE_HASHES,
   ETHERSCAN_BASE_URL,
   DEFAULT_ADMIN_ADDRESS,
-  safeGetAddress
+  safeGetAddress,
+  RPC_URL
 } from './constants';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
@@ -307,140 +308,149 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, simulatedRole]);
 
-  // Tu dong doc tham so ?batch=... tu URL (khi quet QR) va mo Popup Nhat Ky Hanh Trinh Chi Tiet On-Chain
+  // Loading State khi dien thoai quet QR doc du lieu ngam tu Smart Contract Sepolia
+  const [isQrLoading, setIsQrLoading] = useState(false);
+  const [qrLoadingBatchCode, setQrLoadingBatchCode] = useState('');
+
+  // 1. Boc tach tham so URL ?batch=... ngay khi trang duoc tai
+  const currentSearchStr = typeof window !== 'undefined' ? (window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '')) : '';
+  const urlParamsObj = new URLSearchParams(currentSearchStr);
+  const urlBatchCode = urlParamsObj.get('batch') || urlParamsObj.get('batchCode') || '';
+
+  // 2. Xu ly goi Blockchain ngam va cap nhat State cho dien thoai khi quet QR
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const searchString = window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '');
-        const urlParams = new URLSearchParams(searchString);
-        const batchFromUrl = urlParams.get('batch') || urlParams.get('batchCode');
-        if (batchFromUrl) {
-          const cleanCode = batchFromUrl.trim().toUpperCase();
-          setActiveTab('lookup');
+    if (typeof window === 'undefined' || !urlBatchCode) return;
 
-          if (batches[cleanCode]) {
-            setSelectedLookupBatch(cleanCode);
-            setJourneyBatch(batches[cleanCode]);
-          } else {
-            // Neu khong co trong localStorage (nhu dien thoai), tu dong truy van tu Smart Contract Sepolia qua Ethers.js RPC Provider
-            const fetchSingleBatch = async () => {
-              try {
-                const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
-                const rpcUrls = [
-                  'https://ethereum-sepolia-rpc.publicnode.com',
-                  'https://rpc.sepolia.org',
-                  'https://rpc2.sepolia.org',
-                  'https://endpoints.omniatech.io/v1/eth/sepolia/public'
-                ];
+    const cleanCode = urlBatchCode.trim().toUpperCase();
+    setActiveTab('lookup');
+    setSelectedLookupBatch(cleanCode);
 
-                let activeProvider: ethers.JsonRpcProvider | null = null;
-                let batchData: any = null;
+    // Neu local state da co va co mảng checkpoints thi mo luon
+    if (batches[cleanCode] && batches[cleanCode].checkpoints && batches[cleanCode].checkpoints.length > 0) {
+      setJourneyBatch(batches[cleanCode]);
+      setIsQrLoading(false);
+    } else {
+      // Dua vao trang thai dang lay du lieu tu Blockchain cho dien thoai
+      setIsQrLoading(true);
+      setQrLoadingBatchCode(cleanCode);
 
-                for (const url of rpcUrls) {
-                  try {
-                    const tempProvider = new ethers.JsonRpcProvider(url);
-                    const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
-                    const data = await contract.getBatch(cleanCode);
-                    if (data && data.exists) {
-                      activeProvider = tempProvider;
-                      batchData = data;
-                      break;
-                    }
-                  } catch (e) {
-                    // Thu endpoint RPC tiep theo neu gap loi mang
-                  }
-                }
+      const fetchBatchFromRpc = async () => {
+        try {
+          const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
+          const rpcEndpoints = [
+            RPC_URL,
+            'https://ethereum-sepolia-rpc.publicnode.com',
+            'https://rpc.sepolia.org',
+            'https://rpc2.sepolia.org'
+          ];
 
-                if (batchData && batchData.exists && activeProvider) {
-                  const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, activeProvider);
-                  const isVerifiedOnChain = Boolean(batchData.isVerified);
-                  const checkpointsData = await contract.getCheckpoints(cleanCode);
+          let activeProvider: ethers.JsonRpcProvider | null = null;
+          let batchData: any = null;
 
-                  const checkpoints = checkpointsData.map((cp: any, idx: number) => {
-                    const actionText = String(cp.action || '');
-                    return {
-                      stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
-                      role: cp.role,
-                      roleTitle: getRoleTitle(cp.role),
-                      location: cp.location,
-                      action: actionText,
-                      timestamp: Number(cp.timestamp),
-                      recorder: cp.recorder,
-                      metadataURI: cp.metadataURI,
-                      txHash: 'Xác thực On-Chain Sepolia Block',
-                      conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
-                    };
-                  });
-
-                  let starRating = '4';
-                  let inspectorNote = '';
-                  const inspectorCp = checkpoints.find((cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop')));
-                  if (inspectorCp) {
-                    const starMatch = inspectorCp.action.match(/(\d)\s*Sao/i);
-                    if (starMatch && starMatch[1]) starRating = starMatch[1];
-                    inspectorNote = inspectorCp.action;
-                  }
-
-                  const isListedOnChain = checkpoints.some(
-                    (cp: any) =>
-                      cp.role === ROLE_HASHES.ROLE_RETAILER ||
-                      (cp.action && cp.action.toLowerCase().includes('niêm yết')) ||
-                      (cp.action && cp.action.toLowerCase().includes('inretail'))
-                  );
-
-                  let onChainQuantity = '';
-                  if (checkpoints.length > 0) {
-                    const cp1Action = checkpoints[0].action;
-                    const qtyMatch = cp1Action.match(/Sản lượng:\s*([^—\n]+)/i);
-                    if (qtyMatch && qtyMatch[1]) {
-                      onChainQuantity = qtyMatch[1].trim();
-                    }
-                  }
-
-                  const singleBatch: Batch = {
-                    batchCode: batchData.batchCode,
-                    productName: batchData.productName,
-                    origin: batchData.origin,
-                    createdAt: Number(batchData.createdAt),
-                    producer: batchData.producer,
-                    isVerified: isVerifiedOnChain,
-                    starRating: isVerifiedOnChain ? starRating : '',
-                    inspectorNote: isVerifiedOnChain ? inspectorNote : '',
-                    isListed: isListedOnChain,
-                    exists: batchData.exists,
-                    ocopStandard: isVerifiedOnChain
-                      ? `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`
-                      : 'Chưa Thẩm Định OCOP',
-                    certificationNo: `OCOP-HUE-2026-${cleanCode.slice(-3)}`,
-                    quantity: onChainQuantity,
-                    currentStage:
-                      checkpoints.length > 0
-                        ? checkpoints[checkpoints.length - 1].action
-                        : isVerifiedOnChain
-                        ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
-                        : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
-                    certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${cleanCode}`,
-                    txHash: 'Xác nhận từ Smart Contract',
-                    inspectionFeePaid: '0.002 ETH',
-                    checkpoints
-                  };
-
-                  setBatches((prev) => ({ ...prev, [cleanCode]: singleBatch }));
-                  setSelectedLookupBatch(cleanCode);
-                  setJourneyBatch(singleBatch);
-                }
-              } catch (err) {
-                console.warn('Loi khi truy van lo hang tu QR URL qua RPC:', err);
+          for (const url of rpcEndpoints) {
+            try {
+              const tempProvider = new ethers.JsonRpcProvider(url);
+              const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
+              const data = await contract.getBatch(cleanCode);
+              if (data && data.exists) {
+                activeProvider = tempProvider;
+                batchData = data;
+                break;
               }
-            };
-            fetchSingleBatch();
+            } catch (e) {
+              // Thu qua RPC tiep theo
+            }
           }
+
+          if (batchData && batchData.exists && activeProvider) {
+            const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, activeProvider);
+            const isVerifiedOnChain = Boolean(batchData.isVerified);
+            const checkpointsData = await contract.getCheckpoints(cleanCode);
+
+            const checkpoints = checkpointsData.map((cp: any, idx: number) => {
+              const actionText = String(cp.action || '');
+              return {
+                stepName: `Chặng ${idx + 1}: ${actionText.slice(0, 35)}${actionText.length > 35 ? '...' : ''}`,
+                role: cp.role,
+                roleTitle: getRoleTitle(cp.role),
+                location: cp.location,
+                action: actionText,
+                timestamp: Number(cp.timestamp),
+                recorder: cp.recorder,
+                metadataURI: cp.metadataURI,
+                txHash: 'Xác thực On-Chain Sepolia Block',
+                conditionNote: 'Dữ liệu được truy vấn trực tiếp từ Smart Contract qua Ethers.js RPC Provider.'
+              };
+            });
+
+            let starRating = '4';
+            let inspectorNote = '';
+            const inspectorCp = checkpoints.find((cp: any) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.action && cp.action.toLowerCase().includes('ocop')));
+            if (inspectorCp) {
+              const starMatch = inspectorCp.action.match(/(\d)\s*Sao/i);
+              if (starMatch && starMatch[1]) starRating = starMatch[1];
+              inspectorNote = inspectorCp.action;
+            }
+
+            const isListedOnChain = checkpoints.some(
+              (cp: any) =>
+                cp.role === ROLE_HASHES.ROLE_RETAILER ||
+                (cp.action && cp.action.toLowerCase().includes('niêm yết')) ||
+                (cp.action && cp.action.toLowerCase().includes('inretail'))
+            );
+
+            let onChainQuantity = '';
+            if (checkpoints.length > 0) {
+              const cp1Action = checkpoints[0].action;
+              const qtyMatch = cp1Action.match(/Sản lượng:\s*([^—\n]+)/i);
+              if (qtyMatch && qtyMatch[1]) {
+                onChainQuantity = qtyMatch[1].trim();
+              }
+            }
+
+            const singleBatch: Batch = {
+              batchCode: batchData.batchCode,
+              productName: batchData.productName,
+              origin: batchData.origin,
+              createdAt: Number(batchData.createdAt),
+              producer: batchData.producer,
+              isVerified: isVerifiedOnChain,
+              starRating: isVerifiedOnChain ? starRating : '',
+              inspectorNote: isVerifiedOnChain ? inspectorNote : '',
+              isListed: isListedOnChain,
+              exists: batchData.exists,
+              ocopStandard: isVerifiedOnChain
+                ? `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`
+                : 'Chưa Thẩm Định OCOP',
+              certificationNo: `OCOP-HUE-2026-${cleanCode.slice(-3)}`,
+              quantity: onChainQuantity,
+              currentStage:
+                checkpoints.length > 0
+                  ? checkpoints[checkpoints.length - 1].action
+                  : isVerifiedOnChain
+                  ? 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)'
+                  : 'Xưởng sản xuất (Chờ Thẩm Định OCOP)',
+              certificateURI: batchData.certificateURI || `ipfs://huelegend/cert/${cleanCode}`,
+              txHash: 'Xác nhận từ Smart Contract',
+              inspectionFeePaid: '0.002 ETH',
+              checkpoints
+            };
+
+            // 3. Cap nhat state de giao dien render ra Timeline lich su
+            setBatches((prev) => ({ ...prev, [cleanCode]: singleBatch }));
+            setSelectedLookupBatch(cleanCode);
+            setJourneyBatch(singleBatch);
+          }
+        } catch (err) {
+          console.warn('Loi khi doc Blockchain ngam cho QR URL:', err);
+        } finally {
+          setIsQrLoading(false);
         }
-      } catch (e) {
-        console.warn('Khong the doc tham so URL QR:', e);
-      }
+      };
+
+      fetchBatchFromRpc();
     }
-  }, [batches]);
+  }, [urlBatchCode]); // 4. Dat urlBatchCode vao Mang Phu Thuoc (Dependency Array)
 
   // Helper phat tin hieu dong bo du lieu thoi gian thuc giua cac phien Desktop & Mobile
   const notifyDataSync = useCallback(() => {
@@ -1958,6 +1968,29 @@ export const App: React.FC = () => {
         onClose={() => setIsMobileMetaMaskModalOpen(false)}
         deepLinkUrl={mobileMetaMaskDeepLink}
       />
+
+      {/* Screen Loading Khi Dien Thoai Quet QR Doc Du Lieu Ngam Tu Blockchain */}
+      {isQrLoading && (
+        <div className="fixed inset-0 z-[99999] bg-[#264939] text-white flex flex-col items-center justify-center p-6 space-y-6 animate-in fade-in font-sans">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full border-4 border-[#C29B38]/30 border-t-[#C29B38] animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center text-[#C29B38] font-bold text-xs font-mono">
+              OCOP
+            </div>
+          </div>
+          <div className="text-center space-y-2.5 max-w-sm">
+            <span className="text-[11px] font-mono font-bold px-3.5 py-1 bg-white/10 rounded-full text-[#C29B38] border border-[#C29B38]/40 inline-block uppercase tracking-wider">
+              {qrLoadingBatchCode ? `LÔ HÀNG: ${qrLoadingBatchCode}` : 'KẾT NỐI SEPOLIA BLOCKCHAIN'}
+            </span>
+            <h3 className="text-xl sm:text-2xl font-serif font-extrabold text-[#FAF9F5]">
+              Đang truy xuất nguồn gốc đặc sản...
+            </h3>
+            <p className="text-xs text-[#E0ECE4]/80 leading-relaxed font-sans">
+              Đang tự động kết nối ngầm nút Sepolia Smart Contract RPC để truy vấn nhật ký 4 chặng minh bạch cho điện thoại...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
