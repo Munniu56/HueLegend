@@ -214,7 +214,19 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   );
   const [isScanning, setIsScanning] = useState(false);
   const [isSearchingRpc, setIsSearchingRpc] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
+
+  // Ham khoi tao JsonRpcProvider ho tro ca Ethers.js v5 va v6
+  const createSafeJsonRpcProvider = (rpcUrl: string) => {
+    if ((ethers as any).providers && (ethers as any).providers.JsonRpcProvider) {
+      return new (ethers as any).providers.JsonRpcProvider(rpcUrl);
+    } else if (ethers.JsonRpcProvider) {
+      return new ethers.JsonRpcProvider(rpcUrl);
+    } else {
+      throw new Error('Không xác định được phiên bản Ethers.js');
+    }
+  };
 
   // Anh xa ten vai tro tu roleHash
   const getRoleTitle = (roleHash: string): string => {
@@ -229,6 +241,7 @@ export const LookupTab: React.FC<LookupTabProps> = ({
   // Truy van lo hang tu Smart Contract Sepolia qua JsonRpcProvider
   const queryRpcBatch = async (codeToQuery: string) => {
     setIsSearchingRpc(true);
+    setErrorMessage(''); // Xoa loi cu truoc khi goi
     try {
       const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
       const rpcUrls = [
@@ -236,12 +249,12 @@ export const LookupTab: React.FC<LookupTabProps> = ({
         'https://rpc.sepolia.org',
         'https://rpc2.sepolia.org'
       ];
-      let activeProvider: ethers.JsonRpcProvider | null = null;
+      let activeProvider: any = null;
       let batchData: any = null;
 
       for (const url of rpcUrls) {
         try {
-          const tempProvider = new ethers.JsonRpcProvider(url);
+          const tempProvider = createSafeJsonRpcProvider(url);
           const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
           const data = await contract.getBatch(codeToQuery);
           if (data && data.exists) {
@@ -335,8 +348,9 @@ export const LookupTab: React.FC<LookupTabProps> = ({
       } else {
         setActiveBatch(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Loi truy van RPC On-chain cho batch:', err);
+      setErrorMessage(err?.message || 'Lỗi kết nối mạng Blockchain');
       setActiveBatch(null);
     } finally {
       setIsSearchingRpc(false);
@@ -405,6 +419,13 @@ export const LookupTab: React.FC<LookupTabProps> = ({
               Nhập mã định danh lô hàng hoặc quét mã tem QR niêm phong để đọc nhật ký minh bạch từ Sepolia Testnet.
             </p>
           </div>
+
+          {/* Tag Hien Thi Loi Blockchain Neu Co */}
+          {errorMessage && (
+            <p style={{ color: 'red' }} className="p-3.5 bg-red-50 text-red-700 text-xs font-mono font-bold rounded-2xl border border-red-200 text-center shadow-2xs my-2 w-full">
+              {errorMessage}
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button

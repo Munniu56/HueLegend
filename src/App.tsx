@@ -308,16 +308,28 @@ export const App: React.FC = () => {
     }
   }, [currentAccount, simulatedRole]);
 
-  // Loading State khi dien thoai quet QR doc du lieu ngam tu Smart Contract Sepolia
+  // Loading State va State thong bao loi Blockchain de hien thi truc tiep ra giao dien dien thoai
   const [isQrLoading, setIsQrLoading] = useState(false);
   const [qrLoadingBatchCode, setQrLoadingBatchCode] = useState('');
+  const [blockchainErrorMessage, setBlockchainErrorMessage] = useState('');
 
   // 1. Boc tach tham so URL ?batch=... ngay khi trang duoc tai
   const currentSearchStr = typeof window !== 'undefined' ? (window.location.search || (window.location.hash.includes('?') ? '?' + window.location.hash.split('?')[1] : '')) : '';
   const urlParamsObj = new URLSearchParams(currentSearchStr);
   const urlBatchCode = urlParamsObj.get('batch') || urlParamsObj.get('batchCode') || '';
 
-  // 2. Xu ly goi Blockchain ngam, dam bao tat Loading trong finally va ho tro Real-time Polling
+  // Ham khoi tao JsonRpcProvider sieu an toan ho tro tuong thich ca Ethers.js v5 va v6
+  const createSafeJsonRpcProvider = (rpcUrl: string) => {
+    if ((ethers as any).providers && (ethers as any).providers.JsonRpcProvider) {
+      return new (ethers as any).providers.JsonRpcProvider(rpcUrl);
+    } else if (ethers.JsonRpcProvider) {
+      return new ethers.JsonRpcProvider(rpcUrl);
+    } else {
+      throw new Error('Không xác định được phiên bản Ethers.js');
+    }
+  };
+
+  // 2. Xu ly goi Blockchain ngam, dam bao tat Loading trong finally va ho tro Real-time Polling 5s
   useEffect(() => {
     if (typeof window === 'undefined' || !urlBatchCode) return;
 
@@ -325,13 +337,13 @@ export const App: React.FC = () => {
     setActiveTab('lookup');
     setSelectedLookupBatch(cleanCode);
 
-    // Ham truy van du lieu tu Smart Contract Sepolia qua RPC Provider
+    // Ham truy van du lieu tu Smart Contract Sepolia qua RPC Provider bang Safe-Catch
     const fetchBatchFromRpc = async (isSilentUpdate = false) => {
-      // Chi bat man hinh loading o lan dau tien, khong bat lai khi update ngam 8s
       if (!isSilentUpdate) {
         setIsQrLoading(true);
         setQrLoadingBatchCode(cleanCode);
       }
+      setBlockchainErrorMessage(''); // Xoa loi cu truoc khi goi
 
       try {
         const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
@@ -342,12 +354,12 @@ export const App: React.FC = () => {
           'https://rpc2.sepolia.org'
         ];
 
-        let activeProvider: ethers.JsonRpcProvider | null = null;
+        let activeProvider: any = null;
         let batchData: any = null;
 
         for (const url of rpcEndpoints) {
           try {
-            const tempProvider = new ethers.JsonRpcProvider(url);
+            const tempProvider = createSafeJsonRpcProvider(url);
             const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
             const data = await contract.getBatch(cleanCode);
             if (data && data.exists) {
@@ -356,7 +368,7 @@ export const App: React.FC = () => {
               break;
             }
           } catch (e) {
-            // Thu endpoint RPC tiep theo neu gap loi nghen mang
+            // Thu endpoint RPC tiep theo
           }
         }
 
@@ -439,10 +451,11 @@ export const App: React.FC = () => {
           setSelectedLookupBatch(cleanCode);
           setJourneyBatch(singleBatch);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Loi khi doc Blockchain ngam cho QR URL:', err);
+        setBlockchainErrorMessage(err?.message || 'Lỗi kết nối mạng Blockchain');
       } finally {
-        // 1. Dam bao luon luon tat man hinh Loading du thanh cong hay loi
+        // DAM BAO TUYET DOI: Du loi gi cung phai tat vong xoay Loading de hien giao dien
         if (!isSilentUpdate) {
           setIsQrLoading(false);
         }
@@ -452,16 +465,16 @@ export const App: React.FC = () => {
     // Goi ngay lan dau khi trang load
     fetchBatchFromRpc(false);
 
-    // 2. Real-time Polling: Tu dong cap nhat ngam du lieu moi tu Blockchain moi 8 giay
+    // Real-time Polling: Tu dong cap nhat ngam du lieu moi tu Blockchain moi 5 giay
     const pollInterval = setInterval(() => {
       fetchBatchFromRpc(true);
-    }, 8000);
+    }, 5000);
 
-    // 3. Xoa bo Interval khi nguoi dung thoat trang hoac quet QR khac de tranh memory leak
+    // Xoa bo Interval khi nguoi dung thoat trang hoac quet QR khac de tranh memory leak
     return () => {
       clearInterval(pollInterval);
     };
-  }, [urlBatchCode]); // 4. Dat urlBatchCode vao Mang Phu Thuoc (Dependency Array)
+  }, [urlBatchCode]);
 
   // Helper phat tin hieu dong bo du lieu thoi gian thuc giua cac phien Desktop & Mobile
   const notifyDataSync = useCallback(() => {
@@ -1832,6 +1845,13 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 max-w-7xl w-full mx-auto space-y-6">
+          {/* Tag Hien Thi Loi Blockchain Neu Co */}
+          {blockchainErrorMessage && (
+            <p style={{ color: 'red' }} className="p-3.5 bg-red-50 text-red-700 text-xs font-mono font-bold rounded-2xl border border-red-200 text-center shadow-2xs my-3">
+              {blockchainErrorMessage}
+            </p>
+          )}
+
           {activeTab === 'overview' && (
             <OverviewTab
               batches={batches}
