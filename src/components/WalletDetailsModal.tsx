@@ -1,6 +1,8 @@
 import React from 'react';
 import { X, Wallet, ShieldCheck, ExternalLink, LogOut, Coins, Network, GripHorizontal } from 'lucide-react';
-import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS } from '../constants';
+import { ethers } from 'ethers';
+import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress, ROLE_HASHES } from '../constants';
+import { Batch } from '../types';
 import { useDraggable } from '../hooks/useDraggable';
 
 interface WalletDetailsModalProps {
@@ -11,6 +13,7 @@ interface WalletDetailsModalProps {
   userRole?: string;
   producerStakeBalance: string;
   contractBalanceEth?: string;
+  batches?: Record<string, Batch>;
   onDisconnect: () => void;
   clickPos?: { x: number; y: number } | null;
 }
@@ -23,6 +26,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   userRole = 'ALL',
   producerStakeBalance,
   contractBalanceEth = '0.00',
+  batches,
   onDisconnect,
   clickPos,
 }) => {
@@ -32,6 +36,57 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 
   const shortAddress = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
 
+  // Tinh tong so tien ETH ma Dai ly / Cua hang dac san da thanh toan cho Co so san xuat
+  let producerRetailerPaidEth = '0.000';
+  if (batches && account) {
+    try {
+      const cleanAccount = safeGetAddress(account).toLowerCase();
+      let totalWei = 0n;
+
+      Object.values(batches).forEach((b) => {
+        const isMyProducerBatch = b.producer && safeGetAddress(b.producer).toLowerCase() === cleanAccount;
+        if (isMyProducerBatch && b.checkpoints) {
+          b.checkpoints.forEach((cp) => {
+            const isRetailerCp =
+              cp.role === ROLE_HASHES.ROLE_RETAILER ||
+              cp.role === 'RETAILER' ||
+              cp.roleTitle?.toLowerCase().includes('đại lý') ||
+              cp.stepName?.toLowerCase().includes('niêm yết') ||
+              cp.action?.toLowerCase().includes('niêm yết') ||
+              cp.action?.toLowerCase().includes('đã nhập kho');
+
+            if (isRetailerCp) {
+              const feeMatch =
+                cp.action.match(/Phí On-Chain:\s*([0-9.]+)\s*ETH/i) ||
+                cp.conditionNote?.match(/Phí MetaMask Sepolia:\s*([0-9.]+)\s*ETH/i) ||
+                cp.action.match(/Giá Niêm Yết Bán Lẻ\s*\(([0-9.]+)\s*ETH\)/i) ||
+                cp.action.match(/([0-9.]+)\s*ETH/i);
+
+              if (feeMatch && feeMatch[1]) {
+                const val = parseFloat(feeMatch[1]);
+                if (!isNaN(val) && val > 0) {
+                  totalWei += ethers.parseEther(val.toFixed(6));
+                }
+              } else if (b.listingPriceEth) {
+                const val = parseFloat(b.listingPriceEth);
+                if (!isNaN(val) && val > 0) {
+                  totalWei += ethers.parseEther(val.toFixed(6));
+                }
+              }
+            }
+          });
+        }
+      });
+
+      const formatted = ethers.formatEther(totalWei);
+      if (parseFloat(formatted) > 0) {
+        producerRetailerPaidEth = parseFloat(formatted).toFixed(4);
+      }
+    } catch (e) {
+      console.warn('Loi tinh so tien dai ly thanh toan cho producer:', e);
+    }
+  }
+
   // Xac dinh nhan va so du ETH tich luy theo vai tro vi
   let roleLabel = 'On-Chain';
   let roleSubtext = 'Số dư ETH tích lũy tương tác Smart Contract';
@@ -39,8 +94,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 
   if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
     roleLabel = 'Cơ Sở Sản Xuất';
-    roleSubtext = 'Ký quỹ sản xuất & đảm bảo chất lượng OCOP';
-    roleBalance = producerStakeBalance;
+    roleSubtext = 'Tổng tiền ETH Đại lý & Cửa hàng đặc sản đã thanh toán On-Chain';
+    roleBalance = producerRetailerPaidEth;
   } else if (userRole === 'INSPECTOR') {
     roleLabel = 'Kiểm Định Viên OCOP';
     roleSubtext = 'Tích lũy phí thẩm định & cấp chứng nhận';

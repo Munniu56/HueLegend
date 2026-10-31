@@ -2138,6 +2138,7 @@ export const App: React.FC = () => {
         )}
         producerStakeBalance={producerStakeBalance}
         contractBalanceEth={contractBalanceEth}
+        batches={batches}
         onDisconnect={handleDisconnectWallet}
         clickPos={modalClickPos}
       />
