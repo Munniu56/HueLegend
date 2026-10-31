@@ -929,7 +929,7 @@ export const App: React.FC = () => {
     const targetRole = roleMapping[roleKey] || 'CUSTOMER';
 
     // Kiem tra tab hien tai co hop le voi vai tro moi hay khong
-    if ((targetRole === 'PRODUCER' || targetRole === 'SUPPLY_CHAIN') && !['overview', 'lookup', 'store', 'create-batch', 'inspector'].includes(activeTab)) {
+    if ((targetRole === 'PRODUCER' || targetRole === 'SUPPLY_CHAIN') && !['overview', 'lookup', 'store', 'create-batch'].includes(activeTab)) {
       setActiveTab('overview');
     } else if (targetRole === 'LOGISTICS' && !['overview', 'lookup', 'store', 'checkpoint'].includes(activeTab)) {
       setActiveTab('overview');

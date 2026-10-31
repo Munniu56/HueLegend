@@ -76,19 +76,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
 
   // Loc danh sach menu theo vai tro (RBAC) khi da ket noi vi, hoac hien thi day du khi chua ket noi (ALL)
   const filteredNavItems = navItems.filter((item) => {
+    if (userRole === 'INSPECTOR') {
+      // Kiem dinh vien OCOP: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Kiem Dinh OCOP
+      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+    }
     if (userRole === 'LOGISTICS') {
+      // Don vi van chuyen: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Van Chuyen
       return ['overview', 'lookup', 'store', 'checkpoint'].includes(item.id);
     }
-    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
-      // Co so san xuat chi hien thi: Tong quan, Tra cuu, Cua hang, Tao lo hang (An van chuyen)
-      return ['overview', 'lookup', 'store', 'create-batch'].includes(item.id);
-    }
     if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
-      return ['overview', 'lookup', 'store', 'checkpoint', 'retailer'].includes(item.id);
+      // Dai ly ban le: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Quan Ly Niem Yet
+      return ['overview', 'lookup', 'store', 'retailer'].includes(item.id);
     }
-    if (userRole === 'INSPECTOR') {
-      // Kiem dinh vien OCOP chi hien thi: Tong quan, Tra cuu, Cua hang, Kiem dinh OCOP (An van chuyen)
-      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+      // Co so san xuat: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Tao Lo Hang
+      return ['overview', 'lookup', 'store', 'create-batch'].includes(item.id);
     }
     if (userRole === 'CUSTOMER') {
       return ['overview', 'lookup', 'store'].includes(item.id);

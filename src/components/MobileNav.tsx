@@ -95,17 +95,21 @@ export const MobileNav: React.FC<MobileNavProps> = ({
 
   // 2. Loc menu theo vai tro phan quyen RBAC cua tai khoan dang ket noi
   const filteredNavItems = navItems.filter((item) => {
+    if (userRole === 'INSPECTOR') {
+      // Kiem dinh vien OCOP: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Kiem Dinh OCOP
+      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+    }
     if (userRole === 'LOGISTICS') {
+      // Don vi van chuyen: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Van Chuyen
       return ['overview', 'lookup', 'store', 'checkpoint'].includes(item.id);
     }
-    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
-      return ['overview', 'lookup', 'store', 'create-batch'].includes(item.id);
-    }
     if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
-      return ['overview', 'lookup', 'store', 'checkpoint', 'retailer'].includes(item.id);
+      // Dai ly ban le: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Quan Ly Niem Yet
+      return ['overview', 'lookup', 'store', 'retailer'].includes(item.id);
     }
-    if (userRole === 'INSPECTOR') {
-      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
+    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+      // Co so san xuat: Tong Quan He Thong, Tra Cuu Tem QR, Cua hang dac san, Tao Lo Hang
+      return ['overview', 'lookup', 'store', 'create-batch'].includes(item.id);
     }
     if (userRole === 'CUSTOMER') {
       return ['overview', 'lookup', 'store'].includes(item.id);
