@@ -623,22 +623,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   </span>
                 </div>
 
-                {/* Cong cu dem kiem dinh OCOP */}
-                <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
-                  <div className="text-center border-r border-gray-100 pr-1">
-                    <span className="text-gray-400 block text-[10px]">ĐÃ THẨM ĐỊNH</span>
-                    <span className="font-bold text-[#1A2820] text-xs">{unpaidInspectorBatches.length} lô</span>
-                  </div>
-                  <div className="text-center border-r border-gray-100 px-1">
-                    <span className="text-emerald-700 font-bold block text-[10px]">CHỜ THANH TOÁN</span>
-                    <span className="font-black text-amber-600 text-xs">{unpaidInspectorBatches.length} lô</span>
-                  </div>
-                  <div className="text-center pl-1">
-                    <span className="text-gray-400 block text-[10px]">ĐÃ THANH TOÁN</span>
-                    <span className="font-bold text-emerald-800 text-xs">{paidInspectorBatchesCount} lô</span>
-                  </div>
-                </div>
-
                 <p className="text-[11px] text-[#5E7166] leading-relaxed">
                   {unpaidInspectorBatches.length > 0
                     ? `Chuyển đúng ${totalInspectorFeeEth} ETH cho ${unpaidInspectorBatches.length} lô kiểm định OCOP thành công chưa trả phí.`
@@ -674,22 +658,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   }`}>
                     {totalLogisticsFeeEth} ETH
                   </span>
-                </div>
-
-                {/* Cong cu dem chặng van chuyen */}
-                <div className="grid grid-cols-3 gap-2 text-[11px] bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
-                  <div className="text-center border-r border-gray-100 pr-1">
-                    <span className="text-gray-400 block text-[10px]">ĐÃ THẨM ĐỊNH</span>
-                    <span className="font-bold text-[#1A2820] text-xs">{unpaidLogisticsBatches.length} chặng</span>
-                  </div>
-                  <div className="text-center border-r border-gray-100 px-1">
-                    <span className="text-emerald-700 font-bold block text-[10px]">CHỜ THANH TOÁN</span>
-                    <span className="font-black text-amber-600 text-xs">{unpaidLogisticsBatches.length} chặng</span>
-                  </div>
-                  <div className="text-center pl-1">
-                    <span className="text-gray-400 block text-[10px]">ĐÃ THANH TOÁN</span>
-                    <span className="font-bold text-emerald-800 text-xs">{paidLogisticsBatchesCount} chặng</span>
-                  </div>
                 </div>
 
                 <p className="text-[11px] text-[#5E7166] leading-relaxed">
