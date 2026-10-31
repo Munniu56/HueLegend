@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, ShieldCheck, Menu, RefreshCw } from 'lucide-react';
+import { Wallet, ShieldCheck, Menu } from 'lucide-react';
 import { CONTRACT_ADDRESS } from '../constants';
 
 interface HeaderProps {
@@ -10,7 +10,6 @@ interface HeaderProps {
   onToggleDemoMode: () => void;
   onSimulatedRoleChange: (role: string) => void;
   onToggleMobileMenu?: () => void;
-  onManualSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,7 +20,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleDemoMode,
   onSimulatedRoleChange,
   onToggleMobileMenu,
-  onManualSync,
 }) => {
   const shortAddress = currentAccount
     ? `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`
@@ -68,18 +66,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 ml-auto">
-        {/* Nut Dong bo cloud thoi gian thuc thu cong */}
-        {onManualSync && (
-          <button
-            onClick={onManualSync}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E0ECE4] text-[#264939] hover:bg-[#d0e2d5] text-xs font-bold transition-all border border-[#CCD8CF] min-h-[40px]"
-            title="Đồng bộ lại toàn bộ lô hàng từ máy tính"
-          >
-            <RefreshCw className="w-3.5 h-3.5 text-[#264939]" />
-            <span className="hidden sm:inline">Đồng Bộ Ngay</span>
-          </button>
-        )}
-
         {/* Connect Wallet Button */}
         <button
           onClick={(e) => onConnectWallet(e)}
