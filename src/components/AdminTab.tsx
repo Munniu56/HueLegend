@@ -46,6 +46,8 @@ interface AdminTabProps {
   onRevokeRole: (account: string, roleName: string) => Promise<void>;
   onWithdrawFees?: () => Promise<void>;
   onTogglePauseSystem?: (shouldPause: boolean) => Promise<void>;
+  onPayInspectorFees?: () => Promise<void>;
+  onPayLogisticsFees?: () => Promise<void>;
 }
 
 export const AdminTab: React.FC<AdminTabProps> = ({
@@ -64,12 +66,57 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   onRevokeRole,
   onWithdrawFees,
   onTogglePauseSystem,
+  onPayInspectorFees,
+  onPayLogisticsFees,
 }) => {
   const [accountAddress, setAccountAddress] = useState('');
   const [roleSelect, setRoleSelect] = useState('ROLE_PRODUCER');
   const [newFee, setNewFee] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchRoleQuery, setSearchRoleQuery] = useState('');
+
+  // Dem so lo hang da kiem dinh nhung CHUA duoc Admin tra phi tham dinh (0.002 ETH/lo)
+  const unpaidInspectorBatches = Object.values(batches).filter(
+    (b) => b.isVerified && !b.adminPaidInspectorFee
+  );
+  const totalInspectorFeeEth = (unpaidInspectorBatches.length * 0.002).toFixed(3);
+
+  // Dem so lo hang da co chang van chuyen nhung CHUA duoc Admin tra phi van chuyen (0.002 ETH/chang)
+  const unpaidLogisticsBatches = Object.values(batches).filter((b) => {
+    const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
+      (c) =>
+        c.role === 'ROLE_LOGISTICS' ||
+        c.role === 'LOGISTICS' ||
+        c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
+        (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+    );
+    return hasLogisticsCp && !b.adminPaidLogisticsFee;
+  });
+  const totalLogisticsFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(3);
+
+  const handlePayInspector = async () => {
+    if (!onPayInspectorFees) return;
+    setIsSubmitting(true);
+    try {
+      await onPayInspectorFees();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePayLogistics = async () => {
+    if (!onPayLogisticsFees) return;
+    setIsSubmitting(true);
+    try {
+      await onPayLogisticsFees();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Derive production event logs dynamically from live Sepolia batch data
   const recentEventLogs: EventLog[] = React.useMemo(() => {
@@ -544,6 +591,63 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 </button>
               </div>
             </form>
+
+            {/* Sub-section: Chi Trả Phí Kiểm Định Viên & Phí Vận Chuyển Từ Quỹ Treasury Smart Contract */}
+            <div className="pt-3 border-t border-[#EDE9E0] space-y-3 font-sans">
+              <span className="block text-xs font-extrabold text-[#264939] uppercase tracking-wider">
+                CHI TRẢ PHÍ TỪ QUỸ TREASURY SMART CONTRACT
+              </span>
+
+              {/* Button 1: Trả phí Kiểm định viên */}
+              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#264939] flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-[#C29B38]" />
+                    <span>Trả Phí Kiểm Định Viên (0.002 ETH/lô)</span>
+                  </span>
+                  <span className="font-mono font-black text-[#264939] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    {totalInspectorFeeEth} ETH
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#5E7166] leading-relaxed">
+                  Trích từ Quỹ Treasury Smart Contract chuyển cho Kiểm Định Viên OCOP ({unpaidInspectorBatches.length} lô kiểm định chưa trả phí).
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePayInspector}
+                  disabled={isSubmitting || !isAdminRole || unpaidInspectorBatches.length === 0}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#264939] text-white font-bold text-xs hover:bg-[#1c372b] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Coins className="w-4 h-4 text-[#C29B38]" />
+                  <span>Trả Phí Kiểm Định Viên ({totalInspectorFeeEth} ETH)</span>
+                </button>
+              </div>
+
+              {/* Button 2: Trả phí Vận Chuyển */}
+              <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#264939] flex items-center gap-1.5">
+                    <RefreshCw className="w-4 h-4 text-[#C29B38]" />
+                    <span>Trả Phí Vận Chuyển (0.002 ETH/chặng)</span>
+                  </span>
+                  <span className="font-mono font-black text-[#264939] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    {totalLogisticsFeeEth} ETH
+                  </span>
+                </div>
+                <p className="text-[11px] text-[#5E7166] leading-relaxed">
+                  Trích từ Quỹ Treasury Smart Contract chuyển cho Đơn Vị Vận Chuyển ({unpaidLogisticsBatches.length} chặng vận chuyển chưa trả phí).
+                </p>
+                <button
+                  type="button"
+                  onClick={handlePayLogistics}
+                  disabled={isSubmitting || !isAdminRole || unpaidLogisticsBatches.length === 0}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#C29B38] text-white font-bold text-xs hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Wallet className="w-4 h-4 text-white" />
+                  <span>Trả Phí Vận Chuyển ({totalLogisticsFeeEth} ETH)</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Feature 3: Emergency Control (Pause / Unpause) */}

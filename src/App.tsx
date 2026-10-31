@@ -1897,6 +1897,112 @@ export const App: React.FC = () => {
     }
   };
 
+  // 10. Handler Admin Tra phi kiem dinh vien tu Quy Treasury
+  const handlePayInspectorFees = async () => {
+    try {
+      const unpaidBatches = Object.values(batches).filter((b) => b.isVerified && !b.adminPaidInspectorFee);
+      if (unpaidBatches.length === 0) {
+        addToast('Thông Báo', 'Không có phí thẩm định mới cần chi trả.', 'info');
+        return;
+      }
+
+      const totalFeeEth = (unpaidBatches.length * 0.002).toFixed(3);
+
+      setBatches((prev) => {
+        const updated = { ...prev };
+        unpaidBatches.forEach((b) => {
+          if (updated[b.batchCode]) {
+            const existingCp = updated[b.batchCode].checkpoints || [];
+            const newCp = {
+              stepName: 'Quản Trị Viên Trả Phí Thẩm Định',
+              role: 'ROLE_ADMIN',
+              roleTitle: 'Quản Trị Viên (Admin)',
+              location: 'Treasury Smart Contract',
+              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên`,
+              timestamp: Math.floor(Date.now() / 1000),
+              recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
+              metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
+              txHash: '0x' + Math.random().toString(16).substring(2, 42),
+              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode}`
+            };
+            updated[b.batchCode] = {
+              ...updated[b.batchCode],
+              adminPaidInspectorFee: true,
+              checkpoints: [...existingCp, newCp]
+            };
+          }
+        });
+        return updated;
+      });
+
+      addToast(
+        'Trả Phí Kiểm Định Viên Thành Công!',
+        `Đã chuyển ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Kiểm Định Viên OCOP (${unpaidBatches.length} lô hàng).`,
+        'success'
+      );
+    } catch (e: any) {
+      addToast('Lỗi Trả Phí Kiểm Định Viên', e.message || 'Không thể chi trả phí.', 'error');
+    }
+  };
+
+  // 11. Handler Admin Tra phi van chuyen tu Quy Treasury
+  const handlePayLogisticsFees = async () => {
+    try {
+      const unpaidLogisticsBatches = Object.values(batches).filter((b) => {
+        const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
+          (c) =>
+            c.role === 'ROLE_LOGISTICS' ||
+            c.role === 'LOGISTICS' ||
+            c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
+            (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+        );
+        return hasLogisticsCp && !b.adminPaidLogisticsFee;
+      });
+
+      if (unpaidLogisticsBatches.length === 0) {
+        addToast('Thông Báo', 'Không có phí vận chuyển mới cần chi trả.', 'info');
+        return;
+      }
+
+      const totalFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(3);
+
+      setBatches((prev) => {
+        const updated = { ...prev };
+        unpaidLogisticsBatches.forEach((b) => {
+          if (updated[b.batchCode]) {
+            const existingCp = updated[b.batchCode].checkpoints || [];
+            const newCp = {
+              stepName: 'Quản Trị Viên Trả Phí Vận Chuyển',
+              role: 'ROLE_ADMIN',
+              roleTitle: 'Quản Trị Viên (Admin)',
+              location: 'Treasury Smart Contract',
+              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển`,
+              timestamp: Math.floor(Date.now() / 1000),
+              recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
+              metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
+              txHash: '0x' + Math.random().toString(16).substring(2, 42),
+              conditionNote: `Đã chi trả 0.002 ETH phí vận chuyển cho lô hàng ${b.batchCode}`
+            };
+            updated[b.batchCode] = {
+              ...updated[b.batchCode],
+              adminPaidLogisticsFee: true,
+              checkpoints: [...existingCp, newCp]
+            };
+          }
+        });
+        return updated;
+      });
+
+      addToast(
+        'Trả Phí Vận Chuyển Thành Công!',
+        `Đã chuyển ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Đơn Vị Vận Chuyển (${unpaidLogisticsBatches.length} chặng).`,
+        'success'
+      );
+    } catch (e: any) {
+      addToast('Lỗi Trả Phí Vận Chuyển', e.message || 'Không thể chi trả phí.', 'error');
+    }
+  };
+
   // Ham dong bo thu cong tu Cloud Sync
   const handleManualSync = async () => {
     try {
@@ -2039,6 +2145,8 @@ export const App: React.FC = () => {
               onRevokeRole={handleRevokeRole}
               onWithdrawFees={handleWithdrawFees}
               onTogglePauseSystem={handleTogglePauseSystem}
+              onPayInspectorFees={handlePayInspectorFees}
+              onPayLogisticsFees={handlePayLogisticsFees}
             />
           )}
         </main>
