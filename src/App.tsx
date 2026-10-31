@@ -1200,6 +1200,7 @@ export const App: React.FC = () => {
         conditionNote: conditionNote || 'Ghi chặng mới thành công.'
       };
 
+      // 1. Cap nhat React State va luu ban sao dong thoi vao LocalStorage cuc bo
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
@@ -1210,7 +1211,22 @@ export const App: React.FC = () => {
           storeName: isListingAction && location ? location : target.storeName,
           checkpoints: [...target.checkpoints, newCheckpoint]
         };
-        return { ...prev, [batchCode]: updatedBatch };
+        const updatedAll = { ...prev, [batchCode]: updatedBatch };
+
+        // Luu ban sao danh sach lo hang vao localStorage cua may hien tai
+        try {
+          localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
+          
+          // Luu nhat ky chang cuc bo theo ma lo
+          const savedHistoryStr = localStorage.getItem(`hl_checkpoints_${batchCode}`) || '[]';
+          const savedHistory = JSON.parse(savedHistoryStr);
+          savedHistory.push(newCheckpoint);
+          localStorage.setItem(`hl_checkpoints_${batchCode}`, JSON.stringify(savedHistory));
+        } catch (e) {
+          console.warn('Loi khi luu ban sao vao localStorage:', e);
+        }
+
+        return updatedAll;
       });
 
       setSelectedLookupBatch(batchCode);
