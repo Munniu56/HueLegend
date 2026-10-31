@@ -322,15 +322,37 @@ export const App: React.FC = () => {
             setSelectedLookupBatch(cleanCode);
             setJourneyBatch(batches[cleanCode]);
           } else {
-            // Truoc khi tat ca danh sach batch duoc fetch xong, truy van RPC don le cho cleanCode
+            // Neu khong co trong localStorage (nhu dien thoai), tu dong truy van tu Smart Contract Sepolia qua Ethers.js RPC Provider
             const fetchSingleBatch = async () => {
               try {
                 const normalizedContractAddr = safeGetAddress(CONTRACT_ADDRESS);
-                const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
-                const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, provider);
+                const rpcUrls = [
+                  'https://ethereum-sepolia-rpc.publicnode.com',
+                  'https://rpc.sepolia.org',
+                  'https://rpc2.sepolia.org',
+                  'https://endpoints.omniatech.io/v1/eth/sepolia/public'
+                ];
 
-                const batchData = await contract.getBatch(cleanCode);
-                if (batchData && batchData.exists) {
+                let activeProvider: ethers.JsonRpcProvider | null = null;
+                let batchData: any = null;
+
+                for (const url of rpcUrls) {
+                  try {
+                    const tempProvider = new ethers.JsonRpcProvider(url);
+                    const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, tempProvider);
+                    const data = await contract.getBatch(cleanCode);
+                    if (data && data.exists) {
+                      activeProvider = tempProvider;
+                      batchData = data;
+                      break;
+                    }
+                  } catch (e) {
+                    // Thu endpoint RPC tiep theo neu gap loi mang
+                  }
+                }
+
+                if (batchData && batchData.exists && activeProvider) {
+                  const contract = new ethers.Contract(normalizedContractAddr, PROJECT_CORE_ABI, activeProvider);
                   const isVerifiedOnChain = Boolean(batchData.isVerified);
                   const checkpointsData = await contract.getCheckpoints(cleanCode);
 
