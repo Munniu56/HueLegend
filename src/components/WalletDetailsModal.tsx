@@ -196,29 +196,31 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
             <p className="text-[10px] text-emerald-700 font-medium">Đã xác thực</p>
           </div>
 
-          {/* Accumulated ETH Balance in Smart Contract (Categorized by Role) */}
-          <div className="col-span-2 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/90 space-y-2 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
-                  SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
+          {/* Accumulated ETH Balance in Smart Contract (Categorized by Role - Hidden for Retailer role) */}
+          {!(userRole === 'RETAILER' || userRole === 'COMMERCE') && (
+            <div className="col-span-2 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/90 space-y-2 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
+                    SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
+                  {roleLabel}
                 </span>
               </div>
-              <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
-                {roleLabel}
-              </span>
-            </div>
 
-            <div className="flex items-baseline justify-between pt-1 border-t border-emerald-200/60">
-              <div className="text-xs text-[#5E7166] font-medium">
-                {roleSubtext}
-              </div>
-              <div className="text-base font-mono font-black text-[#264939]">
-                {roleBalance} ETH
+              <div className="flex items-baseline justify-between pt-1 border-t border-emerald-200/60">
+                <div className="text-xs text-[#5E7166] font-medium">
+                  {roleSubtext}
+                </div>
+                <div className="text-base font-mono font-black text-[#264939]">
+                  {roleBalance} ETH
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Action: Disconnect Button */}
