@@ -23,7 +23,7 @@ interface RetailerTabProps {
 }
 
 export const RetailerTab: React.FC<RetailerTabProps> = ({
-  batches,
+  batches = {},
   isRetailerRole,
   currentAccount,
   contractBalanceEth = '0.00',
@@ -32,19 +32,31 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   onAddCheckpoint,
   onWithdrawEarnings,
 }) => {
-  const batchList = Object.values(batches);
-  // Loc danh sach cac lo hang da qua kiem dinh OCOP (Chang 2) VA da duoc don vi van chuyen ghi nhat ky (Chang 3) CHUA DUOC NIÊM YẾT (Chang 4)
-  const transportBatches = batchList.filter((b) => {
-    if (!b.isVerified) return false;
+  const [selectedBatchCode, setSelectedBatchCode] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
+  const [storeName, setStoreName] = useState('');
+  const [storeLocation, setStoreLocation] = useState('');
+  const [listingPriceEth, setListingPriceEth] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; storeLocation: string; stock: string; category: string; sellerAddr: string }>>({});
+
+  const batchList = batches ? Object.values(batches) : [];
+  // Tat ca cac lo hang da qua van chuyen (Chang 3)
+  const allTransportBatches = batchList.filter((b) => {
+    if (!b || !b.isVerified) return false;
     const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
       (c) =>
         c.role === 'ROLE_LOGISTICS' ||
         c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
         (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
     );
-    if (!hasLogisticsCp) return false;
+    return Boolean(hasLogisticsCp);
+  });
 
-    // Kiem tra lo hang da duoc niem yet chua -> Neu da niem yet thi KHONG HIÊN trong dropdown nua
+  // Danh sach lo hang chua niêm yết de hien thi trong Dropdown chon lo hang
+  const unlistedTransportBatches = allTransportBatches.filter((b) => {
     const isAlreadyListedInState = Boolean(listedPrices[b.batchCode]);
     const isAlreadyListedInBatch = Boolean(
       b.isListed ||
@@ -60,17 +72,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
     return !isAlreadyListedInState && !isAlreadyListedInBatch;
   });
 
-  const [selectedBatchCode, setSelectedBatchCode] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
-  const [storeName, setStoreName] = useState('');
-  const [storeLocation, setStoreLocation] = useState('');
-  const [listingPriceEth, setListingPriceEth] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; storeLocation: string; stock: string; category: string; sellerAddr: string }>>({});
-
-  const selectedBatch = batches[selectedBatchCode];
+  const selectedBatch = batches && selectedBatchCode ? batches[selectedBatchCode] : undefined;
 
   // Tu dong dong bo So Luong Nhap Kho voi San Luong duoc khoi tao tu Step 1 (CreateBatchTab)
   React.useEffect(() => {
@@ -119,7 +121,7 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         }
       }));
 
-      // Khi xac nhan niem yet thanh cong -> reset form va xoa chọn lo hang de an phan Trang Thai Niem Yet
+      // Khi xac nhan niem yet thanh cong -> reset form va xoa chọn lo hang
       setSelectedBatchCode('');
       setStoreName('');
       setStoreLocation('');
@@ -247,10 +249,10 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         </div>
       </div>
 
-      {/* KHỐI 2: GRID CÂN BẰNG CHO FORM NIÊM YẾT VÀ BẢNG TRẠNG THÁI (ẨN KHI CHƯA CHỌN LÔ HÀNG) */}
-      <div className={`grid grid-cols-1 ${selectedBatchCode ? 'lg:grid-cols-12' : ''} gap-6 items-start`}>
-        {/* Cot trai: Form Niem Yet (Chiem 7/12 khi co lo hang duoc chon, hoac span 12 va max-w-3xl khi chua chon) */}
-        <div className={`${selectedBatchCode ? 'lg:col-span-7' : 'col-span-12 max-w-3xl mx-auto w-full'} bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5`}>
+      {/* KHỐI 2: GRID 2 CỘT CÂN BẰNG CHO FORM NIÊM YẾT VÀ BẢNG TRẠNG THÁI */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Cot trai (7/12): Form Niem Yet */}
+        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
           <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
             <div className="flex items-center gap-2">
               <Store className="w-6 h-6 text-[#264939]" />
@@ -278,12 +280,17 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-mono font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
               >
                 <option value="">-- Chọn Lô Hàng từ đơn vị vận chuyển --</option>
-                {transportBatches.length > 0 &&
-                  transportBatches.map((batch) => (
+                {unlistedTransportBatches.length > 0 ? (
+                  unlistedTransportBatches.map((batch) => (
                     <option key={batch.batchCode} value={batch.batchCode}>
                       {batch.batchCode} — {batch.productName} (Đã Qua Vận Chuyển)
                     </option>
-                  ))}
+                  ))
+                ) : (
+                  <option value="" disabled>
+                    Tất cả các lô hàng đã được niêm yết bán lẻ
+                  </option>
+                )}
               </select>
             </div>
 
@@ -452,89 +459,123 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           </form>
         </div>
 
-        {/* Cot phai (5/12): Trang Thai Niem Yet Lo Hang - CHI HIEN THI KHI DA CHON LO HANG */}
-        {selectedBatchCode && selectedBatch && (
-          <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
-              <div className="flex items-center gap-2">
-                <Package className="w-5 h-5 text-[#C29B38]" />
-                <h3 className="font-serif font-extrabold text-base text-[#264939]">
-                  Trạng Thái Niêm Yết Lô Hàng
-                </h3>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Sản Phẩm Đang Chọn
-              </span>
+        {/* Cot phai (5/12): Trang Thai Niem Yet Lo Hang (LUON HIENTHI) */}
+        <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-[#C29B38]" />
+              <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                Trạng Thái Niêm Yết Lô Hàng
+              </h3>
             </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+              Danh Sách Lô Hàng
+            </span>
+          </div>
 
-            {(() => {
-              const listingInfo = listedPrices[selectedBatch.batchCode];
-              return (
-                <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5 hover:border-[#264939]/30 transition-all">
-                  <div className="flex items-start gap-3">
-                    <img
-                      src={selectedBatch.imageUrl || defaultProductImageUrl}
-                      alt={selectedBatch.productName}
-                      className="w-14 h-14 rounded-xl object-cover border border-[#EDE9E0] shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
-                          {selectedBatch.batchCode}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                          {listingInfo ? 'Đã Niêm Yết' : 'Sẵn Sàng Niêm Yết'}
+          {allTransportBatches.length === 0 ? (
+            <div className="p-8 text-center text-xs text-gray-500 bg-[#FAF9F5] rounded-2xl border border-[#EDE9E0] space-y-3">
+              <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
+              <p className="font-bold text-[#264939] text-sm">Chưa có lô hàng từ đơn vị vận chuyển</p>
+              <p className="text-gray-500 leading-relaxed max-w-xs mx-auto">
+                Cần đơn vị vận chuyển ghi nhật ký vận chuyển trước khi đại lý có thể niêm yết lên Cửa hàng đặc sản.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+              {allTransportBatches.map((batch: Batch) => {
+                const listingInfo = listedPrices[batch.batchCode];
+                const isSelected = batch.batchCode === selectedBatchCode;
+                const isListed = Boolean(
+                  listingInfo ||
+                  batch.isListed ||
+                  batch.listingPriceEth ||
+                  (batch.checkpoints && batch.checkpoints.some(
+                    (c) =>
+                      c.role === 'ROLE_RETAILER' ||
+                      c.role === 'RETAILER' ||
+                      (c.stepName && (c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('bán lẻ')))
+                  ))
+                );
+
+                return (
+                  <div
+                    key={batch.batchCode}
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      isSelected
+                        ? 'bg-amber-50/90 border-[#C29B38] ring-2 ring-[#C29B38]/30 shadow-xs'
+                        : 'bg-[#FAF9F5] border-[#E6E1D7] hover:border-[#264939]/40'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <img
+                        src={batch.imageUrl || defaultProductImageUrl}
+                        alt={batch.productName}
+                        className="w-12 h-12 rounded-xl object-cover border border-[#EDE9E0] shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
+                            {batch.batchCode}
+                          </span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                            isListed
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                              : 'bg-amber-100 text-amber-900 border-amber-200'
+                          }`}>
+                            {isListed ? 'Đã Niêm Yết' : 'Sẵn Sàng Niêm Yết'}
+                          </span>
+                        </div>
+                        <h4 className="font-serif font-bold text-xs text-[#1A2820] mt-1 truncate">
+                          {batch.productName}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-[#5E7166] space-y-1.5 mt-2 bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
+                      <div className="flex justify-between">
+                        <span>Tên cửa hàng:</span>
+                        <span className="font-bold text-[#1A2820] truncate max-w-[160px]">
+                          {listingInfo?.store || (isSelected ? storeName : null) || 'Đại Lý Cố Đô'}
                         </span>
                       </div>
-                      <h4 className="font-serif font-bold text-sm text-[#1A2820] mt-1.5 truncate">
-                        {selectedBatch.productName}
-                      </h4>
+                      <div className="flex justify-between">
+                        <span>Điểm bán:</span>
+                        <span className="font-medium text-[#264939] truncate max-w-[160px]">
+                          {listingInfo?.storeLocation || (isSelected ? storeLocation : null) || 'Thừa Thiên Huế'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Danh mục đặc sản:</span>
+                        <span className="font-bold text-[#264939] truncate max-w-[160px]">
+                          {listingInfo?.category || (isSelected ? selectedCategory : null) || 'Đặc Sản Huế'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Giá bán niêm yết:</span>
+                        <span className="font-mono font-bold text-[#264939]">
+                          {listingInfo?.price || (isSelected ? listingPriceEth : null) || batch.listingPriceEth || '0.002'} ETH
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Tồn kho đại lý:</span>
+                        <span className="font-mono font-bold text-amber-800">
+                          {listingInfo?.stock || (isSelected ? stockQuantity : null) || batch.quantity || '100'} đơn vị
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[10px] pt-1 border-t border-[#EDE9E0]">
+                        <span>Ví Retailer thụ hưởng:</span>
+                        <span className="font-mono font-bold text-emerald-700 truncate max-w-[140px]">
+                          {listingInfo?.sellerAddr || (currentAccount ? `${currentAccount.slice(0, 8)}...${currentAccount.slice(-4)}` : 'ROLE_RETAILER')}
+                        </span>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="text-xs text-[#5E7166] space-y-1.5 bg-white p-3 rounded-xl border border-[#EDE9E0]">
-                    <div className="flex justify-between">
-                      <span>Tên cửa hàng:</span>
-                      <span className="font-bold text-[#1A2820] truncate max-w-[160px]">
-                        {listingInfo?.store || storeName || 'Chưa nhập'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Điểm bán:</span>
-                      <span className="font-medium text-[#264939] truncate max-w-[160px]">
-                        {listingInfo?.storeLocation || storeLocation || 'Chưa nhập'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Danh mục đặc sản:</span>
-                      <span className="font-bold text-[#264939] truncate max-w-[160px]">
-                        {listingInfo?.category || selectedCategory}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Giá bán niêm yết:</span>
-                      <span className="font-mono font-bold text-[#264939]">
-                        {listingInfo?.price || listingPriceEth || '0.00'} ETH
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tồn kho nhập:</span>
-                      <span className="font-mono font-bold text-amber-800">
-                        {listingInfo?.stock || stockQuantity || '0'} đơn vị
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-[10px] pt-1 border-t border-[#EDE9E0]">
-                      <span>Ví Retailer thụ hưởng:</span>
-                      <span className="font-mono font-bold text-emerald-700 truncate max-w-[140px]">
-                        {currentAccount ? `${currentAccount.slice(0, 8)}...${currentAccount.slice(-4)}` : 'Chưa kết nối ví'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
