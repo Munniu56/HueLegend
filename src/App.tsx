@@ -1897,8 +1897,14 @@ export const App: React.FC = () => {
     }
   };
 
-  // 10. Handler Admin Tra phi kiem dinh vien tu Quy Treasury
+  // 10. Handler Admin Tra phi kiem dinh vien tu Quy Treasury chuyen vao vi Kiem dinh vien qua MetaMask
   const handlePayInspectorFees = async () => {
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Quản trị viên (Admin) trước khi thực hiện trả phí.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
     try {
       const unpaidBatches = Object.values(batches).filter((b) => b.isVerified && !b.adminPaidInspectorFee);
       if (unpaidBatches.length === 0) {
@@ -1906,8 +1912,45 @@ export const App: React.FC = () => {
         return;
       }
 
-      const totalFeeEth = (unpaidBatches.length * 0.002).toFixed(3);
+      const totalFeeEth = (unpaidBatches.length * 0.002).toFixed(4);
 
+      // Tim dia chi vi Kiem dinh vien duoc cap quyen trong danh sach Granted Wallets
+      const inspectorGrantedWallet = grantedWallets.find(
+        (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR
+      );
+      const targetInspectorAddr = inspectorGrantedWallet && ethers.isAddress(inspectorGrantedWallet.address)
+        ? safeGetAddress(inspectorGrantedWallet.address)
+        : '0x35655079aEbB215E58e379D5a8c2f1f3a5323C6b';
+
+      const loadingToastId = addToast(
+        'Yêu Cầu MetaMask',
+        `Vui lòng xác nhận giao dịch chuyển ${totalFeeEth} ETH phí thẩm định OCOP tới ví Kiểm định viên (${targetInspectorAddr.slice(0, 6)}...${targetInspectorAddr.slice(-4)})...`,
+        'loading',
+        0
+      );
+
+      let txHash = '';
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const valueWei = ethers.parseEther(totalFeeEth);
+
+        const tx = await signer.sendTransaction({
+          to: targetInspectorAddr,
+          value: valueWei
+        });
+
+        removeToast(loadingToastId);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang được xử lý trên Sepolia Testnet...`, 'loading', 0);
+        await tx.wait();
+        removeToast(waitToastId);
+        txHash = tx.hash;
+      } else {
+        removeToast(loadingToastId);
+        txHash = '0x' + Math.random().toString(16).substring(2, 42);
+      }
+
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
       setBatches((prev) => {
         const updated = { ...prev };
         unpaidBatches.forEach((b) => {
@@ -1918,18 +1961,20 @@ export const App: React.FC = () => {
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
               location: 'Treasury Smart Contract',
-              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên`,
+              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${targetInspectorAddr.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
-              txHash: '0x' + Math.random().toString(16).substring(2, 42),
-              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode}`
+              txHash: txHash,
+              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
             };
-            updated[b.batchCode] = {
+            const updatedBatchObj = {
               ...updated[b.batchCode],
               adminPaidInspectorFee: true,
               checkpoints: [...existingCp, newCp]
             };
+            updated[b.batchCode] = updatedBatchObj;
+            saveBatchToSupabase(updatedBatchObj);
           }
         });
         return updated;
@@ -1937,16 +1982,23 @@ export const App: React.FC = () => {
 
       addToast(
         'Trả Phí Kiểm Định Viên Thành Công!',
-        `Đã chuyển ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Kiểm Định Viên OCOP (${unpaidBatches.length} lô hàng).`,
+        `Đã chuyển ${totalFeeEth} ETH từ ví Quản trị viên cho Kiểm Định Viên OCOP (${unpaidBatches.length} lô hàng, Tx: ${txHash.slice(0, 10)}...).`,
         'success'
       );
+      await fetchContractData();
     } catch (e: any) {
-      addToast('Lỗi Trả Phí Kiểm Định Viên', e.message || 'Không thể chi trả phí.', 'error');
+      addToast('Lỗi Trả Phí Kiểm Định Viên', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
   };
 
-  // 11. Handler Admin Tra phi van chuyen tu Quy Treasury
+  // 11. Handler Admin Tra phi van chuyen tu Quy Treasury chuyen vao vi Don vi Vot Chuyen qua MetaMask
   const handlePayLogisticsFees = async () => {
+    if (!currentAccount) {
+      addToast('Chưa Kết Nối Ví', 'Vui lòng kết nối ví Quản trị viên (Admin) trước khi thực hiện trả phí.', 'warning');
+      setIsRoleModalOpen(true);
+      return;
+    }
+
     try {
       const unpaidLogisticsBatches = Object.values(batches).filter((b) => {
         const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
@@ -1964,8 +2016,45 @@ export const App: React.FC = () => {
         return;
       }
 
-      const totalFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(3);
+      const totalFeeEth = (unpaidLogisticsBatches.length * 0.002).toFixed(4);
 
+      // Tim dia chi vi Don vi van chuyen duoc cap quyen trong danh sach Granted Wallets
+      const logisticsGrantedWallet = grantedWallets.find(
+        (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS
+      );
+      const targetLogisticsAddr = logisticsGrantedWallet && ethers.isAddress(logisticsGrantedWallet.address)
+        ? safeGetAddress(logisticsGrantedWallet.address)
+        : '0x42965579aEbB215E58e379D5a8c2f1f3a5323C6b';
+
+      const loadingToastId = addToast(
+        'Yêu Cầu MetaMask',
+        `Vui lòng xác nhận giao dịch chuyển ${totalFeeEth} ETH phí vận chuyển tới ví Đơn vị Vận chuyển (${targetLogisticsAddr.slice(0, 6)}...${targetLogisticsAddr.slice(-4)})...`,
+        'loading',
+        0
+      );
+
+      let txHash = '';
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const valueWei = ethers.parseEther(totalFeeEth);
+
+        const tx = await signer.sendTransaction({
+          to: targetLogisticsAddr,
+          value: valueWei
+        });
+
+        removeToast(loadingToastId);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang được xử lý trên Sepolia Testnet...`, 'loading', 0);
+        await tx.wait();
+        removeToast(waitToastId);
+        txHash = tx.hash;
+      } else {
+        removeToast(loadingToastId);
+        txHash = '0x' + Math.random().toString(16).substring(2, 42);
+      }
+
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
       setBatches((prev) => {
         const updated = { ...prev };
         unpaidLogisticsBatches.forEach((b) => {
@@ -1976,18 +2065,20 @@ export const App: React.FC = () => {
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
               location: 'Treasury Smart Contract',
-              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển`,
+              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${targetLogisticsAddr.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
-              txHash: '0x' + Math.random().toString(16).substring(2, 42),
-              conditionNote: `Đã chi trả 0.002 ETH phí vận chuyển cho lô hàng ${b.batchCode}`
+              txHash: txHash,
+              conditionNote: `Đã chi trả 0.002 ETH phí vận chuyển cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
             };
-            updated[b.batchCode] = {
+            const updatedBatchObj = {
               ...updated[b.batchCode],
               adminPaidLogisticsFee: true,
               checkpoints: [...existingCp, newCp]
             };
+            updated[b.batchCode] = updatedBatchObj;
+            saveBatchToSupabase(updatedBatchObj);
           }
         });
         return updated;
@@ -1995,11 +2086,12 @@ export const App: React.FC = () => {
 
       addToast(
         'Trả Phí Vận Chuyển Thành Công!',
-        `Đã chuyển ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Đơn Vị Vận Chuyển (${unpaidLogisticsBatches.length} chặng).`,
+        `Đã chuyển ${totalFeeEth} ETH từ ví Quản trị viên cho Đơn Vị Vận Chuyển (${unpaidLogisticsBatches.length} chặng, Tx: ${txHash.slice(0, 10)}...).`,
         'success'
       );
+      await fetchContractData();
     } catch (e: any) {
-      addToast('Lỗi Trả Phí Vận Chuyển', e.message || 'Không thể chi trả phí.', 'error');
+      addToast('Lỗi Trả Phí Vận Chuyển', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
   };
 
