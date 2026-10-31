@@ -87,7 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, userRole = 'ALL', o
       return ['overview', 'lookup', 'store', 'checkpoint', 'retailer'].includes(item.id);
     }
     if (userRole === 'INSPECTOR') {
-      return ['overview', 'lookup', 'store', 'inspector', 'checkpoint'].includes(item.id);
+      // Kiem dinh vien OCOP chi hien thi: Tong quan, Tra cuu, Cua hang, Kiem dinh OCOP (An van chuyen)
+      return ['overview', 'lookup', 'store', 'inspector'].includes(item.id);
     }
     if (userRole === 'CUSTOMER') {
       return ['overview', 'lookup', 'store'].includes(item.id);
