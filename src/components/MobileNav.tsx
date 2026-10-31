@@ -14,7 +14,9 @@ import {
   CheckCircle2,
   ChevronRight,
   MapPin,
-  Sparkles
+  Sparkles,
+  RefreshCw,
+  Wallet
 } from 'lucide-react';
 import { CONTRACT_ADDRESS, ETHERSCAN_BASE_URL } from '../constants';
 
@@ -24,6 +26,8 @@ interface MobileNavProps {
   onTabChange: (tab: string) => void;
   isOpenMobileMenu: boolean;
   onToggleMobileMenu: () => void;
+  currentAccount?: string | null;
+  onConnectWallet?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
@@ -32,6 +36,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   onTabChange,
   isOpenMobileMenu,
   onToggleMobileMenu,
+  currentAccount,
+  onConnectWallet,
 }) => {
   // Danh sach tat ca cac muc dieu huong trong he thong HueLegend
   const navItems = [
@@ -114,13 +120,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     { id: 'lookup', label: 'Tra Cứu', icon: QrCode },
     { id: 'store', label: 'Cửa Hàng', icon: Store },
     { id: 'create-batch', label: 'Tạo Lô', icon: PlusCircle },
+    { id: 'inspector', label: 'Kiểm Định', icon: ShieldCheck },
     { id: 'checkpoint', label: 'Vận Chuyển', icon: Truck },
     { id: 'retailer', label: 'Niêm Yết', icon: Tag },
+    { id: 'admin', label: 'Quản Trị', icon: Settings },
   ];
 
-  const quickTabs = allQuickTabs
-    .filter((tab) => filteredNavItems.some((item) => item.id === tab.id))
-    .slice(0, 4);
+  // Dam bao tab dang mo tu May Tinh luon xuat hien trong danh sach tab bottom bar khi duoc dong bo
+  const allowedQuickTabs = allQuickTabs.filter((tab) => filteredNavItems.some((item) => item.id === tab.id));
+  const hasActiveTabInTop3 = allowedQuickTabs.slice(0, 3).some((t) => t.id === activeTab);
+  let quickTabs = allowedQuickTabs.slice(0, 4);
+  if (!hasActiveTabInTop3) {
+    const activeObj = allowedQuickTabs.find((t) => t.id === activeTab);
+    if (activeObj) {
+      quickTabs = [...allowedQuickTabs.slice(0, 3), activeObj];
+    }
+  }
 
   const handleSelectTab = (tabId: string) => {
     onTabChange(tabId);
@@ -128,6 +143,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       onToggleMobileMenu();
     }
   };
+
+  const shortAddress = currentAccount
+    ? `${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`
+    : 'Đồng bộ với Máy tính';
 
   return (
     <>
@@ -199,6 +218,29 @@ export const MobileNav: React.FC<MobileNavProps> = ({
                 >
                   <X className="w-5 h-5" />
                 </button>
+              </div>
+
+              {/* Tag thong tin lien ket va dong bo voi May Tinh */}
+              <div className="bg-[#E0ECE4]/80 p-3 rounded-2xl border border-[#CCD8CF] flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="flex flex-col">
+                    <span className="font-extrabold text-[#264939] text-[11px]">LIÊN KẾT MÁY TÍNH</span>
+                    <span className="font-mono text-[10px] text-[#4A5E52]">{shortAddress}</span>
+                  </div>
+                </div>
+                {onConnectWallet && (
+                  <button
+                    onClick={() => {
+                      onToggleMobileMenu();
+                      onConnectWallet();
+                    }}
+                    className="px-2.5 py-1 rounded-xl bg-[#264939] text-white text-[11px] font-bold flex items-center gap-1 shadow-2xs hover:bg-[#1c372b]"
+                  >
+                    <Wallet className="w-3 h-3 text-[#C29B38]" />
+                    <span>Ví</span>
+                  </button>
+                )}
               </div>
 
               {/* Navigation Category List */}
@@ -281,4 +323,5 @@ export const MobileNav: React.FC<MobileNavProps> = ({
     </>
   );
 };
+
 

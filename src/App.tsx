@@ -746,6 +746,34 @@ export const App: React.FC = () => {
                   return prev;
                 });
               }
+
+              // Dong bo vai tro, vi ket noi va tab dang xem tu May Tinh sang Dien Thoai
+              if (json.data.simulatedRole && json.data.simulatedRole !== simulatedRole) {
+                setSimulatedRole(json.data.simulatedRole);
+                try {
+                  localStorage.setItem('hl_user_role', json.data.simulatedRole);
+                } catch (e) {}
+              }
+
+              if (json.data.currentAccount !== undefined && json.data.currentAccount !== currentAccount) {
+                setCurrentAccount(json.data.currentAccount);
+                if (json.data.currentAccount) {
+                  try {
+                    localStorage.setItem('hl_connected_account', json.data.currentAccount);
+                  } catch (e) {}
+                } else {
+                  try {
+                    localStorage.removeItem('hl_connected_account');
+                  } catch (e) {}
+                }
+              }
+
+              if (json.data.activeTab && json.data.activeTab !== activeTab && !urlBatchCode) {
+                setActiveTab(json.data.activeTab);
+                try {
+                  localStorage.setItem('hl_active_tab', json.data.activeTab);
+                } catch (e) {}
+              }
             }
           }
         } catch (e) {}
@@ -2135,6 +2163,8 @@ export const App: React.FC = () => {
         onTabChange={(tab) => handleNavigateTab(tab)}
         isOpenMobileMenu={isOpenMobileMenu}
         onToggleMobileMenu={() => setIsOpenMobileMenu(!isOpenMobileMenu)}
+        currentAccount={currentAccount}
+        onConnectWallet={handleOpenRoleConnectModal}
       />
 
       {/* Global Toast Alerts */}
@@ -2178,6 +2208,8 @@ export const App: React.FC = () => {
         isOpen={isMobileMetaMaskModalOpen}
         onClose={() => setIsMobileMetaMaskModalOpen(false)}
         deepLinkUrl={mobileMetaMaskDeepLink}
+        currentAccount={currentAccount}
+        onSyncFromDesktop={handleManualSync}
       />
 
       {/* Screen Loading Khi Dien Thoai Quet QR Doc Du Lieu Ngam Tu Blockchain */}

@@ -1,30 +1,44 @@
 import React from 'react';
-import { X, ExternalLink, Download, Smartphone, ShieldAlert } from 'lucide-react';
+import { X, ExternalLink, Download, Smartphone, ShieldAlert, RefreshCw } from 'lucide-react';
 import { useDraggable } from '../hooks/useDraggable';
 
 interface MobileMetaMaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   deepLinkUrl: string;
+  currentAccount?: string | null;
+  onSyncFromDesktop?: () => void;
 }
 
 export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
   isOpen,
   onClose,
   deepLinkUrl,
+  currentAccount,
+  onSyncFromDesktop,
 }) => {
   const { position, isDragging, dragHeaderProps } = useDraggable(isOpen);
 
   if (!isOpen) return null;
 
   const handleOpenMetaMaskApp = () => {
-    // Chuyen huong sang app MetaMask qua Deep Link
-    window.location.href = deepLinkUrl;
+    // Dam bao Deep Link chuan khong bi lặp giao thức https://
+    const cleanDeepLink = deepLinkUrl.includes('metamask.app.link/dapp/')
+      ? deepLinkUrl
+      : `https://metamask.app.link/dapp/${window.location.host}${window.location.pathname}${window.location.search}`;
+    window.location.href = cleanDeepLink;
   };
 
   const handleDownloadMetaMask = () => {
     // Mo trang download MetaMask chinh thuc
     window.open('https://metamask.io/download/', '_blank', 'noopener,noreferrer');
+  };
+
+  const handleSyncDesktop = () => {
+    if (onSyncFromDesktop) {
+      onSyncFromDesktop();
+    }
+    onClose();
   };
 
   return (
@@ -51,7 +65,7 @@ export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
             </div>
             <div>
               <h3 className="font-serif font-extrabold text-base text-[#264939]">
-                Kết Nối Ví MetaMask Mobile
+                Kết Nối Ví & Liên Kết Máy Tính
               </h3>
               <p className="text-[11px] text-[#5E7166]">Ứng dụng di động Web3 Sepolia</p>
             </div>
@@ -72,11 +86,20 @@ export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
             <ShieldAlert className="w-5 h-5 text-[#C29B38] shrink-0 mt-0.5" />
             <div className="text-xs text-[#2C3E35] leading-relaxed">
               Trình duyệt di động thông thường (Safari, Chrome) chưa tích hợp sẵn MetaMask Web3.
-              Vui lòng mở trang web này bằng <strong>App MetaMask</strong> đã cài đặt trên điện thoại.
+              Bạn có thể mở qua <strong>App MetaMask</strong> hoặc chọn <strong>Đồng bộ từ Máy Tính</strong> để liên kết ngay với ví đã mở ở máy tính.
             </div>
           </div>
 
           <div className="space-y-2.5">
+            {/* Nut Dong bo truc tiep tu May Tinh */}
+            <button
+              onClick={handleSyncDesktop}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#E0ECE4] text-[#264939] font-extrabold text-xs hover:bg-[#c9dcd0] transition-all shadow-xs border border-[#CCD8CF] active:scale-98"
+            >
+              <RefreshCw className="w-4 h-4 text-[#264939] animate-spin-slow" />
+              <span>Đồng Bộ Ví & Quyền Từ Máy Tính (Desktop Live Sync)</span>
+            </button>
+
             <button
               onClick={handleOpenMetaMaskApp}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#264939] text-white font-extrabold text-sm hover:bg-[#1c372b] transition-all shadow-md active:scale-98"
@@ -97,9 +120,10 @@ export const MobileMetaMaskModal: React.FC<MobileMetaMaskModalProps> = ({
 
         {/* Footer info */}
         <div className="pt-3 border-t border-[#EDE9E0] text-center text-[10px] font-sans text-[#8A9D92]">
-          Deep Link tự động kích hoạt chuyển hướng sang ứng dụng MetaMask trên iOS / Android.
+          Hỗ trợ đồng bộ tự động 2 chiều giữa thiết bị Di Động và Máy Tính.
         </div>
       </div>
     </div>
   );
 };
+
