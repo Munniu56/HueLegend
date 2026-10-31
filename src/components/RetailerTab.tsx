@@ -103,6 +103,13 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           sellerAddr: currentAccount || 'Ví Đại Lý Sepolia'
         }
       }));
+
+      // Khi xac nhan niem yet thanh cong -> reset form va xoa chọn lo hang de an phan Trang Thai Niem Yet
+      setSelectedBatchCode('');
+      setStoreName('');
+      setStoreLocation('');
+      setListingPriceEth('');
+      setStockQuantity('');
     } catch (err) {
       console.error(err);
     } finally {
@@ -225,10 +232,10 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
         </div>
       </div>
 
-      {/* KHỐI 2: GRID 2 CỘT CÂN BẰNG CHO FORM NIÊM YẾT VÀ BẢNG TRẠNG THÁI */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Cot trai (7/12): Form Niem Yet */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
+      {/* KHỐI 2: GRID CÂN BẰNG CHO FORM NIÊM YẾT VÀ BẢNG TRẠNG THÁI (ẨN KHI CHƯA CHỌN LÔ HÀNG) */}
+      <div className={`grid grid-cols-1 ${selectedBatchCode ? 'lg:grid-cols-12' : ''} gap-6 items-start`}>
+        {/* Cot trai: Form Niem Yet (Chiem 7/12 khi co lo hang duoc chon, hoac span 12 va max-w-3xl khi chua chon) */}
+        <div className={`${selectedBatchCode ? 'lg:col-span-7' : 'col-span-12 max-w-3xl mx-auto w-full'} bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5`}>
           <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
             <div className="flex items-center gap-2">
               <Store className="w-6 h-6 text-[#264939]" />
@@ -430,102 +437,89 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
           </form>
         </div>
 
-        {/* Cot phai (5/12): Danh Sach Lo Hang Niem Yet */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-[#C29B38]" />
-              <h3 className="font-serif font-extrabold text-base text-[#264939]">
-                Trạng Thái Niêm Yết Lô Hàng
-              </h3>
+        {/* Cot phai (5/12): Trang Thai Niem Yet Lo Hang - CHI HIEN THI KHI DA CHON LO HANG */}
+        {selectedBatchCode && selectedBatch && (
+          <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EDE9E0]">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-[#C29B38]" />
+                <h3 className="font-serif font-extrabold text-base text-[#264939]">
+                  Trạng Thái Niêm Yết Lô Hàng
+                </h3>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Sản Phẩm Đang Chọn
+              </span>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Active Listings
-            </span>
-          </div>
 
-          {transportBatches.length === 0 ? (
-            <div className="p-8 text-center text-xs text-gray-500 bg-[#FAF9F5] rounded-2xl border border-[#EDE9E0] space-y-3">
-              <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto" />
-              <p className="font-bold text-[#264939] text-sm">Chưa có lô hàng từ đơn vị vận chuyển</p>
-              <p className="text-gray-500 leading-relaxed max-w-xs mx-auto">
-                Cần đơn vị vận chuyển ghi nhật ký vận chuyển trước khi đại lý có thể niêm yết lên Cửa hàng đặc sản.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {transportBatches.map((batch: Batch) => {
-                const listingInfo = listedPrices[batch.batchCode];
-                return (
-                  <div
-                    key={batch.batchCode}
-                    className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5 hover:border-[#264939]/30 transition-all"
-                  >
-                    <div className="flex items-start gap-3">
-                      <img
-                        src={batch.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600'}
-                        alt={batch.productName}
-                        className="w-12 h-12 rounded-lg object-cover border border-[#EDE9E0] shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
-                            {batch.batchCode}
-                          </span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                            InRetail
-                          </span>
-                        </div>
-                        <h4 className="font-serif font-bold text-xs text-[#1A2820] mt-1 truncate">
-                          {batch.productName}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="text-xs text-[#5E7166] space-y-1 bg-white p-2.5 rounded-xl border border-[#EDE9E0]">
-                      <div className="flex justify-between">
-                        <span>Tên cửa hàng:</span>
-                        <span className="font-bold text-[#1A2820] truncate max-w-[160px]">
-                          {listingInfo?.store || storeName || 'Đại Lý Cố Đô'}
+            {(() => {
+              const listingInfo = listedPrices[selectedBatch.batchCode];
+              return (
+                <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#E6E1D7] space-y-2.5 hover:border-[#264939]/30 transition-all">
+                  <div className="flex items-start gap-3">
+                    <img
+                      src={selectedBatch.imageUrl || defaultProductImageUrl}
+                      alt={selectedBatch.productName}
+                      className="w-14 h-14 rounded-xl object-cover border border-[#EDE9E0] shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
+                          {selectedBatch.batchCode}
+                        </span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                          {listingInfo ? 'Đã Niêm Yết' : 'Sẵn Sàng Niêm Yết'}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Điểm bán:</span>
-                        <span className="font-medium text-[#264939] truncate max-w-[160px]">
-                          {listingInfo?.storeLocation || storeLocation || 'Thừa Thiên Huế'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Danh mục đặc sản:</span>
-                        <span className="font-bold text-[#264939] truncate max-w-[160px]">
-                          {listingInfo?.category || selectedCategory}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Giá bán niêm yết:</span>
-                        <span className="font-mono font-bold text-[#264939]">
-                          {listingInfo?.price || '0.002'} ETH
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Tồn kho đại lý:</span>
-                        <span className="font-mono font-bold text-amber-800">
-                          {listingInfo?.stock || '100'} đơn vị
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-[10px]">
-                        <span>Ví Retailer thụ hưởng:</span>
-                        <span className="font-mono font-bold text-emerald-700 truncate max-w-[140px]">
-                          {listingInfo?.sellerAddr || currentAccount?.slice(0, 10) || 'ROLE_RETAILER'}
-                        </span>
-                      </div>
+                      <h4 className="font-serif font-bold text-sm text-[#1A2820] mt-1.5 truncate">
+                        {selectedBatch.productName}
+                      </h4>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+
+                  <div className="text-xs text-[#5E7166] space-y-1.5 bg-white p-3 rounded-xl border border-[#EDE9E0]">
+                    <div className="flex justify-between">
+                      <span>Tên cửa hàng:</span>
+                      <span className="font-bold text-[#1A2820] truncate max-w-[160px]">
+                        {listingInfo?.store || storeName || 'Chưa nhập'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Điểm bán:</span>
+                      <span className="font-medium text-[#264939] truncate max-w-[160px]">
+                        {listingInfo?.storeLocation || storeLocation || 'Chưa nhập'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Danh mục đặc sản:</span>
+                      <span className="font-bold text-[#264939] truncate max-w-[160px]">
+                        {listingInfo?.category || selectedCategory}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Giá bán niêm yết:</span>
+                      <span className="font-mono font-bold text-[#264939]">
+                        {listingInfo?.price || listingPriceEth || '0.00'} ETH
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tồn kho nhập:</span>
+                      <span className="font-mono font-bold text-amber-800">
+                        {listingInfo?.stock || stockQuantity || '0'} đơn vị
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[10px] pt-1 border-t border-[#EDE9E0]">
+                      <span>Ví Retailer thụ hưởng:</span>
+                      <span className="font-mono font-bold text-emerald-700 truncate max-w-[140px]">
+                        {currentAccount ? `${currentAccount.slice(0, 8)}...${currentAccount.slice(-4)}` : 'Chưa kết nối ví'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );
