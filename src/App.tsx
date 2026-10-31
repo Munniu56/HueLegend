@@ -449,10 +449,6 @@ export const App: React.FC = () => {
 
     // 2. Ham layLichSuTuEventContract: Truy van du lieu tu Smart Contract Sepolia qua queryFilter qua RPC Provider
     const layLichSuTuEventContract = async (maLoHang: string, isSilentUpdate = false) => {
-      if (!isSilentUpdate) {
-        setIsQrLoading(true);
-        setQrLoadingBatchCode(maLoHang);
-      }
       setBlockchainErrorMessage(''); // Xoa loi cu truoc khi goi
 
       try {
@@ -2105,28 +2101,6 @@ export const App: React.FC = () => {
         onSyncFromDesktop={handleManualSync}
       />
 
-      {/* Screen Loading Khi Dien Thoai Quet QR Doc Du Lieu Ngam Tu Blockchain */}
-      {isQrLoading && (
-        <div className="fixed inset-0 z-[99999] bg-[#264939] text-white flex flex-col items-center justify-center p-6 space-y-6 animate-in fade-in font-sans">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-[#C29B38]/30 border-t-[#C29B38] animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center text-[#C29B38] font-bold text-xs font-mono">
-              OCOP
-            </div>
-          </div>
-          <div className="text-center space-y-2.5 max-w-sm">
-            <span className="text-[11px] font-mono font-bold px-3.5 py-1 bg-white/10 rounded-full text-[#C29B38] border border-[#C29B38]/40 inline-block uppercase tracking-wider">
-              {qrLoadingBatchCode ? `LÔ HÀNG: ${qrLoadingBatchCode}` : 'KẾT NỐI SEPOLIA BLOCKCHAIN'}
-            </span>
-            <h3 className="text-xl sm:text-2xl font-serif font-extrabold text-[#FAF9F5]">
-              Đang truy xuất nguồn gốc đặc sản...
-            </h3>
-            <p className="text-xs text-[#E0ECE4]/80 leading-relaxed font-sans">
-              Đang tự động kết nối ngầm nút Sepolia Smart Contract RPC để truy vấn nhật ký 4 chặng minh bạch cho điện thoại...
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
