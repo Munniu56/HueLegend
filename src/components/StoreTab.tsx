@@ -93,20 +93,9 @@ export const StoreTab: React.FC<StoreTabProps> = ({
   const [orderNote, setOrderNote] = useState<string>('');
   const [confirmedOrder, setConfirmedOrder] = useState<any>(null);
 
-  // Khoi phuc gio hang va loc cac lo hang DA XAC NHAN NIEM YET
+  // Loc va cap nhat danh sach cac lo hang DA XAC NHAN NIEM YET
   useEffect(() => {
-    // 1. Khoi phuc gio hang tu localStorage
-    if (typeof window !== 'undefined') {
-      try {
-        const savedCartStr = localStorage.getItem('hl_store_cart');
-        if (savedCartStr) {
-          const parsedCart = JSON.parse(savedCartStr);
-          if (Array.isArray(parsedCart)) setCart(parsedCart);
-        }
-      } catch (e) {}
-    }
-
-    // 2. Chi lay cac lo hang DA QUA XAC NHAN NIEM YET
+    // Chi lay cac lo hang DA QUA XAC NHAN NIEM YET
     const listedBatches = Object.values(batches).filter((b) => {
       if (b.isListed) return true;
       if (b.currentStage?.toLowerCase().includes('niêm yết') || b.currentStage?.toLowerCase().includes('inretail')) return true;
@@ -154,15 +143,6 @@ export const StoreTab: React.FC<StoreTabProps> = ({
 
     setCatalog(dynamicItems);
   }, [batches]);
-
-  // Luu gio hang vao localStorage khi thay doi
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('hl_store_cart', JSON.stringify(cart));
-      } catch (e) {}
-    }
-  }, [cart]);
 
   // Them vao gio hang
   const handleAddToCart = (product: ProductItem, qty = 1) => {

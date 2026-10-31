@@ -31,21 +31,10 @@ import { MobileMetaMaskModal } from './components/MobileMetaMaskModal';
 import persistedCodeBatches from './data/persistedBatches.json';
 
 export const App: React.FC = () => {
-  // Global State - Khoi tao danh sach lo hang tu persisted json & local storage
-  const [batches, setBatches] = useState<Record<string, Batch>>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('hl_local_batches');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && Object.keys(parsed).length > 0) {
-            return { ...persistedCodeBatches, ...parsed } as Record<string, Batch>;
-          }
-        }
-      } catch (e) {}
-    }
-    return (persistedCodeBatches as Record<string, Batch>) || {};
-  });
+  // Global State - Khoi tao danh sach lo hang tu persisted json
+  const [batches, setBatches] = useState<Record<string, Batch>>(
+    () => (persistedCodeBatches as Record<string, Batch>) || {}
+  );
   const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
@@ -325,11 +314,6 @@ export const App: React.FC = () => {
             merged[code] = fetchedBatch;
           }
         }
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(merged));
-          } catch (e) {}
-        }
         return merged;
       });
     } catch (err: any) {
@@ -573,13 +557,7 @@ export const App: React.FC = () => {
               checkpoints: finalCheckpoints
             };
 
-            const updatedAll = { ...prev, [maLoHang]: updatedSingle };
-            if (typeof window !== 'undefined') {
-              try {
-                localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
-              } catch (e) {}
-            }
-            return updatedAll;
+            return { ...prev, [maLoHang]: updatedSingle };
           });
           setSelectedLookupBatch(maLoHang);
           setJourneyBatch((prev) => {
@@ -627,8 +605,6 @@ export const App: React.FC = () => {
   const notifyDataSync = useCallback(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('hl_last_sync_timestamp', Date.now().toString());
-        window.dispatchEvent(new Event('storage'));
         if ('BroadcastChannel' in window) {
           const channel = new BroadcastChannel('huelegend_auto_sync');
           channel.postMessage({ type: 'SYNC_RELOAD', timestamp: Date.now() });
@@ -636,18 +612,13 @@ export const App: React.FC = () => {
         }
 
         // Gui du lieu cap nhat len cloud sync endpoint de Mobile khac thiet bi tu dong dong bo
-        const savedBatchesStr = localStorage.getItem('hl_local_batches');
-        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
-        const savedRole = localStorage.getItem('hl_user_role') || 'ALL';
-        const savedAccount = localStorage.getItem('hl_connected_account');
-
         const payload = {
-          batches: savedBatchesStr ? JSON.parse(savedBatchesStr) : batches,
-          grantedWallets: savedWalletsStr ? JSON.parse(savedWalletsStr) : grantedWallets,
+          batches,
+          grantedWallets,
           activeTab,
           selectedLookupBatch,
-          simulatedRole: savedRole,
-          currentAccount: savedAccount,
+          simulatedRole,
+          currentAccount,
           updatedAt: Date.now()
         };
 
@@ -658,168 +629,69 @@ export const App: React.FC = () => {
         }).catch(() => {});
       } catch (e) {}
     }
-  }, [batches, grantedWallets, activeTab, selectedLookupBatch]);
+  }, [batches, grantedWallets, activeTab, selectedLookupBatch, simulatedRole, currentAccount]);
 
-  // Tu dong ket noi va dong bo du lieu theo thoi gian thuc giua giao dien May Tinh (Desktop) va Dien Thoai (Mobile)
+  // Tu dong ket noi va dong bo du lieu theo thoi gian thuc giua giao dien May Tinh (Desktop) va Dien Thoai (Mobile) qua Server API
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const syncLocalState = async () => {
+    const syncServerState = async () => {
       try {
-        // 1. Dong bo du lieu lo hang (batches) tu local storage hoac phien khac
-        const savedBatchesStr = localStorage.getItem('hl_local_batches');
-        if (savedBatchesStr) {
-          try {
-            const parsedBatches = JSON.parse(savedBatchesStr);
-            if (parsedBatches && Object.keys(parsedBatches).length > 0) {
-              setBatches((prev) => ({ ...prev, ...parsedBatches }));
+        const res = await fetch('/api/sync?code=huelegend_global_sync');
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data) {
+            // Dong bo lo hang
+            if (json.data.batches && typeof json.data.batches === 'object' && Object.keys(json.data.batches).length > 0) {
+              setBatches((prev) => {
+                let isDifferent = false;
+                const merged = { ...prev };
+                for (const [code, bData] of Object.entries(json.data.batches as Record<string, Batch>)) {
+                  if (!prev[code] || JSON.stringify(prev[code]) !== JSON.stringify(bData)) {
+                    merged[code] = bData;
+                    isDifferent = true;
+                  }
+                }
+                return isDifferent ? merged : prev;
+              });
             }
-          } catch (e) {}
-        }
 
-        // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets) tu local
-        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
-        if (savedWalletsStr) {
-          try {
-            const parsed = JSON.parse(savedWalletsStr);
-            if (Array.isArray(parsed)) {
+            // Dong bo vi duoc cap quyen
+            if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
               setGrantedWallets((prev) => {
-                if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
-                  return parsed;
+                if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
+                  return json.data.grantedWallets;
                 }
                 return prev;
               });
             }
-          } catch (e) {}
-        }
 
-        // 3. Dong bo tab dang mo (activeTab) tu local
-        const savedTab = localStorage.getItem('hl_active_tab');
-        if (savedTab) {
-          setActiveTab((prev) => (prev !== savedTab ? savedTab : prev));
-        }
+            // Dong bo vai tro
+            if (json.data.simulatedRole) {
+              setSimulatedRole((prevRole) => (json.data.simulatedRole !== prevRole ? json.data.simulatedRole : prevRole));
+            }
 
-        // 4. Dong bo vai tro dang xem (simulatedRole) tu local
-        const savedRole = localStorage.getItem('hl_user_role');
-        if (savedRole) {
-          setSimulatedRole((prev) => (prev !== savedRole ? savedRole : prev));
-        }
+            // Dong bo dia chi vi ket noi
+            if (json.data.currentAccount !== undefined) {
+              const targetAccount = json.data.currentAccount || null;
+              setCurrentAccount((prevAccount) => (targetAccount !== prevAccount ? targetAccount : prevAccount));
+            }
 
-        // 5. Dong bo phien ket noi vi (currentAccount) tu local
-        const savedAccount = localStorage.getItem('hl_connected_account');
-        setCurrentAccount((prev) => {
-          const nextAccount = savedAccount || null;
-          if (nextAccount !== prev) {
-            return nextAccount;
-          }
-          return prev;
-        });
+            // Dong bo tab dang mo
+            if (json.data.activeTab && !urlBatchCode) {
+              setActiveTab((prevTab) => (json.data.activeTab !== prevTab ? json.data.activeTab : prevTab));
+            }
 
-        // 6. Dong bo cloud tu /api/sync de cap nhat lo hang, vai tro, tab va vi cap quyen tu May Tinh sang Dien Thoai (Ca khi ket noi vi lan khong ket noi vi)
-        try {
-          const res = await fetch('/api/sync?code=huelegend_global_sync');
-          if (res.ok) {
-            const json = await res.json();
-            if (json?.data) {
-              // Dong bo lo hang
-              if (json.data.batches && typeof json.data.batches === 'object' && Object.keys(json.data.batches).length > 0) {
-                setBatches((prev) => {
-                  let isDifferent = false;
-                  const merged = { ...prev };
-                  for (const [code, bData] of Object.entries(json.data.batches as Record<string, Batch>)) {
-                    if (!prev[code] || JSON.stringify(prev[code]) !== JSON.stringify(bData)) {
-                      merged[code] = bData;
-                      isDifferent = true;
-                    }
-                  }
-                  if (isDifferent) {
-                    try {
-                      localStorage.setItem('hl_local_batches', JSON.stringify(merged));
-                    } catch (e) {}
-                    return merged;
-                  }
-                  return prev;
-                });
-              }
-
-              // Dong bo vi duoc cap quyen
-              if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
-                setGrantedWallets((prev) => {
-                  if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
-                    try {
-                      localStorage.setItem('hl_granted_wallets', JSON.stringify(json.data.grantedWallets));
-                    } catch (e) {}
-                    return json.data.grantedWallets;
-                  }
-                  return prev;
-                });
-              }
-
-              // Dong bo vai tro (Ca khi co vi hay khong co vi)
-              if (json.data.simulatedRole) {
-                setSimulatedRole((prevRole) => {
-                  if (json.data.simulatedRole !== prevRole) {
-                    try {
-                      localStorage.setItem('hl_user_role', json.data.simulatedRole);
-                    } catch (e) {}
-                    return json.data.simulatedRole;
-                  }
-                  return prevRole;
-                });
-              }
-
-              // Dong bo dia chi vi ket noi (Co the la string hoac null khi ngat vi)
-              if (json.data.currentAccount !== undefined) {
-                const targetAccount = json.data.currentAccount || null;
-                setCurrentAccount((prevAccount) => {
-                  if (targetAccount !== prevAccount) {
-                    if (targetAccount) {
-                      try {
-                        localStorage.setItem('hl_connected_account', targetAccount);
-                      } catch (e) {}
-                    } else {
-                      try {
-                        localStorage.removeItem('hl_connected_account');
-                      } catch (e) {}
-                    }
-                    return targetAccount;
-                  }
-                  return prevAccount;
-                });
-              }
-
-              // Dong bo tab dang mo
-              if (json.data.activeTab && !urlBatchCode) {
-                setActiveTab((prevTab) => {
-                  if (json.data.activeTab !== prevTab) {
-                    try {
-                      localStorage.setItem('hl_active_tab', json.data.activeTab);
-                    } catch (e) {}
-                    return json.data.activeTab;
-                  }
-                  return prevTab;
-                });
-              }
-
-              // Dong bo ma lo hang dang xem
-              if (json.data.selectedLookupBatch !== undefined) {
-                setSelectedLookupBatch((prevBatch) => {
-                  if (json.data.selectedLookupBatch && json.data.selectedLookupBatch !== prevBatch) {
-                    return json.data.selectedLookupBatch;
-                  }
-                  return prevBatch;
-                });
-              }
+            // Dong bo ma lo hang dang xem
+            if (json.data.selectedLookupBatch !== undefined) {
+              setSelectedLookupBatch((prevBatch) => (json.data.selectedLookupBatch && json.data.selectedLookupBatch !== prevBatch ? json.data.selectedLookupBatch : prevBatch));
             }
           }
-        } catch (e) {}
+        }
       } catch (e) {
         console.warn('Loi dong bo thoi gian thuc:', e);
       }
     };
-
-    // Lang nghe su kien storage tu phien lam viec khac (cross-tab/window)
-    window.addEventListener('storage', syncLocalState);
 
     // Lang nghe BroadcastChannel giua cac giao dien
     let channel: BroadcastChannel | null = null;
@@ -828,29 +700,27 @@ export const App: React.FC = () => {
         channel = new BroadcastChannel('huelegend_auto_sync');
         channel.onmessage = (msg) => {
           if (msg.data?.type === 'SYNC_RELOAD') {
-            syncLocalState();
+            syncServerState();
           }
         };
       } catch (e) {}
     }
 
-    // Polling heartbeat (800ms) dam bao giao dien Mobile va Desktop tu dong cap nhat thoi gian thuc bat ke co ket noi vi hay khong
+    // Polling heartbeat (800ms) dam bao giao dien Mobile va Desktop tu dong cap nhat thoi gian thuc
     const syncInterval = setInterval(() => {
-      syncLocalState();
+      syncServerState();
     }, 800);
 
     return () => {
-      window.removeEventListener('storage', syncLocalState);
       if (channel) channel.close();
       clearInterval(syncInterval);
     };
-  }, []);
+  }, [urlBatchCode]);
 
-  // Tu dong day du lieu batches len cloud sync endpoint ngay khi co bat ky lo hang nao duoc khoi tao hoac thay doi o Desktop
+  // Tu dong day du lieu batches len cloud sync endpoint ngay khi co bat ky lo hang nao duoc khoi tao hoac thay doi
   useEffect(() => {
     if (typeof window !== 'undefined' && Object.keys(batches).length > 0) {
       try {
-        localStorage.setItem('hl_local_batches', JSON.stringify(batches));
         const payload = {
           batches,
           grantedWallets,
@@ -869,62 +739,35 @@ export const App: React.FC = () => {
     }
   }, [batches, grantedWallets, activeTab, selectedLookupBatch, simulatedRole, currentAccount]);
 
-
-  // Khoi phuc du lieu va phien dang nhap tu localStorage ngay khi load lai trang
+  // Khoi phuc du lieu va phien lam viec tu Server API (/api/sync) ngay khi load trang
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const savedBatchesStr = localStorage.getItem('hl_local_batches');
-        if (savedBatchesStr) {
-          const parsed = JSON.parse(savedBatchesStr);
-          if (parsed && Object.keys(parsed).length > 0) {
-            setBatches(parsed);
-          }
-        }
-
-        let savedRole = localStorage.getItem('hl_user_role') || 'ALL';
-        const savedAccount = localStorage.getItem('hl_connected_account');
-
-        const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
-        let parsedWallets: GrantedWallet[] = [];
-        if (savedWalletsStr) {
-          try {
-            const parsed = JSON.parse(savedWalletsStr);
-            if (Array.isArray(parsed)) {
-              parsedWallets = parsed;
-              setGrantedWallets(parsed);
+      fetch('/api/sync?code=huelegend_global_sync')
+        .then((res) => res.json())
+        .then((json) => {
+          if (json?.data) {
+            if (json.data.batches && Object.keys(json.data.batches).length > 0) {
+              setBatches((prev) => ({ ...prev, ...json.data.batches }));
             }
-          } catch (e) {}
-        }
-
-        if (savedAccount) {
-          const isDefaultAdmin = savedAccount.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase();
-          if (savedRole === 'ADMIN' && !isDefaultAdmin) {
-            savedRole = 'CUSTOMER';
-            localStorage.setItem('hl_user_role', 'CUSTOMER');
-          } else if (savedRole === 'INSPECTOR') {
-            const isInspectorAuthorized =
-              isDefaultAdmin ||
-              parsedWallets.some(
-                (w) =>
-                  w.address.toLowerCase() === savedAccount.toLowerCase() &&
-                  (w.role === 'ROLE_INSPECTOR' || w.role === 'ROLE_ADMIN')
-              );
-            if (!isInspectorAuthorized) {
-              savedRole = 'CUSTOMER';
-              localStorage.setItem('hl_user_role', 'CUSTOMER');
+            if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
+              setGrantedWallets(json.data.grantedWallets);
             }
+            if (json.data.simulatedRole) {
+              setSimulatedRole(json.data.simulatedRole);
+            }
+            if (json.data.currentAccount) {
+              setCurrentAccount(json.data.currentAccount);
+              fetchContractData(json.data.currentAccount);
+            } else {
+              fetchContractData();
+            }
+          } else {
+            fetchContractData();
           }
-          setSimulatedRole(savedRole);
-          setCurrentAccount(savedAccount);
-          fetchContractData(savedAccount);
-        } else {
-          setSimulatedRole(savedRole);
+        })
+        .catch(() => {
           fetchContractData();
-        }
-      } catch (e) {
-        console.warn('Error restoring state from localStorage:', e);
-      }
+        });
     }
   }, [fetchContractData]);
 
@@ -998,17 +841,8 @@ export const App: React.FC = () => {
             }
           }
 
-          // Lay danh sach vi da duoc cap quyen RBAC tu state hoac localStorage
-          let currentGrantedWallets = grantedWallets;
-          if (currentGrantedWallets.length === 0 && typeof window !== 'undefined') {
-            try {
-              const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
-              if (savedWalletsStr) {
-                const parsed = JSON.parse(savedWalletsStr);
-                if (Array.isArray(parsed)) currentGrantedWallets = parsed;
-              }
-            } catch (e) {}
-          }
+          // Lay danh sach vi da duoc cap quyen RBAC tu state
+          const currentGrantedWallets = grantedWallets;
 
           // Kiem tra quyen Kiem Dinh Vien (INSPECTOR) & Don Vi Van Chuyen (LOGISTICS)
           const isInspectorAuthorized =
@@ -1057,13 +891,6 @@ export const App: React.FC = () => {
           setIsCurrentAccountAdmin(isDefaultAdmin);
           setIsCurrentAccountRetailer(activeRole === 'RETAILER' || activeRole === 'ALL');
           setIsCurrentAccountLogistics(isDefaultAdmin || isLogisticsAuthorized || activeRole === 'LOGISTICS' || activeRole === 'ALL');
-
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.setItem('hl_connected_account', connectedAddr);
-              localStorage.setItem('hl_user_role', activeRole);
-            } catch (e) {}
-          }
 
           addToast('Đăng Nhập Thành Công', `Đã xác nhận ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);
@@ -1117,14 +944,6 @@ export const App: React.FC = () => {
     setIsCurrentAccountInspector(true);
     setIsCurrentAccountLogistics(true);
     setIsWalletDetailsModalOpen(false);
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem('hl_connected_account');
-        localStorage.setItem('hl_user_role', 'ALL');
-        localStorage.setItem('hl_active_tab', 'overview');
-      } catch (e) {}
-    }
 
     addToast('Đã Đăng Xuất', 'Đã quay lại giao diện ban đầu với đầy đủ tính năng.', 'info');
     fetchContractData();
@@ -1194,17 +1013,6 @@ export const App: React.FC = () => {
       setSelectedLookupBatch(batchCodeSelect);
     } else if (tab === 'lookup') {
       setSelectedLookupBatch('');
-    }
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('hl_active_tab', tab);
-        if (batchCodeSelect) {
-          localStorage.setItem('hl_selected_lookup_batch', batchCodeSelect);
-        } else if (tab === 'lookup') {
-          localStorage.removeItem('hl_selected_lookup_batch');
-        }
-      } catch (e) {}
     }
     notifyDataSync();
   };
@@ -1506,22 +1314,7 @@ export const App: React.FC = () => {
           storeName: isListingAction && location ? location : target.storeName,
           checkpoints: [...target.checkpoints, newCheckpoint]
         };
-        const updatedAll = { ...prev, [batchCode]: updatedBatch };
-
-        // Luu ban sao danh sach lo hang vao localStorage cua may hien tai
-        try {
-          localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
-          
-          // Luu nhat ky chang cuc bo theo ma lo
-          const savedHistoryStr = localStorage.getItem(`hl_checkpoints_${batchCode}`) || '[]';
-          const savedHistory = JSON.parse(savedHistoryStr);
-          savedHistory.push(newCheckpoint);
-          localStorage.setItem(`hl_checkpoints_${batchCode}`, JSON.stringify(savedHistory));
-        } catch (e) {
-          console.warn('Loi khi luu ban sao vao localStorage:', e);
-        }
-
-        return updatedAll;
+        return { ...prev, [batchCode]: updatedBatch };
       });
 
       setSelectedLookupBatch(batchCode);
@@ -1658,13 +1451,7 @@ export const App: React.FC = () => {
           currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)',
           checkpoints: updatedCheckpoints
         };
-        const updatedAll = { ...prev, [batchCode]: updatedBatch };
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_local_batches', JSON.stringify(updatedAll));
-          } catch (e) {}
-        }
-        return updatedAll;
+        return { ...prev, [batchCode]: updatedBatch };
       });
 
       setSelectedLookupBatch(batchCode);
@@ -1870,18 +1657,10 @@ export const App: React.FC = () => {
     };
 
     const updateWalletsState = () => {
-      setGrantedWallets((prev) => {
-        const updated = [
-          newGrantedWallet,
-          ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName))
-        ];
-        if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem('hl_granted_wallets', JSON.stringify(updated));
-          } catch (e) {}
-        }
-        return updated;
-      });
+      setGrantedWallets((prev) => [
+        newGrantedWallet,
+        ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName))
+      ]);
       notifyDataSync();
     };
 
@@ -1923,15 +1702,7 @@ export const App: React.FC = () => {
     }
 
     const normalizedAccount = safeGetAddress(account);
-    setGrantedWallets((prev) => {
-      const updated = prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName));
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('hl_granted_wallets', JSON.stringify(updated));
-        } catch (e) {}
-      }
-      return updated;
-    });
+    setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName)));
     notifyDataSync();
 
     addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
@@ -2046,13 +1817,7 @@ export const App: React.FC = () => {
       if (res.ok) {
         const json = await res.json();
         if (json?.data && json.data.batches && typeof json.data.batches === 'object') {
-          setBatches((prev) => {
-            const merged = { ...prev, ...json.data.batches };
-            try {
-              localStorage.setItem('hl_local_batches', JSON.stringify(merged));
-            } catch (e) {}
-            return merged;
-          });
+          setBatches((prev) => ({ ...prev, ...json.data.batches }));
           addToast('Đồng Bộ Thành Công!', `Đã cập nhật ${Object.keys(json.data.batches).length} lô hàng từ máy tính.`, 'success');
         } else {
           addToast('Đồng Bộ Hoàn Tất', 'Đã kiểm tra dữ liệu đồng bộ cloud mới nhất.', 'info');
