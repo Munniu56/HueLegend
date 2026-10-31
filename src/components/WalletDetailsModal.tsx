@@ -87,25 +87,30 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     }
   }
 
-  // Tinh tong so phi kiem dinh ma Quan tri vien tra cho Kiem dinh vien (0.002 ETH/lan kiem dinh)
+  // Tinh tong so phi kiem dinh ma vi Quan tri vien DA GIAO DỊCH tra cho Kiem dinh vien (0.002 ETH/lo)
+  // Neu vi Quan tri vien CHUA thuc hien giao dich tra phi thì so du mac dinh = 0.000 ETH
   let inspectorFeePaidEth = '0.000';
   if (batches) {
-    let verifiedCount = 0;
+    let adminPaidTxCount = 0;
     Object.values(batches).forEach((b) => {
-      const hasInspectorVerification = Boolean(
-        b.isVerified ||
+      // Chi dem khi lo hang DA KIEM DINH THANH CONG va CO GIAO DỊCH VÍ QUẢN TRỊ VIÊN TRẢ PHÍ
+      const hasAdminPaidTx = Boolean(
+        b.adminPaidInspectorFee ||
         (b.checkpoints && b.checkpoints.some(
           (c) =>
-            c.role === 'ROLE_INSPECTOR' ||
-            c.role === 'INSPECTOR' ||
-            (c.stepName && (c.stepName.toLowerCase().includes('thẩm định') || c.stepName.toLowerCase().includes('ocop')))
+            (c.role === 'ROLE_ADMIN' || c.role === 'ADMIN' || c.roleTitle?.toLowerCase().includes('quản trị')) &&
+            (c.action?.toLowerCase().includes('trả phí') ||
+             c.action?.toLowerCase().includes('thanh toán phí') ||
+             c.action?.toLowerCase().includes('phí thẩm định') ||
+             c.stepName?.toLowerCase().includes('trả phí'))
         ))
       );
-      if (hasInspectorVerification) {
-        verifiedCount += 1;
+
+      if (b.isVerified && hasAdminPaidTx) {
+        adminPaidTxCount += 1;
       }
     });
-    const feeVal = verifiedCount * 0.002;
+    const feeVal = adminPaidTxCount * 0.002;
     inspectorFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
   }
 
@@ -120,7 +125,7 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleBalance = producerRetailerPaidEth;
   } else if (userRole === 'INSPECTOR') {
     roleLabel = 'Kiểm Định Viên OCOP';
-    roleSubtext = 'Phí thẩm định do Quản trị viên trả (0.002 ETH / lần kiểm định thành công)';
+    roleSubtext = 'Chỉ tăng 0.002 ETH/lần khi ví Quản trị viên thực hiện giao dịch trả phí kiểm định (chưa trả phí = 0)';
     roleBalance = inspectorFeePaidEth;
   } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
     roleLabel = 'Đại Lý Thương Mại';
