@@ -29,6 +29,22 @@ import { WalletDetailsModal } from './components/WalletDetailsModal';
 import { BatchJourneyModal } from './components/BatchJourneyModal';
 import { MobileMetaMaskModal } from './components/MobileMetaMaskModal';
 import persistedCodeBatches from './data/persistedBatches.json';
+import {
+  fetchBatchesFromSupabase,
+  saveBatchToSupabase,
+  addCheckpointToSupabase,
+  subscribeToBatchesRealtime
+} from './services/batchService';
+import {
+  fetchGrantedWalletsFromSupabase,
+  saveGrantedWalletToSupabase,
+  subscribeToWalletsRealtime
+} from './services/userService';
+import {
+  initOfflineQueueAutoRetry,
+  enqueueOfflineTask
+} from './services/offlineQueueService';
+import { isSupabaseConfigured } from './lib/supabase';
 
 export const App: React.FC = () => {
   // Global State - Khoi tao danh sach lo hang tu persisted json
@@ -601,174 +617,83 @@ export const App: React.FC = () => {
     };
   }, [urlBatchCode]); // 4. Dat urlBatchCode vao Mang Phu Thuoc (Dependency Array)
 
-  // Helper phat tin hieu dong bo du lieu thoi gian thuc giua cac phien Desktop & Mobile
+  // Helper dong bo va phat tin hieu Realtime giua cac thiet bi
   const notifyDataSync = useCallback(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
-        if ('BroadcastChannel' in window) {
-          const channel = new BroadcastChannel('huelegend_auto_sync');
-          channel.postMessage({ type: 'SYNC_RELOAD', timestamp: Date.now() });
-          channel.close();
-        }
-
-        // Gui du lieu cap nhat len cloud sync endpoint de Mobile khac thiet bi tu dong dong bo
-        const payload = {
-          batches,
-          grantedWallets,
-          activeTab,
-          selectedLookupBatch,
-          simulatedRole,
-          currentAccount,
-          updatedAt: Date.now()
-        };
-
-        fetch('/api/sync?code=huelegend_global_sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
+        const channel = new BroadcastChannel('huelegend_auto_sync');
+        channel.postMessage({ type: 'SYNC_RELOAD', timestamp: Date.now() });
+        channel.close();
       } catch (e) {}
     }
-  }, [batches, grantedWallets, activeTab, selectedLookupBatch, simulatedRole, currentAccount]);
+  }, []);
 
-  // Tu dong ket noi va dong bo du lieu theo thoi gian thuc giua giao dien May Tinh (Desktop) va Dien Thoai (Mobile) qua Server API
+  // Khoi tao va Dang ky Supabase Realtime Synchronization
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const syncServerState = async () => {
-      try {
-        const res = await fetch('/api/sync?code=huelegend_global_sync');
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.data) {
-            // Dong bo lo hang
-            if (json.data.batches && typeof json.data.batches === 'object' && Object.keys(json.data.batches).length > 0) {
-              setBatches((prev) => {
-                let isDifferent = false;
-                const merged = { ...prev };
-                for (const [code, bData] of Object.entries(json.data.batches as Record<string, Batch>)) {
-                  if (!prev[code] || JSON.stringify(prev[code]) !== JSON.stringify(bData)) {
-                    merged[code] = bData;
-                    isDifferent = true;
-                  }
-                }
-                return isDifferent ? merged : prev;
-              });
-            }
+    let unsubscribeBatches: () => void = () => {};
+    let unsubscribeWallets: () => void = () => {};
 
-            // Dong bo vi duoc cap quyen
-            if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
-              setGrantedWallets((prev) => {
-                if (JSON.stringify(prev) !== JSON.stringify(json.data.grantedWallets)) {
-                  return json.data.grantedWallets;
-                }
-                return prev;
-              });
-            }
-
-            // Dong bo vai tro
-            if (json.data.simulatedRole) {
-              setSimulatedRole((prevRole) => (json.data.simulatedRole !== prevRole ? json.data.simulatedRole : prevRole));
-            }
-
-            // Dong bo dia chi vi ket noi
-            if (json.data.currentAccount !== undefined) {
-              const targetAccount = json.data.currentAccount || null;
-              setCurrentAccount((prevAccount) => (targetAccount !== prevAccount ? targetAccount : prevAccount));
-            }
-
-            // Dong bo tab dang mo
-            if (json.data.activeTab && !urlBatchCode) {
-              setActiveTab((prevTab) => (json.data.activeTab !== prevTab ? json.data.activeTab : prevTab));
-            }
-
-            // Dong bo ma lo hang dang xem
-            if (json.data.selectedLookupBatch !== undefined) {
-              setSelectedLookupBatch((prevBatch) => (json.data.selectedLookupBatch && json.data.selectedLookupBatch !== prevBatch ? json.data.selectedLookupBatch : prevBatch));
-            }
+    const syncFromSupabase = async () => {
+      if (isSupabaseConfigured) {
+        // Doc danh sach lo hang tu Supabase
+        const dbBatches = await fetchBatchesFromSupabase();
+        if (dbBatches && Object.keys(dbBatches).length > 0) {
+          setBatches((prev) => ({ ...prev, ...dbBatches }));
+        } else {
+          // Khong co du lieu trong Supabase, nap mac dinh va dong bo
+          const defaultBatches = (persistedCodeBatches as Record<string, Batch>) || {};
+          for (const b of Object.values(defaultBatches)) {
+            await saveBatchToSupabase(b);
           }
         }
-      } catch (e) {
-        console.warn('Loi dong bo thoi gian thuc:', e);
+
+        // Doc danh sach vi duoc cap quyen tu Supabase
+        const dbWallets = await fetchGrantedWalletsFromSupabase();
+        if (dbWallets && dbWallets.length > 0) {
+          setGrantedWallets(dbWallets);
+        }
       }
+
+      // Truy van cap nhat Sepolia Smart Contract State
+      fetchContractData();
     };
 
-    // Lang nghe BroadcastChannel giua cac giao dien
-    let channel: BroadcastChannel | null = null;
-    if ('BroadcastChannel' in window) {
-      try {
-        channel = new BroadcastChannel('huelegend_auto_sync');
-        channel.onmessage = (msg) => {
-          if (msg.data?.type === 'SYNC_RELOAD') {
-            syncServerState();
-          }
-        };
-      } catch (e) {}
+    // Khoi tao hang doi offline va tu dong retry
+    initOfflineQueueAutoRetry();
+
+    // Goi khoi tao du lieu ban dau
+    syncFromSupabase();
+
+    // Dang ky Realtime Listeners neu Supabase da duoc cau hinh
+    if (isSupabaseConfigured) {
+      unsubscribeBatches = subscribeToBatchesRealtime(async () => {
+        const updated = await fetchBatchesFromSupabase();
+        if (updated) {
+          setBatches((prev) => ({ ...prev, ...updated }));
+        }
+      });
+
+      unsubscribeWallets = subscribeToWalletsRealtime(async () => {
+        const updatedWallets = await fetchGrantedWalletsFromSupabase();
+        if (updatedWallets) {
+          setGrantedWallets(updatedWallets);
+        }
+      });
     }
 
-    // Polling heartbeat (800ms) dam bao giao dien Mobile va Desktop tu dong cap nhat thoi gian thuc
-    const syncInterval = setInterval(() => {
-      syncServerState();
-    }, 800);
+    // Tu dong ket noi va re-fetch khi thiet bi co lai Internet
+    const handleOnline = () => {
+      syncFromSupabase();
+    };
+    window.addEventListener('online', handleOnline);
 
     return () => {
-      if (channel) channel.close();
-      clearInterval(syncInterval);
+      unsubscribeBatches();
+      unsubscribeWallets();
+      window.removeEventListener('online', handleOnline);
     };
-  }, [urlBatchCode]);
-
-  // Tu dong day du lieu batches len cloud sync endpoint ngay khi co bat ky lo hang nao duoc khoi tao hoac thay doi
-  useEffect(() => {
-    if (typeof window !== 'undefined' && Object.keys(batches).length > 0) {
-      try {
-        const payload = {
-          batches,
-          grantedWallets,
-          activeTab,
-          selectedLookupBatch,
-          simulatedRole,
-          currentAccount,
-          updatedAt: Date.now()
-        };
-        fetch('/api/sync?code=huelegend_global_sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).catch(() => {});
-      } catch (e) {}
-    }
-  }, [batches, grantedWallets, activeTab, selectedLookupBatch, simulatedRole, currentAccount]);
-
-  // Khoi phuc du lieu va phien lam viec tu Server API (/api/sync) ngay khi load trang
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetch('/api/sync?code=huelegend_global_sync')
-        .then((res) => res.json())
-        .then((json) => {
-          if (json?.data) {
-            if (json.data.batches && Object.keys(json.data.batches).length > 0) {
-              setBatches((prev) => ({ ...prev, ...json.data.batches }));
-            }
-            if (Array.isArray(json.data.grantedWallets) && json.data.grantedWallets.length > 0) {
-              setGrantedWallets(json.data.grantedWallets);
-            }
-            if (json.data.simulatedRole) {
-              setSimulatedRole(json.data.simulatedRole);
-            }
-            if (json.data.currentAccount) {
-              setCurrentAccount(json.data.currentAccount);
-              fetchContractData(json.data.currentAccount);
-            } else {
-              fetchContractData();
-            }
-          } else {
-            fetchContractData();
-          }
-        })
-        .catch(() => {
-          fetchContractData();
-        });
-    }
   }, [fetchContractData]);
 
   // Procedure ket noi vi MetaMask va xac thuc vai tro
@@ -1155,7 +1080,17 @@ export const App: React.FC = () => {
       setBatches((prev) => ({ ...prev, [cleanBatchCode]: newBatchObj }));
       setSelectedLookupBatch(cleanBatchCode);
       setJourneyBatch(newBatchObj);
+      
+      // Luu lo hang vao Supabase va phat tin hieu Realtime
+      const dbSaved = await saveBatchToSupabase(newBatchObj);
+      if (!dbSaved) {
+        enqueueOfflineTask('SAVE_BATCH', newBatchObj, tx.hash, cleanBatchCode);
+        if (isSupabaseConfigured) {
+          addToast('Lưu Ý Đồng Bộ', `Lô hàng đã lưu On-Chain (${tx.hash.slice(0, 8)}...) nhưng chưa thể lưu Supabase Database. Đã đưa vào hàng đợi tự động thử lại.`, 'warning');
+        }
+      }
       notifyDataSync();
+
       addToast('Khởi Tạo On-Chain Thành Công!', `Lô hàng ${cleanBatchCode} đã được khởi tạo và lưu vĩnh viễn trên Smart Contract (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       handleNavigateTab('lookup', cleanBatchCode);
 
@@ -1325,6 +1260,15 @@ export const App: React.FC = () => {
           checkpoints: [...prev.checkpoints, newCheckpoint]
         } : null);
       }
+
+      // Luu checkpoint vao Supabase database va phat Realtime
+      const cpDbSaved = await addCheckpointToSupabase(batchCode, newCheckpoint);
+      if (!cpDbSaved) {
+        enqueueOfflineTask('ADD_CHECKPOINT', { batchCode, checkpoint: newCheckpoint }, tx.hash, batchCode);
+        if (isSupabaseConfigured) {
+          addToast('Lưu Ý Đồng Bộ', `Chặng đã ghi On-Chain (${tx.hash.slice(0, 8)}...) nhưng chưa lưu vào Supabase. Đã đưa vào hàng đợi tự động thử lại.`, 'warning');
+        }
+      }
       notifyDataSync();
 
       if (isListingAction) {
@@ -1455,6 +1399,41 @@ export const App: React.FC = () => {
       });
 
       setSelectedLookupBatch(batchCode);
+
+      // Cap nhat va Luu lo hang da duoc cap chung nhan OCOP vao Supabase
+      const currentVerifiedBatch = batches[batchCode];
+      if (currentVerifiedBatch) {
+        const existingCps = currentVerifiedBatch.checkpoints || [];
+        const inspectorCheckpoint = {
+          stepName: 'Chặng 2: Thẩm Định & Cấp Chứng Nhận OCOP Thừa Thiên Huế',
+          role: ROLE_HASHES.ROLE_INSPECTOR,
+          roleTitle: 'Kiểm Định Viên OCOP',
+          location: 'Sở Nông Nghiệp & PTNT Tỉnh Thừa Thiên Huế',
+          action: `Hội đồng thẩm định OCOP Tỉnh Thừa Thiên Huế đã duyệt và cấp chứng nhận hạng ${starRating} Sao. Ghi chú: ${inspectorNote || 'Đạt tiêu chuẩn an toàn thực phẩm.'}`,
+          timestamp: Math.floor(Date.now() / 1000),
+          recorder: cleanUserAddress,
+          metadataURI: certificateURI || `ipfs://huelegend/cert/${batchCode}`,
+          txHash: tx.hash,
+          conditionNote: `Cấp mã số OCOP: OCOP-HUE-2026. Đã xác thực phí 0.002 ETH.`
+        };
+        const hasCp2 = existingCps.some((cp) => cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 2') || cp.stepName.toLowerCase().includes('ocop'))));
+        const updatedCheckpoints = hasCp2
+          ? existingCps.map((cp) => (cp.role === ROLE_HASHES.ROLE_INSPECTOR || (cp.stepName && cp.stepName.toLowerCase().includes('chặng 2')) ? inspectorCheckpoint : cp))
+          : [...existingCps, inspectorCheckpoint];
+
+        const updatedBatchObj: Batch = {
+          ...currentVerifiedBatch,
+          isVerified: true,
+          starRating,
+          inspectorNote,
+          verifyTxHash: tx.hash,
+          certificateURI: certificateURI || currentVerifiedBatch.certificateURI,
+          ocopStandard: `Đạt Chuẩn OCOP ${starRating} Sao Tỉnh Thừa Thiên Huế`,
+          currentStage: 'Đã đạt chuẩn OCOP (Chờ Vận Chuyển)',
+          checkpoints: updatedCheckpoints
+        };
+        await saveBatchToSupabase(updatedBatchObj);
+      }
 
       // Cap nhat ngay lap tuc cho popup hanh trinh va cloud sync
       setJourneyBatch((prev) => {
@@ -1656,11 +1635,12 @@ export const App: React.FC = () => {
       status: 'Active'
     };
 
-    const updateWalletsState = () => {
+    const updateWalletsState = async () => {
       setGrantedWallets((prev) => [
         newGrantedWallet,
         ...prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName))
       ]);
+      await saveGrantedWalletToSupabase(newGrantedWallet);
       notifyDataSync();
     };
 
