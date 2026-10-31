@@ -24,6 +24,26 @@ function readSyncStoreFromFile(code: string) {
       }
     }
   } catch (e) {}
+
+  // Truong hop chua co file sync store, nap du lieu goc tu persistedBatches.json
+  try {
+    const seedPath = path.resolve(__dirname, './src/data/persistedBatches.json');
+    if (fs.existsSync(seedPath)) {
+      const seedContent = fs.readFileSync(seedPath, 'utf-8');
+      const seedBatches = JSON.parse(seedContent);
+      const defaultData = {
+        batches: seedBatches || {},
+        grantedWallets: [],
+        activeTab: 'overview',
+        selectedLookupBatch: 'BATCH-2026-001',
+        simulatedRole: 'ALL',
+        updatedAt: Date.now()
+      };
+      memorySyncStore.set(code, defaultData);
+      return defaultData;
+    }
+  } catch (e) {}
+
   return null;
 }
 
@@ -47,6 +67,18 @@ function syncServerPlugin(): Plugin {
     name: 'sync-server-plugin',
     configureServer(server) {
       server.middlewares.use('/api/sync', (req, res) => {
+        // Thiet lap tieu de CORS cho phep tat ca thiet bi di dong truy cap
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        // Xu ly request preflight OPTIONS tu trinh duyet dien thoai
+        if (req.method === 'OPTIONS') {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+
         const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
         const code = url.searchParams.get('code') || 'huelegend_global_sync';
 
