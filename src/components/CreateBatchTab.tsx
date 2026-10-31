@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { PlusCircle, Wallet, AlertTriangle, Upload, Image as ImageIcon, Sparkles, Calendar, Clock, Lock } from 'lucide-react';
+import { PlusCircle, Wallet, AlertTriangle, Upload, Image as ImageIcon, Sparkles, Calendar, Clock, Lock, FolderTree } from 'lucide-react';
+import { SPECIALTY_CATEGORIES } from '../types';
 
 interface CreateBatchTabProps {
   batchCreationFeeEth: string;
@@ -15,7 +16,8 @@ interface CreateBatchTabProps {
     imageUrl?: string,
     productionDate?: string,
     expiryDate?: string,
-    quantity?: string
+    quantity?: string,
+    category?: string
   ) => Promise<void>;
   onDepositStake?: (amountEth: string) => Promise<void>;
   onWithdrawStake?: () => Promise<void>;
@@ -29,6 +31,7 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
 }) => {
   const [batchCode, setBatchCode] = useState('');
   const [productName, setProductName] = useState('');
+  const [category, setCategory] = useState<string>(SPECIALTY_CATEGORIES[0]);
   const [origin, setOrigin] = useState('');
   const [quantity, setQuantity] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -118,10 +121,12 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
         imageUrl,
         productionDate,
         expiryDate,
-        quantity.trim()
+        quantity.trim(),
+        category
       );
       setBatchCode('');
       setProductName('');
+      setCategory(SPECIALTY_CATEGORIES[0]);
       setOrigin('');
       setQuantity('');
       setImageUrl('');
@@ -204,6 +209,24 @@ export const CreateBatchTab: React.FC<CreateBatchTabProps> = ({
               placeholder="Ví dụ: Mè Xửng Dừa Hoàng Gia Huế..."
               className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#1A2820] mb-1 flex items-center gap-1.5">
+              <FolderTree className="w-3.5 h-3.5 text-[#264939]" />
+              <span>Danh Mục Đặc Sản Huế *</span>
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3.5 py-2 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939] bg-[#FAF9F5] text-[#264939]"
+            >
+              {SPECIALTY_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

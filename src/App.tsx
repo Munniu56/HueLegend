@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { Batch, ToastMessage, GrantedWallet } from './types';
+import { Batch, ToastMessage, GrantedWallet, SPECIALTY_CATEGORIES } from './types';
 import {
   CONTRACT_ADDRESS,
   PROJECT_CORE_ABI,
@@ -547,8 +547,21 @@ export const App: React.FC = () => {
               }
             }
 
+            let finalCategory = localBatch?.category || '';
+            if (!finalCategory) {
+              for (const cp of checkpoints) {
+                const match = String(cp.action || '').match(/Danh mục:\s*([^—\n\]]+)/i);
+                if (match && match[1]) {
+                  finalCategory = match[1].trim();
+                  break;
+                }
+              }
+            }
+            if (!finalCategory) finalCategory = SPECIALTY_CATEGORIES[0];
+
             const updatedSingle: Batch = {
               ...singleBatch,
+              category: finalCategory,
               isVerified: finalVerified,
               starRating: finalVerified ? finalStarRating : '',
               inspectorNote: finalVerified ? finalNote : '',
@@ -1116,7 +1129,8 @@ export const App: React.FC = () => {
     imageUrl?: string,
     productionDate?: string,
     expiryDate?: string,
-    quantity?: string
+    quantity?: string,
+    category?: string
   ) => {
     // Bat buoc phai ket noi vi MetaMask truoc khi khoi tao
     if (!currentAccount) {
@@ -1129,6 +1143,7 @@ export const App: React.FC = () => {
     const cleanProductName = productName.trim();
     const cleanOrigin = origin.trim();
     const cleanQuantity = quantity?.trim() || '';
+    const cleanCategory = category?.trim() || SPECIALTY_CATEGORIES[0];
     const cleanMetadataURI = metadataURI.trim();
     const finalImageUrl = imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=600';
 
@@ -1209,6 +1224,7 @@ export const App: React.FC = () => {
         batchCode: cleanBatchCode,
         productName: cleanProductName,
         origin: cleanOrigin,
+        category: cleanCategory,
         imageUrl: finalImageUrl,
         productionDate: cleanProdDate,
         expiryDate: cleanExpDate,
@@ -1389,9 +1405,14 @@ export const App: React.FC = () => {
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
+
+        const catMatch = fullActionText.match(/Danh mục:\s*([^—\n\]]+)/i) || (conditionNote && conditionNote.match(/Danh mục:\s*([^—\n\]]+)/i));
+        const extractedCategory = catMatch ? catMatch[1].trim() : undefined;
+
         const updatedBatch = {
           ...target,
           currentStage: action,
+          category: extractedCategory || target.category || SPECIALTY_CATEGORIES[0],
           isListed: isListingAction ? true : target.isListed,
           storeName: isListingAction && location ? location : target.storeName,
           checkpoints: [...target.checkpoints, newCheckpoint]

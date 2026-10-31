@@ -122,11 +122,24 @@ export const StoreTab: React.FC<StoreTabProps> = ({
     const dynamicItems: ProductItem[] = listedBatches.map((b) => {
       const priceEth = b.listingPriceEth ? parseFloat(b.listingPriceEth) : 0.002;
       const priceVnd = Math.round(priceEth * 65000000);
+
+      // Lay danh muc duoc chon tu lo hang hoac nhat ky niem yet
+      let batchCategory = b.category;
+      if (!batchCategory && b.checkpoints) {
+        for (const cp of b.checkpoints) {
+          const match = String(cp.action || '').match(/Danh mục:\s*([^—\n\]]+)/i);
+          if (match && match[1]) {
+            batchCategory = match[1].trim();
+            break;
+          }
+        }
+      }
+
       return {
         id: `batch-${b.batchCode}`,
         batchCode: b.batchCode,
         name: b.productName,
-        category: b.category || SPECIALTY_CATEGORIES[0],
+        category: batchCategory || SPECIALTY_CATEGORIES[0],
         priceVnd: priceVnd > 0 ? priceVnd : 130000,
         priceEth: priceEth > 0 ? priceEth : 0.002,
         starRating: b.starRating || '4',
