@@ -30,8 +30,21 @@ import { MobileMetaMaskModal } from './components/MobileMetaMaskModal';
 import persistedCodeBatches from './data/persistedBatches.json';
 
 export const App: React.FC = () => {
-  // Global State
-  const [batches, setBatches] = useState<Record<string, Batch>>({});
+  // Global State - Khoi tao danh sach lo hang tu persisted json & local storage
+  const [batches, setBatches] = useState<Record<string, Batch>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('hl_local_batches');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Object.keys(parsed).length > 0) {
+            return { ...persistedCodeBatches, ...parsed } as Record<string, Batch>;
+          }
+        }
+      } catch (e) {}
+    }
+    return (persistedCodeBatches as Record<string, Batch>) || {};
+  });
   const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedLookupBatch, setSelectedLookupBatch] = useState('');
@@ -277,8 +290,16 @@ export const App: React.FC = () => {
         }
       }
 
-      // Cập nhật State trực tiếp từ kết quả truy vấn Ethers.js
-      setBatches(fetchedBatches);
+      // Cap nhat State va luu tru an toan (merge fetchedBatches voi pre-existing local batches)
+      setBatches((prev) => {
+        const merged = { ...prev, ...fetchedBatches };
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('hl_local_batches', JSON.stringify(merged));
+          } catch (e) {}
+        }
+        return merged;
+      });
     } catch (err: any) {
       console.warn('Lỗi kết nối RPC Provider Smart Contract:', err);
     } finally {
@@ -442,7 +463,16 @@ export const App: React.FC = () => {
 
     const syncLocalState = async () => {
       try {
-        // 1. Du lieu lo hang (batches) duoc truy van truc tiep tu Smart Contract qua Ethers.js RPC Provider (Khong su dung LocalStorage)
+        // 1. Dong bo du lieu lo hang (batches) tu local storage hoac phien khac
+        const savedBatchesStr = localStorage.getItem('hl_local_batches');
+        if (savedBatchesStr) {
+          try {
+            const parsedBatches = JSON.parse(savedBatchesStr);
+            if (parsedBatches && Object.keys(parsedBatches).length > 0) {
+              setBatches((prev) => ({ ...prev, ...parsedBatches }));
+            }
+          } catch (e) {}
+        }
 
         // 2. Dong bo danh sach vi duoc cap quyen (grantedWallets) tu local
         const savedWalletsStr = localStorage.getItem('hl_granted_wallets');
@@ -1059,11 +1089,25 @@ export const App: React.FC = () => {
       return;
     }
 
+    const targetBatch = batches[batchCode];
+    const isListingAction =
+      role === 'RETAILER' ||
+      role === ROLE_HASHES.ROLE_RETAILER ||
+      (stepName && stepName.toLowerCase().includes('niêm yết')) ||
+      (action && action.toLowerCase().includes('niêm yết'));
+
+    // Lay dia chi vi co so san xuat cua lo hang (producer)
+    const producerWalletAddr = targetBatch?.producer && ethers.isAddress(targetBatch.producer)
+      ? safeGetAddress(targetBatch.producer)
+      : null;
+
     const valueWei = valueEth && Number(valueEth) > 0 ? ethers.parseEther(Number(valueEth).toFixed(6)) : undefined;
 
     const loadingToastId = addToast(
       'Yêu Cầu MetaMask',
-      valueWei
+      valueWei && isListingAction && producerWalletAddr
+        ? `Vui lòng xác nhận chuyển ${Number(valueEth).toFixed(4)} ETH về ví Cơ sở sản xuất (${producerWalletAddr.slice(0, 6)}...${producerWalletAddr.slice(-4)})...`
+        : valueWei
         ? `Vui lòng xác nhận giao dịch niêm yết (${Number(valueEth).toFixed(4)} ETH) trên MetaMask...`
         : 'Vui lòng xác nhận giao dịch addCheckpoint() trên MetaMask...',
       'loading',
@@ -1083,7 +1127,24 @@ export const App: React.FC = () => {
       const fullActionText = conditionNote ? `${action} (Ghi chú: ${conditionNote})` : action;
 
       let tx: any;
-      if (isContractDeployed) {
+      if (isListingAction && valueWei && producerWalletAddr) {
+        // Chuyen ETH truc tiep tu vi Dai ly (Retailer) sang vi Co so san xuat (Producer)
+        tx = await signer.sendTransaction({
+          to: producerWalletAddr,
+          value: valueWei
+        });
+
+        // Ghi nhan checkpoint tren Smart Contract neu hop dong duoc trien khai
+        if (isContractDeployed) {
+          try {
+            const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
+            const cpTx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+            await cpTx.wait();
+          } catch (cpErr) {
+            console.warn('Ghi checkpoint tren smart contract:', cpErr);
+          }
+        }
+      } else if (isContractDeployed) {
         try {
           const contract = new ethers.Contract(cleanContractAddress, PROJECT_CORE_ABI, signer);
           if (valueWei) {
@@ -1091,8 +1152,9 @@ export const App: React.FC = () => {
               tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI, { value: valueWei });
             } catch (callErr) {
               tx = await contract.addCheckpoint(batchCode, roleHash, location, fullActionText, metadataURI);
+              const recipientAddr = producerWalletAddr || cleanContractAddress;
               await signer.sendTransaction({
-                to: cleanContractAddress,
+                to: recipientAddr,
                 value: valueWei
               });
             }
@@ -1102,8 +1164,9 @@ export const App: React.FC = () => {
         } catch (contractErr: any) {
           const errStr = JSON.stringify(contractErr || '');
           if (errStr.includes('-32602') || errStr.toLowerCase().includes('cannot include data') || contractErr?.code === -32602) {
+            const recipientAddr = producerWalletAddr || cleanContractAddress;
             tx = await signer.sendTransaction({
-              to: cleanContractAddress,
+              to: recipientAddr,
               value: valueWei || 0n
             });
           } else {
@@ -1111,8 +1174,9 @@ export const App: React.FC = () => {
           }
         }
       } else {
+        const recipientAddr = producerWalletAddr || cleanContractAddress;
         tx = await signer.sendTransaction({
-          to: cleanContractAddress,
+          to: recipientAddr,
           value: valueWei || 0n
         });
       }
@@ -1135,12 +1199,6 @@ export const App: React.FC = () => {
         txHash: tx.hash,
         conditionNote: conditionNote || 'Ghi chặng mới thành công.'
       };
-
-      const isListingAction =
-        role === 'RETAILER' ||
-        role === ROLE_HASHES.ROLE_RETAILER ||
-        (stepName && stepName.toLowerCase().includes('niêm yết')) ||
-        (action && action.toLowerCase().includes('niêm yết'));
 
       setBatches((prev) => {
         const target = prev[batchCode];
@@ -1166,7 +1224,10 @@ export const App: React.FC = () => {
       notifyDataSync();
 
       if (isListingAction) {
-        addToast('Xác Nhận Niêm Yết Thành Công!', `Lô hàng ${batchCode} đã niêm yết bán lẻ thành công (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
+        const destInfo = producerWalletAddr
+          ? `Đã chuyển ${Number(valueEth).toFixed(4)} ETH về ví Cơ sở sản xuất (${producerWalletAddr.slice(0, 6)}...${producerWalletAddr.slice(-4)})`
+          : 'Xác nhận Niêm Yết thành công';
+        addToast('Xác Nhận Niêm Yết Thành Công!', `${destInfo} (Tx: ${tx.hash.slice(0, 8)}...).`, 'success');
       } else {
         addToast('Ghi Chặng Thành Công!', `Chặng mới của lô ${batchCode} đã được lưu vĩnh viễn on-chain.`, 'success');
       }

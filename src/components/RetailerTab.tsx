@@ -393,15 +393,15 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
               </div>
             </div>
 
-            {/* Khối hiển thị Phí Niêm Yết MetaMask On-Chain = (Số Lượng x 0.001) + 0.005 ETH */}
+            {/* Khoi hien thi Phi Niem Yet MetaMask On-Chain = (So Luong x 0.001) + 0.005 ETH chuyen ve vi Co so san xuat */}
             {selectedBatchCode && (
               <div className="p-3.5 rounded-2xl bg-[#FAF9F5] border border-[#CCD8CF] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#264939]">
                 <div className="flex items-start gap-2.5">
                   <Wallet className="w-4 h-4 text-[#C29B38] mt-0.5 shrink-0" />
                   <div className="space-y-0.5">
-                    <span className="font-extrabold text-[#264939]">Giao Dịch MetaMask Niêm Yết On-Chain:</span>
+                    <span className="font-extrabold text-[#264939]">Giao Dịch MetaMask Chuyển Tiền Cho Cơ Sở Sản Xuất:</span>
                     <div className="text-[11px] text-[#5E7166]">
-                      Công thức: (Số lượng nhập kho × 0.001 ETH) + 0.005 ETH
+                      Số ETH = (Số lượng nhập kho × 0.001 ETH) + 0.005 ETH — Chuyển về ví CS SX: <strong className="font-mono text-[#264939]">{selectedBatch?.producer ? `${selectedBatch.producer.slice(0, 6)}...${selectedBatch.producer.slice(-4)}` : 'Chưa xác định'}</strong>
                     </div>
                   </div>
                 </div>
