@@ -114,6 +114,40 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     inspectorFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
   }
 
+  // Tinh tong so phi van chuyen ma vi Quan tri vien DA GIAO DỊCH tra cho Don vi van chuyen (0.002 ETH/lan ghi chang van chuyen)
+  // Neu vi Quan tri vien CHUA thuc hien giao dich tra phi thi so du mac dinh = 0.000 ETH
+  let logisticsFeePaidEth = '0.000';
+  if (batches) {
+    let adminPaidLogisticsCount = 0;
+    Object.values(batches).forEach((b) => {
+      const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
+        (c) =>
+          c.role === 'ROLE_LOGISTICS' ||
+          c.role === 'LOGISTICS' ||
+          c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
+          (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+      );
+
+      const hasAdminPaidLogisticsTx = Boolean(
+        b.adminPaidLogisticsFee ||
+        (b.checkpoints && b.checkpoints.some(
+          (c) =>
+            (c.role === 'ROLE_ADMIN' || c.role === 'ADMIN' || c.roleTitle?.toLowerCase().includes('quản trị')) &&
+            (c.action?.toLowerCase().includes('vận chuyển') ||
+             c.action?.toLowerCase().includes('phí vận chuyển') ||
+             c.stepName?.toLowerCase().includes('trả phí vận chuyển'))
+        ))
+      );
+
+      if (hasLogisticsCp && hasAdminPaidLogisticsTx) {
+        adminPaidLogisticsCount += 1;
+      }
+    });
+
+    const feeVal = adminPaidLogisticsCount * 0.002;
+    logisticsFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
+  }
+
   // Xac dinh nhan va so du ETH tich luy theo vai tro vi
   let roleLabel = 'On-Chain';
   let roleSubtext = 'Số dư ETH tích lũy tương tác Smart Contract';
@@ -127,6 +161,10 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleLabel = 'Kiểm Định Viên OCOP';
     roleSubtext = 'Chỉ tăng 0.002 ETH/lần khi ví Quản trị viên thực hiện giao dịch trả phí kiểm định (chưa trả phí = 0)';
     roleBalance = inspectorFeePaidEth;
+  } else if (userRole === 'LOGISTICS') {
+    roleLabel = 'Đơn Vị Vận Chuyển';
+    roleSubtext = 'Chỉ tăng 0.002 ETH/lần khi ví Quản trị viên thực hiện giao dịch trả phí vận chuyển (chưa trả phí = 0)';
+    roleBalance = logisticsFeePaidEth;
   } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
     roleLabel = 'Đại Lý Thương Mại';
     roleSubtext = 'Tích lũy giao dịch niêm yết & nhập kho';
@@ -137,9 +175,12 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleBalance = contractBalanceEth;
   }
 
-  const balanceBoxTitle = userRole === 'INSPECTOR'
-    ? 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ THẨM ĐỊNH'
-    : 'SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT';
+  let balanceBoxTitle = 'SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT';
+  if (userRole === 'INSPECTOR') {
+    balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ THẨM ĐỊNH';
+  } else if (userRole === 'LOGISTICS') {
+    balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ VẬN CHUYỂN';
+  }
 
   return (
     <div

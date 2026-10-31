@@ -48,7 +48,8 @@ export interface Batch {
   txHash?: string;
   verifyTxHash?: string;
   inspectionFeePaid?: string;
-  adminPaidInspectorFee?: boolean; // Evaluated true when admin wallet executes fee payment transaction
+  adminPaidInspectorFee?: boolean; // Evaluated true when admin wallet executes fee payment transaction for inspection
+  adminPaidLogisticsFee?: boolean; // Evaluated true when admin wallet executes fee payment transaction for transport
   checkpoints: Checkpoint[];
 }
 
