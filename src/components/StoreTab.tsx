@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { ethers } from 'ethers';
 import { Batch, SPECIALTY_CATEGORIES } from '../types';
-import { ETHERSCAN_BASE_URL, DEFAULT_ADMIN_ADDRESS } from '../constants';
+import { ETHERSCAN_BASE_URL, DEFAULT_ADMIN_ADDRESS, safeGetAddress } from '../constants';
 
 // Danh sach 34 don vi hanh chinh cap tinh thanh
 export const PROVINCES_LIST = [
@@ -98,6 +98,7 @@ interface ProductItem {
   unit: string;
   inStock: boolean;
   ocopStandard: string;
+  retailerAddress?: string;
 }
 
 interface CartItem {
@@ -172,6 +173,26 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         }
       }
 
+      // Tim dia chi vi cua Dai ly ban hang (Retailer) tu checkpoints niêm yết hoac recorder cuoi cung
+      let retailerAddr = b.producer;
+      if (b.checkpoints) {
+        const retailerCp = b.checkpoints.find(
+          (cp) =>
+            cp.role === '0x992329381cbb4c1a2f1a603952f4a0c8b668d2c41c7b80a6c6e755543d8c1c5a' ||
+            cp.stepName?.toLowerCase().includes('niêm yết') ||
+            cp.action?.toLowerCase().includes('niêm yết') ||
+            cp.action?.toLowerCase().includes('inretail')
+        );
+        if (retailerCp && retailerCp.recorder && retailerCp.recorder !== '0x0000000000000000000000000000000000000000') {
+          retailerAddr = retailerCp.recorder;
+        } else if (b.checkpoints.length > 0) {
+          const lastCp = b.checkpoints[b.checkpoints.length - 1];
+          if (lastCp && lastCp.recorder) {
+            retailerAddr = lastCp.recorder;
+          }
+        }
+      }
+
       return {
         id: `batch-${b.batchCode}`,
         batchCode: b.batchCode,
@@ -186,7 +207,8 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         description: `Lô đặc sản ${b.productName} đã qua xác nhận niêm yết bán lẻ & niêm phong nhật ký Blockchain.`,
         unit: 'Lô / Sản Phẩm',
         inStock: true,
-        ocopStandard: b.ocopStandard || 'Sản phẩm OCOP Huế On-Chain'
+        ocopStandard: b.ocopStandard || 'Sản phẩm OCOP Huế On-Chain',
+        retailerAddress: retailerAddr ? safeGetAddress(retailerAddr) : DEFAULT_ADMIN_ADDRESS
       };
     });
 
@@ -256,10 +278,15 @@ export const StoreTab: React.FC<StoreTabProps> = ({
     const fullAddress = `${streetAddress}, ${ward}, ${district}, ${selectedProvince}`;
     setIsSubmittingOrder(true);
 
+    // Lay dia chi vi cua Dai ly ban hang (Retailer) tu san pham trong gio hang
+    const targetRetailerAddress = cart.length > 0 && cart[0].product.retailerAddress
+      ? safeGetAddress(cart[0].product.retailerAddress)
+      : DEFAULT_ADMIN_ADDRESS;
+
     let txHash: string | null = null;
 
     try {
-      // Neu thanh toan bang vi Web3, kich hoat giaodich chuyen ETH
+      // Neu thanh toan bang vi Web3, kich hoat giaodich chuyen ETH toi vi Dai ly ban hang
       if (paymentMethod === 'WEB3') {
         const winEth = (window as any).ethereum;
         if (winEth && currentAccount) {
@@ -268,8 +295,9 @@ export const StoreTab: React.FC<StoreTabProps> = ({
             const signer = await provider.getSigner();
             const valueWei = ethers.parseEther(finalTotalEth.toFixed(6));
             
+            // Chuyen ETH Sepolia den vi cua Dai ly ban hang (Retailer) san pham do
             const tx = await signer.sendTransaction({
-              to: DEFAULT_ADMIN_ADDRESS,
+              to: targetRetailerAddress,
               value: valueWei
             });
             txHash = tx.hash;
@@ -303,28 +331,11 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         shippingFeeEth,
         finalTotalEth,
         createdAt: new Date().toLocaleString('vi-VN'),
-        txHash
+        txHash,
+        retailerAddress: targetRetailerAddress
       };
 
-      // Tu dong ghi chang thanh toan ban giao vao Nhat Ky Hanh Trinh Supply Chain On-Chain
-      if (onAddCheckpoint && cart.length > 0) {
-        for (const item of cart) {
-          try {
-            await onAddCheckpoint(
-              item.product.batchCode,
-              'RETAILER',
-              fullAddress,
-              `Khách hàng ${customerName} (${customerPhone}) đã thanh toán thành công đơn hàng ${newOrder.orderId} (Phương thức: ${paymentMethod === 'WEB3' ? 'Ví Web3 Connected Wallet' : paymentMethod}).`,
-              `ipfs://huelegend/order/${newOrder.orderId}`,
-              `Chặng 5: Khách Hàng Thanh Toán & Bàn Giao Đơn Hàng ${newOrder.orderId}`,
-              `Thanh toán thành công ${item.product.priceVnd.toLocaleString('vi-VN')} VNĐ (~${finalTotalEth.toFixed(4)} ETH bao gồm phí vận chuyển ${shippingFeeEth} ETH)`
-            );
-          } catch (err) {
-            console.warn('Ghi chang thanh toan:', err);
-          }
-        }
-      }
-
+      // Khong ghi chang hanh trinh theo yeu cau ("popup khong ghi chang")
       setConfirmedOrder(newOrder);
       setCart([]);
       setIsCheckoutOpen(false);
@@ -1057,7 +1068,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({
                 Đặt Hàng Thành Công!
               </h3>
               <p className="text-xs text-[#5E7166]">
-                Đơn hàng đã được xác nhận thanh toán và tự động ghi cập nhật chặng hành trình Supply Chain trên Blockchain.
+                Đơn hàng đã được xác nhận thanh toán thành công và tiền ETH Sepolia đã được chuyển trực tiếp tới ví Đại lý bán hàng của sản phẩm.
               </p>
             </div>
 
@@ -1092,6 +1103,15 @@ export const StoreTab: React.FC<StoreTabProps> = ({
                     : confirmedOrder.paymentMethod}
                 </strong>
               </div>
+
+              {confirmedOrder.retailerAddress && (
+                <div className="flex justify-between pt-1 border-t border-[#EDE9E0]">
+                  <span className="text-gray-500">Ví Đại lý bán hàng nhận tiền:</span>
+                  <strong className="text-[#264939] font-mono text-[11px]">
+                    {confirmedOrder.retailerAddress.slice(0, 8)}...{confirmedOrder.retailerAddress.slice(-6)}
+                  </strong>
+                </div>
+              )}
 
               {confirmedOrder.txHash && (
                 <div className="pt-1.5 border-t border-[#EDE9E0]">
@@ -1139,29 +1159,12 @@ export const StoreTab: React.FC<StoreTabProps> = ({
                 </div>
                 <div className="flex justify-between font-bold text-[#264939] text-xs pt-1 border-t border-[#EDE9E0]">
                   <span>TỔNG KHÁCH ĐÃ THANH TOÁN:</span>
-                  <span className="font-mono text-sm">{confirmedOrder.totalVnd.toLocaleString('vi-VN')} VNĐ (~{confirmedOrder.finalTotalEth.toFixed(4)} ETH)</span>
+                  <span className="font-mono text-sm">{confirmedOrder.finalTotalEth ? confirmedOrder.finalTotalEth.toFixed(4) : confirmedOrder.totalEth.toFixed(4)} ETH</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2 pt-1 font-sans">
-              {confirmedOrder.items && confirmedOrder.items.length > 0 && (
-                <button
-                  onClick={() => {
-                    const firstBatchCode = confirmedOrder.items[0]?.product?.batchCode;
-                    setConfirmedOrder(null);
-                    if (firstBatchCode) {
-                      if (onOpenJourneyModal) onOpenJourneyModal(firstBatchCode);
-                      onNavigateToLookup(firstBatchCode);
-                    }
-                  }}
-                  className="w-full py-3 bg-[#C29B38] text-white font-extrabold text-xs rounded-2xl hover:bg-[#8C6D1F] transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <ShieldCheck className="w-4 h-4 text-white" />
-                  <span>Xem Nhật Ký Hành Trình On-Chain Vừa Cập Nhật</span>
-                </button>
-              )}
-
+            <div className="pt-1 font-sans">
               <button
                 onClick={() => setConfirmedOrder(null)}
                 className="w-full py-3 bg-[#264939] text-white font-bold text-xs rounded-2xl hover:bg-[#1c372b] transition-all"
