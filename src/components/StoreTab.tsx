@@ -51,6 +51,7 @@ interface ProductItem {
   priceEth: number;
   starRating: string;
   origin: string;
+  storeName: string;
   image: string;
   description: string;
   unit: string;
@@ -132,7 +133,8 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         priceVnd: priceVnd > 0 ? priceVnd : 130000,
         priceEth: priceEth > 0 ? priceEth : 0.002,
         starRating: b.starRating || '4',
-        origin: b.storeName ? `${b.storeName} (${b.origin})` : b.origin,
+        origin: b.origin || 'Thừa Thiên Huế',
+        storeName: b.storeName || 'Đại Lý Đặc Sản Cố Đô Huế',
         image: b.imageUrl || '/assets/aistudio/image_28ddda16.png',
         description: `Lô đặc sản ${b.productName} đã qua xác nhận niêm yết bán lẻ & niêm phong nhật ký Blockchain.`,
         unit: 'Lô / Sản Phẩm',
@@ -187,7 +189,8 @@ export const StoreTab: React.FC<StoreTabProps> = ({
       searchQuery === '' ||
       prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prod.batchCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      prod.origin.toLowerCase().includes(searchQuery.toLowerCase());
+      prod.origin.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      prod.storeName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCat && matchesStar && matchesSearch;
   });
 
@@ -423,16 +426,21 @@ export const StoreTab: React.FC<StoreTabProps> = ({
                   </p>
                 </div>
 
-                {/* Origin Info */}
-                <div className="text-[11px] text-[#5E7166] bg-[#FAF9F5] p-2.5 rounded-xl border border-[#EDE9E0] flex items-center justify-between">
-                  <span className="truncate">Nguồn gốc: <b>{prod.origin}</b></span>
-                  <button
-                    onClick={() => onNavigateToLookup(prod.batchCode)}
-                    className="text-[#264939] font-bold hover:underline shrink-0 flex items-center gap-0.5 ml-1"
-                  >
-                    <span>Tem QR</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+                {/* Origin & Retailer Info */}
+                <div className="text-[11px] text-[#5E7166] bg-[#FAF9F5] p-2.5 rounded-xl border border-[#EDE9E0] space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate">Cơ sở sản xuất: <b>{prod.origin}</b></span>
+                    <button
+                      onClick={() => onNavigateToLookup(prod.batchCode)}
+                      className="text-[#264939] font-bold hover:underline shrink-0 flex items-center gap-0.5 ml-1"
+                    >
+                      <span>Tem QR</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="text-[10px] text-[#264939] font-medium truncate">
+                    Đại lý bán hàng: <b>{prod.storeName}</b>
+                  </div>
                 </div>
 
                 {/* Price & Action Row */}
@@ -478,71 +486,125 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[85vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto space-y-5 my-0"
+            className="bg-white rounded-3xl border border-[#E6E1D7] max-w-2xl w-full max-h-[88vh] flex flex-col p-5 sm:p-7 shadow-2xl relative overflow-y-auto space-y-5 my-0"
           >
-            <div className="flex items-start justify-between pb-3 border-b border-[#EDE9E0]">
-              <div>
-                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
-                  {selectedProductDetails.batchCode}
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-3.5 border-b border-[#EDE9E0]">
+              <div className="space-y-1">
+                <span className="inline-block text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-md bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
+                  MÃ LÔ: {selectedProductDetails.batchCode}
                 </span>
-                <h3 className="font-serif font-extrabold text-xl text-[#1A2820] mt-1">
+                <h3 className="font-serif font-extrabold text-xl sm:text-2xl text-[#1A2820] leading-snug">
                   {selectedProductDetails.name}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedProductDetails(null)}
-                className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700"
+                className="p-1.5 rounded-full bg-[#FAF9F5] border border-[#E6E1D7] text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0 ml-2"
+                aria-label="Dong"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-[#E6E1D7] flex items-center justify-center">
+            {/* Modal Body: 2 Columns Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+              {/* Left Column: Uniform Centered Product Image Container */}
+              <div className="relative w-full h-64 sm:h-72 bg-[#FAF9F5] p-4 sm:p-5 rounded-2xl border border-[#E6E1D7] flex items-center justify-center overflow-hidden shadow-2xs group shrink-0">
+                {/* Image backdrop effect */}
+                <div className="absolute inset-0 bg-[radial-gradient(#264939_1px,transparent_1px)] [background-size:12px_12px] opacity-5 pointer-events-none" />
+
                 <img
                   src={selectedProductDetails.image}
                   alt={selectedProductDetails.name}
-                  className="max-h-56 object-contain"
+                  className="w-full h-full max-h-full max-w-full object-contain object-center drop-shadow-md group-hover:scale-105 transition-transform duration-300 relative z-10"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/assets/aistudio/image_28ddda16.png';
+                  }}
                 />
+
+                {/* Sub-badge for image authenticity */}
+                <span className="absolute bottom-2 left-2 text-[9px] font-mono font-bold text-[#8A9D92] bg-white/80 px-2 py-0.5 rounded-md border border-[#E6E1D7] backdrop-blur-xs z-20">
+                  OCOP Huế Certified Image
+                </span>
               </div>
 
-              <div className="space-y-3 text-xs text-[#5E7166]">
-                <div className="flex items-center gap-2">
-                  <span className="bg-amber-500 text-white font-extrabold px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-white" />
+              {/* Right Column: Aligned Product Information */}
+              <div className="space-y-4 text-xs text-[#5E7166]">
+                {/* OCOP Rating & Category Row */}
+                <div className="flex items-center justify-between gap-2 pb-1 border-b border-[#EDE9E0]">
+                  <span className="bg-amber-500 text-white font-extrabold px-3 py-1 rounded-full text-[11px] flex items-center gap-1 shadow-2xs">
+                    <Star className="w-3.5 h-3.5 fill-white text-white" />
                     <span>OCOP {selectedProductDetails.starRating} SAO</span>
                   </span>
-                  <span className="font-semibold text-[#264939]">{selectedProductDetails.category}</span>
+                  <span className="font-bold text-[#264939] bg-[#E0ECE4] px-2.5 py-1 rounded-lg border border-[#CCD8CF] text-[11px]">
+                    {selectedProductDetails.category}
+                  </span>
                 </div>
 
-                <p className="leading-relaxed text-[#1A2820]">{selectedProductDetails.description}</p>
+                {/* Description */}
+                <p className="leading-relaxed text-[#2C3E35] bg-[#FAF9F5] p-3 rounded-xl border border-[#EDE9E0]">
+                  {selectedProductDetails.description}
+                </p>
 
-                <div className="bg-[#E0ECE4]/40 p-3 rounded-xl space-y-1.5 border border-[#CCD8CF]/60">
-                  <div className="flex justify-between">
-                    <span>Cơ sở sản xuất:</span>
-                    <strong className="text-[#1A2820]">{selectedProductDetails.origin}</strong>
+                {/* Structured Aligned Info Grid */}
+                <div className="bg-[#E0ECE4]/40 p-3.5 rounded-2xl border border-[#CCD8CF]/70 space-y-2.5 font-sans">
+                  {/* Row 1: Co so san xuat */}
+                  <div className="grid grid-cols-3 items-center text-xs pb-2 border-b border-[#CCD8CF]/40">
+                    <span className="col-span-1 font-semibold text-[#5E7166]">Cơ sở sản xuất:</span>
+                    <span className="col-span-2 text-right font-extrabold text-[#1A2820] break-words">
+                      {selectedProductDetails.origin}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Quy cách đóng gói:</span>
-                    <strong className="text-[#1A2820]">{selectedProductDetails.unit}</strong>
+
+                  {/* Row 2: Dai ly ban hang */}
+                  <div className="grid grid-cols-3 items-center text-xs pb-2 border-b border-[#CCD8CF]/40">
+                    <span className="col-span-1 font-semibold text-[#5E7166]">Đại lý bán hàng:</span>
+                    <span className="col-span-2 text-right font-extrabold text-[#264939] break-words">
+                      {selectedProductDetails.storeName}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Tiêu chuẩn OCOP:</span>
-                    <strong className="text-[#264939]">{selectedProductDetails.ocopStandard}</strong>
+
+                  {/* Row 3: Quy cach dong goi */}
+                  <div className="grid grid-cols-3 items-center text-xs pb-2 border-b border-[#CCD8CF]/40">
+                    <span className="col-span-1 font-semibold text-[#5E7166]">Quy cách:</span>
+                    <span className="col-span-2 text-right font-extrabold text-[#1A2820]">
+                      {selectedProductDetails.unit}
+                    </span>
+                  </div>
+
+                  {/* Row 4: Tieu chuan OCOP */}
+                  <div className="grid grid-cols-3 items-center text-xs">
+                    <span className="col-span-1 font-semibold text-[#5E7166]">Tiêu chuẩn:</span>
+                    <span className="col-span-2 text-right font-extrabold text-[#264939]">
+                      {selectedProductDetails.ocopStandard}
+                    </span>
                   </div>
                 </div>
 
-                <div className="pt-2">
-                  <div className="font-serif font-extrabold text-xl text-[#264939]">
-                    {selectedProductDetails.priceVnd.toLocaleString('vi-VN')} VNĐ
+                {/* Price Display Block */}
+                <div className="pt-2 bg-[#FAF9F5] p-3.5 rounded-2xl border border-[#E6E1D7] flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-[#8A9D92] uppercase block tracking-wider">
+                      GIÁ NIÊM YẾT
+                    </span>
+                    <div className="font-serif font-extrabold text-xl text-[#264939] leading-tight">
+                      {selectedProductDetails.priceVnd.toLocaleString('vi-VN')} VNĐ
+                    </div>
                   </div>
-                  <div className="text-xs font-mono text-[#8C6D1F]">
-                    (~{selectedProductDetails.priceEth} ETH Sepolia)
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-[#8A9D92] uppercase block tracking-wider">
+                      ETH SEPOLIA
+                    </span>
+                    <div className="text-xs font-mono font-bold text-[#8C6D1F]">
+                      ~{selectedProductDetails.priceEth} ETH
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Modal Footer Actions */}
             <div className="pt-3 border-t border-[#EDE9E0] flex flex-col sm:flex-row items-center justify-between gap-3">
               <button
                 onClick={() => {
@@ -550,7 +612,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({
                   setSelectedProductDetails(null);
                   onNavigateToLookup(code);
                 }}
-                className="w-full sm:w-auto px-4 py-2.5 bg-[#E0ECE4] text-[#264939] font-bold text-xs rounded-xl hover:bg-[#d0e2d5] transition-all border border-[#CCD8CF] flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-4 py-2.5 bg-[#E0ECE4] text-[#264939] font-bold text-xs rounded-xl hover:bg-[#d0e2d5] transition-all border border-[#CCD8CF] flex items-center justify-center gap-2 shadow-2xs"
               >
                 <ShieldCheck className="w-4 h-4 text-[#264939]" />
                 <span>Kiểm Tra Nhật Ký Tem QR On-Chain</span>
