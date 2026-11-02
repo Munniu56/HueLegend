@@ -317,9 +317,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   1. Gán Quyền Vai Trò (Grant Role)
                 </h3>
               </div>
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
-                AccessControl
-              </span>
             </div>
 
             <div className="space-y-4 font-sans">
@@ -478,9 +475,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                 <span className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider block">
                   SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT
                 </span>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border shadow-2xs ${currentAccount ? 'bg-white text-[#264939] border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
-                  {allocatedRoleLabel}
-                </span>
+                {allocatedRoleLabel !== 'Khách Hàng' && (
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-lg border shadow-2xs ${currentAccount ? 'bg-white text-[#264939] border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'}`}>
+                    {allocatedRoleLabel}
+                  </span>
+                )}
               </div>
 
               <div className="text-2xl font-extrabold font-mono text-[#264939]">
@@ -536,9 +535,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   3. An Toàn Hệ Thống (Emergency Circuit Breaker)
                 </h3>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isSystemPaused ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
-                {isSystemPaused ? 'Paused' : 'Active'}
-              </span>
             </div>
 
             <p className="text-xs text-[#5E7166] leading-relaxed">
