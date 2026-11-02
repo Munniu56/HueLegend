@@ -1990,6 +1990,10 @@ export const App: React.FC = () => {
         'success'
       );
       await fetchContractData();
+      // Tu dong chuyen den phan nhat ky ghi chang cua lo hang vua tra phi
+      if (unpaidBatches.length > 0) {
+        handleNavigateTab('lookup', unpaidBatches[0].batchCode);
+      }
     } catch (e: any) {
       addToast('Lỗi Trả Phí Kiểm Định Viên', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
@@ -2094,6 +2098,10 @@ export const App: React.FC = () => {
         'success'
       );
       await fetchContractData();
+      // Tu dong chuyen den phan nhat ky ghi chang cua lo hang vua tra phi
+      if (unpaidLogisticsBatches.length > 0) {
+        handleNavigateTab('lookup', unpaidLogisticsBatches[0].batchCode);
+      }
     } catch (e: any) {
       addToast('Lỗi Trả Phí Vận Chuyển', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
@@ -2187,6 +2195,8 @@ export const App: React.FC = () => {
         'success'
       );
       await fetchContractData();
+      // Tu dong chuyen den phan nhat ky ghi chang cua lo hang vua tra phi
+      handleNavigateTab('lookup', batchCode);
     } catch (e: any) {
       addToast('Lỗi Trả Phí Kiểm Định Viên', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
@@ -2280,6 +2290,8 @@ export const App: React.FC = () => {
         'success'
       );
       await fetchContractData();
+      // Tu dong chuyen den phan nhat ky ghi chang cua lo hang vua tra phi
+      handleNavigateTab('lookup', batchCode);
     } catch (e: any) {
       addToast('Lỗi Trả Phí Vận Chuyển', e?.reason || e?.message || 'Giao dịch trả phí thất bại.', 'error');
     }
