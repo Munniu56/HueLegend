@@ -130,10 +130,14 @@ export const App: React.FC = () => {
           localStorage.setItem('huelegend_connected_account', currentAccount);
         } else {
           localStorage.removeItem('huelegend_connected_account');
+          // Khi chua ket noi vi, bat buoc chuyen ve 1 trong 3 tab duoc phep (Mac dinh: overview)
+          if (!['overview', 'lookup', 'store'].includes(activeTab)) {
+            setActiveTab('overview');
+          }
         }
       }
     } catch (e) {}
-  }, [currentAccount]);
+  }, [currentAccount, activeTab]);
 
   useEffect(() => {
     try {
@@ -2303,7 +2307,7 @@ export const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#F4F1EA]/30 backdrop-blur-[1px] bg-cover bg-fixed bg-center text-[#1A2820]">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} userRole={simulatedRole} onTabChange={(tab) => handleNavigateTab(tab)} />
+      <Sidebar activeTab={activeTab} userRole={simulatedRole} currentAccount={currentAccount} onTabChange={(tab) => handleNavigateTab(tab)} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
