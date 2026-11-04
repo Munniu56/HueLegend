@@ -267,7 +267,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({
   const shippingFeeEth = selectedProvince !== 'Thừa Thiên Huế (TP. Huế)' ? 0.0005 : 0;
   const finalTotalEth = totalEth + shippingFeeEth;
 
-  // Bat dau dat hang
+  // Bat dau dat hang qua MetaMask va chuyen ETH Sepolia toi vi Dai ly ban hang
   const handleCompleteOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName || !customerPhone || !district || !ward || !streetAddress) {
@@ -286,33 +286,31 @@ export const StoreTab: React.FC<StoreTabProps> = ({
     let txHash: string | null = null;
 
     try {
-      // Neu thanh toan bang vi Web3, kich hoat giaodich chuyen ETH toi vi Dai ly ban hang
+      // Thanh toan qua vi Web3 MetaMask
       if (paymentMethod === 'WEB3') {
         const winEth = (window as any).ethereum;
-        if (winEth && currentAccount) {
-          try {
-            const provider = new ethers.BrowserProvider(winEth);
-            const signer = await provider.getSigner();
-            const valueWei = ethers.parseEther(finalTotalEth.toFixed(6));
-            
-            // Chuyen ETH Sepolia den vi cua Dai ly ban hang (Retailer) san pham do
-            const tx = await signer.sendTransaction({
-              to: targetRetailerAddress,
-              value: valueWei
-            });
-            txHash = tx.hash;
-            await tx.wait();
-          } catch (txErr: any) {
-            console.warn('Giao dịch Web3 chuyển khoản:', txErr);
-            // Neu nguoi dung tu choi hoa p la demo mode, tao txHash mock
-            if (!txHash) {
-              txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-            }
-          }
-        } else {
-          // Tao txHash mock khi chua ket noi MetaMask truc tiep
-          txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+        if (!winEth || !currentAccount) {
+          alert('Vui lòng chọn vai trò Khách Hàng & kết nối ví MetaMask trước khi bấm xác nhận đặt hàng!');
+          setIsSubmittingOrder(false);
+          return;
         }
+
+        const provider = new ethers.BrowserProvider(winEth);
+        const signer = await provider.getSigner();
+        const valueWei = ethers.parseEther(finalTotalEth.toFixed(6));
+
+        // Kich hoat popup MetaMask de Khach hang chuyen Sepolia ETH den vi Dai ly ban hang
+        const tx = await signer.sendTransaction({
+          to: targetRetailerAddress,
+          value: valueWei
+        });
+
+        // Cho giao dich duoc xac nhan (mined) tren Sepolia Testnet
+        txHash = tx.hash;
+        await tx.wait();
+      } else {
+        // Phuong thuc khac (neu co)
+        txHash = '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
       }
 
       const newOrder = {
@@ -335,12 +333,18 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         retailerAddress: targetRetailerAddress
       };
 
-      // Khong ghi chang hanh trinh theo yeu cau ("popup khong ghi chang")
+      // Hoan tat: Khong ghi chang hanh trinh theo yeu cau ("popup khong ghi chang")
       setConfirmedOrder(newOrder);
       setCart([]);
       setIsCheckoutOpen(false);
     } catch (err: any) {
-      alert('Có lỗi xảy ra khi xử lý đơn hàng: ' + (err?.message || 'Lỗi không xác định'));
+      console.error('Loi giao dich thanh toan qua MetaMask:', err);
+      const errMsg = err?.message || 'Loi khong xac dinh';
+      if (errMsg.includes('user rejected') || errMsg.includes('ACTION_REJECTED') || err?.code === 4001) {
+        alert('Giao dịch đã bị hủy trên cửa sổ MetaMask. Vui lòng xác nhận giao dịch để hoàn tất đặt hàng!');
+      } else {
+        alert('Có lỗi xảy ra khi thực hiện giao dịch thanh toán MetaMask: ' + errMsg);
+      }
     } finally {
       setIsSubmittingOrder(false);
     }
