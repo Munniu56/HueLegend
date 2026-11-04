@@ -3,62 +3,62 @@ import { useState, useRef, useEffect, useCallback, CSSProperties } from 'react';
 // Hook tro giup keo tha popup (draggable modal) dinh vi truc tiep tai vi tri con tro chuot/nut da bam
 export function useDraggable(
   isOpen: boolean,
-  clickPos?: { x: number; y: number } | null,
-  estimatedModalSize: { width: number; height: number } = { width: 520, height: 460 }
+  clickPos?: { x: number; y: number } | null
 ) {
-  const [position, setPosition] = useState<{ x: number; y: number; isAbsolute: boolean }>({
-    x: 0,
-    y: 0,
-    isAbsolute: false,
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ x: number; y: number }>({
+    x: -9999,
+    y: -9999,
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const initialPosRef = useRef({ x: 0, y: 0 });
 
-  // Tinh toan vi tri popup xuat hien ngay tai toa do con tro chuot/nut da bam khi mo
+  // Tinh toan va dat vi tri popup xuat hien ngay tai vi tri con tro chuot khi click
   useEffect(() => {
-    if (isOpen) {
-      if (clickPos && typeof window !== 'undefined' && clickPos.x > 0 && clickPos.y > 0) {
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
-
-        const modalW = Math.min(screenW - 24, estimatedModalSize.width);
-        const modalH = Math.min(screenH - 24, estimatedModalSize.height);
-
-        let targetLeft: number;
-        let targetTop: number;
-
-        // Neu bam o ben phai man hinh (nhu nut vi o Header), can mep phai theo diem bam
-        if (clickPos.x > screenW / 2) {
-          targetLeft = clickPos.x - modalW;
-        } else {
-          // Neu bam o ben trai man hinh, can mep trai theo diem bam
-          targetLeft = clickPos.x;
-        }
-
-        // Neu bam o phan duoi man hinh, dat phia tren diem bam
-        if (clickPos.y > screenH / 2) {
-          targetTop = clickPos.y - modalH - 8;
-        } else {
-          // Neu bam o phan tren man hinh, dat phia duoi diem bam
-          targetTop = clickPos.y + 8;
-        }
-
-        // Gioi han an toan 12px ngat khuat khoi mep man hinh
-        const minLeft = 12;
-        const maxLeft = Math.max(minLeft, screenW - modalW - 12);
-        targetLeft = Math.max(minLeft, Math.min(maxLeft, targetLeft));
-
-        const minTop = 12;
-        const maxTop = Math.max(minTop, screenH - modalH - 12);
-        targetTop = Math.max(minTop, Math.min(maxTop, targetTop));
-
-        setPosition({ x: targetLeft, y: targetTop, isAbsolute: true });
-      } else {
-        setPosition({ x: 0, y: 0, isAbsolute: false });
-      }
+    if (!isOpen) {
+      setPosition({ x: -9999, y: -9999 });
+      return;
     }
-  }, [isOpen, clickPos?.x, clickPos?.y, estimatedModalSize.width, estimatedModalSize.height]);
+
+    // Raf dam bao modal element da mounted va browser da layout xong de lay bouding client rect chinh xac
+    const timer = requestAnimationFrame(() => {
+      const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      const winHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+      let modalW = 520;
+      let modalH = 460;
+
+      if (modalRef.current) {
+        const rect = modalRef.current.getBoundingClientRect();
+        if (rect.width > 0) modalW = rect.width;
+        if (rect.height > 0) modalH = rect.height;
+      }
+
+      let targetLeft = (winWidth - modalW) / 2;
+      let targetTop = (winHeight - modalH) / 2;
+
+      if (clickPos && typeof clickPos.x === 'number' && typeof clickPos.y === 'number' && !isNaN(clickPos.x) && !isNaN(clickPos.y) && (clickPos.x > 0 || clickPos.y > 0)) {
+        // Neu con tro o nua phai man hinh, dat goc tren ben phai popup vao vi tri click
+        // Neu con tro o nua trai man hinh, dat goc tren ben trai popup vao vi tri click
+        targetLeft = clickPos.x > winWidth / 2 ? clickPos.x - modalW + 20 : clickPos.x - 20;
+        targetTop = clickPos.y + 12;
+
+        // Neu hien thi theo targetTop bi tran phia duoi man hinh, day popup hien thi phia tren con tro chuot
+        if (targetTop + modalH > winHeight - 16) {
+          targetTop = Math.max(16, clickPos.y - modalH - 12);
+        }
+      }
+
+      // Clamped trong khung man hinh an toan (cach le toi thieu 16px)
+      const clampedLeft = Math.max(16, Math.min(targetLeft, winWidth - modalW - 16));
+      const clampedTop = Math.max(16, Math.min(targetTop, winHeight - modalH - 16));
+
+      setPosition({ x: clampedLeft, y: clampedTop });
+    });
+
+    return () => cancelAnimationFrame(timer);
+  }, [isOpen, clickPos?.x, clickPos?.y]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -81,11 +81,10 @@ export function useDraggable(
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.x;
     const dy = e.clientY - dragStartRef.current.y;
-    setPosition((prev) => ({
+    setPosition({
       x: initialPosRef.current.x + dx,
       y: initialPosRef.current.y + dy,
-      isAbsolute: prev.isAbsolute,
-    }));
+    });
   }, [isDragging]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -96,19 +95,19 @@ export function useDraggable(
     } catch (err) {}
   }, [isDragging]);
 
-  const modalStyle: CSSProperties = position.isAbsolute
-    ? {
-        position: 'absolute',
-        left: `${position.x}px`,
-        top: `${position.y}px`,
-        transition: isDragging ? 'none' : 'transform 0.05s ease-out, left 0.05s ease-out, top 0.05s ease-out',
-      }
-    : {
-        transform: `translate(${position.x}px, ${position.y}px)`,
-        transition: isDragging ? 'none' : 'transform 0.05s ease-out',
-      };
+  const isPositionReady = position.x >= 0 && position.y >= 0;
+
+  const modalStyle: CSSProperties = {
+    position: 'fixed',
+    left: `${isPositionReady ? position.x : 0}px`,
+    top: `${isPositionReady ? position.y : 0}px`,
+    opacity: isPositionReady ? 1 : 0,
+    visibility: isPositionReady ? 'visible' : 'hidden',
+    transition: isDragging ? 'none' : 'opacity 0.15s ease-out',
+  };
 
   return {
+    modalRef,
     position,
     isDragging,
     modalStyle,
@@ -120,3 +119,4 @@ export function useDraggable(
     }
   };
 }
+

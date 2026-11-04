@@ -16,7 +16,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   onSelectRoleAndConnect,
   clickPos,
 }) => {
-  const { isDragging, modalStyle, dragHeaderProps } = useDraggable(isOpen, clickPos, { width: 560, height: 500 });
+  const { modalRef, isDragging, modalStyle, dragHeaderProps } = useDraggable(isOpen, clickPos);
 
   if (!isOpen) return null;
 
@@ -75,14 +75,13 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 z-[9999] bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans ${
-        clickPos ? 'overflow-visible' : 'flex items-center justify-center p-3 sm:p-4 overflow-y-auto'
-      }`}
+      className="fixed inset-0 z-[9999] bg-black/65 backdrop-blur-sm animate-in fade-in duration-200 font-sans"
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         style={modalStyle}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full flex flex-col p-5 sm:p-6 shadow-2xl relative max-h-[92vh] overflow-hidden"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-xl w-full flex flex-col p-5 sm:p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto space-y-4 z-[10000]"
       >
         {/* Modal Header VOI Drag handle giup keo tha linh hoat */}
         <div

@@ -40,7 +40,7 @@ interface AdminTabProps {
   isSystemPaused?: boolean;
   isAdminRole: boolean;
   currentAccount: string | null;
-  onConnectWallet: () => void;
+  onConnectWallet: (e?: React.MouseEvent) => void;
   onSetBatchCreationFee: (newFeeEth: string) => Promise<void>;
   onAssignRole: (account: string, roleName: string) => Promise<void>;
   onRevokeRole: (account: string, roleName: string) => Promise<void>;

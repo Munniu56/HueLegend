@@ -30,53 +30,60 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   onDisconnect,
   clickPos,
 }) => {
-  const { isDragging, modalStyle, dragHeaderProps } = useDraggable(isOpen, clickPos, { width: 440, height: 450 });
+  const { modalRef, isDragging, modalStyle, dragHeaderProps } = useDraggable(isOpen, clickPos);
 
   if (!isOpen) return null;
 
-  const shortAddress = `${account.substring(0, 6)}...${account.substring(account.length - 4)}`;
+  const cleanAccountStr = account && typeof account === 'string' ? account.trim() : '';
+  const shortAddress = cleanAccountStr.length >= 8
+    ? `${cleanAccountStr.substring(0, 6)}...${cleanAccountStr.substring(cleanAccountStr.length - 4)}`
+    : (cleanAccountStr || 'Chưa kết nối ví');
 
   // Tinh tong so tien ETH ma Dai ly / Cua hang dac san da thanh toan cho Co so san xuat
   let producerRetailerPaidEth = '0.000';
-  if (batches && account) {
+  if (batches && cleanAccountStr) {
     try {
-      const cleanAccount = safeGetAddress(account).toLowerCase();
+      const cleanAccount = safeGetAddress(cleanAccountStr).toLowerCase();
       let totalWei = 0n;
 
-      Object.values(batches).forEach((b) => {
-        const isMyProducerBatch = b.producer && safeGetAddress(b.producer).toLowerCase() === cleanAccount;
-        if (isMyProducerBatch && b.checkpoints) {
-          b.checkpoints.forEach((cp) => {
-            const isRetailerCp =
-              cp.role === ROLE_HASHES.ROLE_RETAILER ||
-              cp.role === 'RETAILER' ||
-              cp.roleTitle?.toLowerCase().includes('đại lý') ||
-              cp.stepName?.toLowerCase().includes('niêm yết') ||
-              cp.action?.toLowerCase().includes('niêm yết') ||
-              cp.action?.toLowerCase().includes('đã nhập kho');
+      if (cleanAccount) {
+        Object.values(batches).forEach((b) => {
+          if (!b) return;
+          const isMyProducerBatch = b.producer && safeGetAddress(b.producer).toLowerCase() === cleanAccount;
+          if (isMyProducerBatch && b.checkpoints) {
+            b.checkpoints.forEach((cp) => {
+              if (!cp) return;
+              const isRetailerCp =
+                cp.role === ROLE_HASHES.ROLE_RETAILER ||
+                cp.role === 'RETAILER' ||
+                cp.roleTitle?.toLowerCase().includes('đại lý') ||
+                cp.stepName?.toLowerCase().includes('niêm yết') ||
+                cp.action?.toLowerCase().includes('niêm yết') ||
+                cp.action?.toLowerCase().includes('đã nhập kho');
 
-            if (isRetailerCp) {
-              const feeMatch =
-                cp.action.match(/Phí On-Chain:\s*([0-9.]+)\s*ETH/i) ||
-                cp.conditionNote?.match(/Phí MetaMask Sepolia:\s*([0-9.]+)\s*ETH/i) ||
-                cp.action.match(/Giá Niêm Yết Bán Lẻ\s*\(([0-9.]+)\s*ETH\)/i) ||
-                cp.action.match(/([0-9.]+)\s*ETH/i);
+              if (isRetailerCp) {
+                const feeMatch =
+                  (cp.action && cp.action.match(/Phí On-Chain:\s*([0-9.]+)\s*ETH/i)) ||
+                  (cp.conditionNote && cp.conditionNote.match(/Phí MetaMask Sepolia:\s*([0-9.]+)\s*ETH/i)) ||
+                  (cp.action && cp.action.match(/Giá Niêm Yết Bán Lẻ\s*\(([0-9.]+)\s*ETH\)/i)) ||
+                  (cp.action && cp.action.match(/([0-9.]+)\s*ETH/i));
 
-              if (feeMatch && feeMatch[1]) {
-                const val = parseFloat(feeMatch[1]);
-                if (!isNaN(val) && val > 0) {
-                  totalWei += ethers.parseEther(val.toFixed(6));
-                }
-              } else if (b.listingPriceEth) {
-                const val = parseFloat(b.listingPriceEth);
-                if (!isNaN(val) && val > 0) {
-                  totalWei += ethers.parseEther(val.toFixed(6));
+                if (feeMatch && feeMatch[1]) {
+                  const val = parseFloat(feeMatch[1]);
+                  if (!isNaN(val) && val > 0) {
+                    totalWei += ethers.parseEther(val.toFixed(6));
+                  }
+                } else if (b.listingPriceEth) {
+                  const val = parseFloat(b.listingPriceEth);
+                  if (!isNaN(val) && val > 0) {
+                    totalWei += ethers.parseEther(val.toFixed(6));
+                  }
                 }
               }
-            }
-          });
-        }
-      });
+            });
+          }
+        });
+      }
 
       const formatted = ethers.formatEther(totalWei);
       if (parseFloat(formatted) > 0) {
@@ -88,16 +95,16 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   // Tinh tong so phi kiem dinh ma vi Quan tri vien DA GIAO DỊCH tra cho Kiem dinh vien (0.002 ETH/lo)
-  // Neu vi Quan tri vien CHUA thuc hien giao dich tra phi thì so du mac dinh = 0.000 ETH
   let inspectorFeePaidEth = '0.000';
   if (batches) {
     let adminPaidTxCount = 0;
     Object.values(batches).forEach((b) => {
-      // Chi dem khi lo hang DA KIEM DINH THANH CONG va CO GIAO DỊCH VÍ QUẢN TRỊ VIÊN TRẢ PHÍ
+      if (!b) return;
       const hasAdminPaidTx = Boolean(
         b.adminPaidInspectorFee ||
         (b.checkpoints && b.checkpoints.some(
           (c) =>
+            c &&
             (c.role === 'ROLE_ADMIN' || c.role === 'ADMIN' || c.roleTitle?.toLowerCase().includes('quản trị')) &&
             (c.action?.toLowerCase().includes('trả phí') ||
              c.action?.toLowerCase().includes('thanh toán phí') ||
@@ -115,23 +122,25 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   // Tinh tong so phi van chuyen ma vi Quan tri vien DA GIAO DỊCH tra cho Don vi van chuyen (0.002 ETH/lan ghi chang van chuyen)
-  // Neu vi Quan tri vien CHUA thuc hien giao dich tra phi thi so du mac dinh = 0.000 ETH
   let logisticsFeePaidEth = '0.000';
   if (batches) {
     let adminPaidLogisticsCount = 0;
     Object.values(batches).forEach((b) => {
+      if (!b) return;
       const hasLogisticsCp = b.checkpoints && b.checkpoints.some(
         (c) =>
-          c.role === 'ROLE_LOGISTICS' ||
-          c.role === 'LOGISTICS' ||
-          c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
-          (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+          c &&
+          (c.role === 'ROLE_LOGISTICS' ||
+           c.role === 'LOGISTICS' ||
+           c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
+           (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho'))))
       );
 
       const hasAdminPaidLogisticsTx = Boolean(
         b.adminPaidLogisticsFee ||
         (b.checkpoints && b.checkpoints.some(
           (c) =>
+            c &&
             (c.role === 'ROLE_ADMIN' || c.role === 'ADMIN' || c.roleTitle?.toLowerCase().includes('quản trị')) &&
             (c.action?.toLowerCase().includes('vận chuyển') ||
              c.action?.toLowerCase().includes('phí vận chuyển') ||
@@ -226,14 +235,13 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   return (
     <div
       onClick={onClose}
-      className={`fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans ${
-        clickPos ? 'overflow-visible' : 'flex items-center justify-center p-3 sm:p-4 overflow-y-auto'
-      }`}
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 font-sans"
     >
       <div
+        ref={modalRef}
         onClick={(e) => e.stopPropagation()}
         style={modalStyle}
-        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[88vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-y-auto space-y-4"
+        className="bg-white rounded-3xl border border-[#E6E1D7] max-w-md w-full max-h-[88vh] flex flex-col p-5 sm:p-6 shadow-2xl relative overflow-y-auto space-y-4 z-[10000]"
       >
         {/* Header with Drag Handle */}
         <div

@@ -2472,23 +2472,27 @@ export const App: React.FC = () => {
       />
 
       {/* Connected Wallet Details Modal */}
-      <WalletDetailsModal
-        isOpen={isWalletDetailsModalOpen}
-        onClose={() => setIsWalletDetailsModalOpen(false)}
-        account={currentAccount || ''}
-        userRole={simulatedRole}
-        roleTitle={getRoleTitle(
-          simulatedRole === 'ADMIN' ? ROLE_HASHES.ROLE_ADMIN :
-          simulatedRole === 'PRODUCER' ? ROLE_HASHES.ROLE_PRODUCER :
-          simulatedRole === 'RETAILER' ? ROLE_HASHES.ROLE_RETAILER :
-          simulatedRole === 'INSPECTOR' ? ROLE_HASHES.ROLE_INSPECTOR : ''
-        )}
-        producerStakeBalance={producerStakeBalance}
-        contractBalanceEth={contractBalanceEth}
-        batches={batches}
-        onDisconnect={handleDisconnectWallet}
-        clickPos={modalClickPos}
-      />
+      {isWalletDetailsModalOpen && (
+        <WalletDetailsModal
+          isOpen={isWalletDetailsModalOpen}
+          onClose={() => setIsWalletDetailsModalOpen(false)}
+          account={currentAccount || ''}
+          userRole={simulatedRole}
+          roleTitle={
+            simulatedRole === 'ADMIN' ? 'Quản Trị Viên (Admin)' :
+            simulatedRole === 'PRODUCER' ? 'Cơ Sở Sản Xuất' :
+            simulatedRole === 'RETAILER' ? 'Đại Lý Phân Phối' :
+            simulatedRole === 'INSPECTOR' ? 'Kiểm Định Viên OCOP' :
+            simulatedRole === 'LOGISTICS' ? 'Đơn Vị Vận Chuyển' :
+            simulatedRole === 'CUSTOMER' ? 'Khách Hàng' : 'Tất Cả Vai Trò'
+          }
+          producerStakeBalance={producerStakeBalance}
+          contractBalanceEth={contractBalanceEth}
+          batches={batches}
+          onDisconnect={handleDisconnectWallet}
+          clickPos={modalClickPos}
+        />
+      )}
 
       {/* QR Stamp Printable Modal */}
       <QRStampModal batch={qrStampBatch} onClose={() => setQrStampBatch(null)} />

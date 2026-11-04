@@ -27,7 +27,7 @@ interface MobileNavProps {
   isOpenMobileMenu: boolean;
   onToggleMobileMenu: () => void;
   currentAccount?: string | null;
-  onConnectWallet?: () => void;
+  onConnectWallet?: (e?: React.MouseEvent) => void;
   onSyncDesktop?: () => void;
 }
 

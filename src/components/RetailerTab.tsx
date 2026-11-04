@@ -8,7 +8,7 @@ interface RetailerTabProps {
   currentAccount: string | null;
   contractBalanceEth?: string;
   customerSalesEth?: string;
-  onConnectWallet: () => void;
+  onConnectWallet: (e?: React.MouseEvent) => void;
   onAddCheckpoint?: (
     batchCode: string,
     role: string,
