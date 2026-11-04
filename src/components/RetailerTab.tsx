@@ -482,22 +482,19 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                 Cần đơn vị vận chuyển ghi nhật ký vận chuyển trước khi đại lý có thể niêm yết lên Cửa hàng đặc sản.
               </p>
             </div>
+          ) : unlistedTransportBatches.length === 0 ? (
+            <div className="p-8 text-center text-xs text-gray-500 bg-[#FAF9F5] rounded-2xl border border-[#EDE9E0] space-y-3">
+              <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+              <p className="font-bold text-[#264939] text-sm">Tất cả lô hàng đã được niêm yết thành công</p>
+              <p className="text-gray-500 leading-relaxed max-w-xs mx-auto">
+                Toàn bộ lô hàng nhận từ đơn vị vận chuyển đã được nhập kho và niêm yết lên Cửa Hàng Đặc Sản.
+              </p>
+            </div>
           ) : (
             <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-              {allTransportBatches.map((batch: Batch) => {
+              {unlistedTransportBatches.map((batch: Batch) => {
                 const listingInfo = listedPrices[batch.batchCode];
                 const isSelected = batch.batchCode === selectedBatchCode;
-                const isListed = Boolean(
-                  listingInfo ||
-                  batch.isListed ||
-                  batch.listingPriceEth ||
-                  (batch.checkpoints && batch.checkpoints.some(
-                    (c) =>
-                      c.role === 'ROLE_RETAILER' ||
-                      c.role === 'RETAILER' ||
-                      (c.stepName && (c.stepName.toLowerCase().includes('niêm yết') || c.stepName.toLowerCase().includes('bán lẻ')))
-                  ))
-                );
 
                 return (
                   <div
@@ -519,12 +516,8 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
                           <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 truncate">
                             {batch.batchCode}
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${
-                            isListed
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                              : 'bg-amber-100 text-amber-900 border-amber-200'
-                          }`}>
-                            {isListed ? 'Đã Niêm Yết' : 'Sẵn Sàng Niêm Yết'}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 bg-amber-100 text-amber-900 border-amber-200">
+                            Sẵn Sàng Niêm Yết
                           </span>
                         </div>
                         <h4 className="font-serif font-bold text-xs text-[#1A2820] mt-1 truncate">
