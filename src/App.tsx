@@ -2404,6 +2404,8 @@ export const App: React.FC = () => {
           {activeTab === 'store' && (
             <StoreTab
               batches={batches}
+              currentAccount={currentAccount}
+              onConnectWallet={handleOpenRoleConnectModal}
               onNavigateToLookup={(code) => handleNavigateTab('lookup', code)}
               onNavigateToRetailer={() => handleNavigateTab('retailer')}
               onAddCheckpoint={handleAddCheckpoint}

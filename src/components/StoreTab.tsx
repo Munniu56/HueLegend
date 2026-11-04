@@ -71,6 +71,7 @@ interface StoreTabProps {
   onNavigateToLookup: (batchCode: string) => void;
   onNavigateToRetailer?: () => void;
   currentAccount?: string | null;
+  onConnectWallet?: (e?: React.MouseEvent) => void;
   onAddCheckpoint?: (
     batchCode: string,
     role: string,
@@ -111,6 +112,7 @@ export const StoreTab: React.FC<StoreTabProps> = ({
   onNavigateToLookup,
   onNavigateToRetailer,
   currentAccount,
+  onConnectWallet,
   onAddCheckpoint,
   onOpenJourneyModal
 }) => {
@@ -291,6 +293,9 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         const winEth = (window as any).ethereum;
         if (!winEth || !currentAccount) {
           alert('Vui lòng chọn vai trò Khách Hàng & kết nối ví MetaMask trước khi bấm xác nhận đặt hàng!');
+          if (onConnectWallet) {
+            onConnectWallet(e as any);
+          }
           setIsSubmittingOrder(false);
           return;
         }
