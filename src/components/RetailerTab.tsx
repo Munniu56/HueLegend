@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
-import { Store, Tag, Package, AlertTriangle, Wallet, ArrowDownRight, Image as ImageIcon, CheckCircle2, ShieldCheck, RefreshCw, FolderTree } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Store,
+  Tag,
+  Package,
+  AlertTriangle,
+  Wallet,
+  ArrowDownRight,
+  Image as ImageIcon,
+  CheckCircle2,
+  ShieldCheck,
+  RefreshCw,
+  FolderTree,
+  Users,
+  ShoppingBag,
+  MapPin,
+  Clock,
+  ExternalLink,
+  Search,
+  X
+} from 'lucide-react';
 import { Batch, SPECIALTY_CATEGORIES } from '../types';
+import { ETHERSCAN_BASE_URL, safeGetAddress } from '../constants';
 
 interface RetailerTabProps {
   batches: Record<string, Batch>;
@@ -41,6 +61,68 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [listedPrices, setListedPrices] = useState<Record<string, { price: string; store: string; storeLocation: string; stock: string; category: string; sellerAddr: string }>>({});
+
+  // Doc va duy tri danh sach don hang khach hang tu LocalStorage & BroadcastChannel
+  const [customerOrders, setCustomerOrders] = useState<any[]>([]);
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+
+  const loadCustomerOrders = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem('huelegend_customer_orders_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // Sap xep don hang moi nhat len dau
+          const sorted = [...parsed].reverse();
+          setCustomerOrders(sorted);
+        }
+      }
+    } catch (e) {
+      console.warn('Loi doc customer orders trong RetailerTab:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadCustomerOrders();
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('huelegend_auto_sync');
+        channel.onmessage = () => {
+          loadCustomerOrders();
+        };
+      } catch (e) {}
+    }
+
+    const handleStorage = () => loadCustomerOrders();
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [loadCustomerOrders]);
+
+  // Loc danh sach don hang khach hang
+  const filteredCustomerOrders = customerOrders.filter((ord) => {
+    if (!ord) return false;
+    const matchesSearch =
+      orderSearchQuery === '' ||
+      (ord.customerName && ord.customerName.toLowerCase().includes(orderSearchQuery.toLowerCase())) ||
+      (ord.customerPhone && ord.customerPhone.includes(orderSearchQuery)) ||
+      (ord.orderId && ord.orderId.toLowerCase().includes(orderSearchQuery.toLowerCase())) ||
+      (ord.fullAddress && ord.fullAddress.toLowerCase().includes(orderSearchQuery.toLowerCase())) ||
+      (ord.items && ord.items.some((it: any) => it.product?.name?.toLowerCase().includes(orderSearchQuery.toLowerCase())));
+
+    if (currentAccount && ord.retailerAddress) {
+      const isMyRetailer = safeGetAddress(ord.retailerAddress).toLowerCase() === safeGetAddress(currentAccount).toLowerCase();
+      return matchesSearch && (isMyRetailer || !ord.retailerAddress);
+    }
+
+    return matchesSearch;
+  });
 
   const batchList = batches ? Object.values(batches) : [];
   // Tat ca cac lo hang da qua van chuyen (Chang 3)
@@ -563,6 +645,173 @@ export const RetailerTab: React.FC<RetailerTabProps> = ({
             </div>
           )}
         </div>
+      </div>
+
+      {/* KHỐI 3: DANH SÁCH KHÁCH HÀNG ĐÃ ĐẶT HÀNG & THÔNG TIN ĐƠN HÀNG */}
+      <div className="bg-white p-6 rounded-3xl border border-[#E6E1D7] shadow-2xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#EDE9E0]">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-[#E0ECE4] text-[#264939] border border-[#CCD8CF]">
+              <Users className="w-5 h-5 text-[#264939]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif font-extrabold text-base md:text-lg text-[#264939]">
+                  Danh Sách Khách Hàng Đã Đặt Hàng
+                </h3>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  {filteredCustomerOrders.length} Đơn Hàng
+                </span>
+              </div>
+              <p className="text-xs text-[#5E7166] mt-0.5">
+                Quản lý chi tiết thông tin người mua, địa chỉ giao hàng và trạng thái thanh toán ETH On-Chain
+              </p>
+            </div>
+          </div>
+
+          {/* Search Order Input */}
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={orderSearchQuery}
+              onChange={(e) => setOrderSearchQuery(e.target.value)}
+              placeholder="Tìm tên, SĐT, mã đơn..."
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#E6E1D7] text-xs focus:outline-none focus:border-[#264939] bg-[#FAF9F5]"
+            />
+            {orderSearchQuery && (
+              <button
+                onClick={() => setOrderSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {filteredCustomerOrders.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center text-xs text-gray-500 bg-[#FAF9F5] rounded-2xl border border-[#EDE9E0] space-y-3">
+            <ShoppingBag className="w-10 h-10 text-emerald-700/60 mx-auto" />
+            <h4 className="font-serif font-extrabold text-base text-[#264939]">
+              Chưa Có Khách Hàng Nào Đặt Hàng
+            </h4>
+            <p className="text-xs text-[#5E7166] leading-relaxed max-w-md mx-auto">
+              Đơn hàng do Khách Hàng mua tại <strong>Cửa Hàng Đặc Sản</strong> sau khi thanh toán ETH Sepolia qua MetaMask sẽ tự động hiển thị đầy đủ thông tin tại danh sách này.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredCustomerOrders.map((ord: any) => (
+              <div
+                key={ord.orderId}
+                className="bg-[#FAF9F5] rounded-2xl border border-[#E6E1D7] p-4 sm:p-5 space-y-3 hover:border-[#264939] transition-all shadow-2xs"
+              >
+                {/* Header line: Order ID, Time, Badge */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#EDE9E0]">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-extrabold text-xs sm:text-sm text-[#264939] bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      {ord.orderId}
+                    </span>
+                    <span className="text-[11px] font-sans text-gray-500 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-[#C29B38]" />
+                      <span>{ord.createdAt}</span>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Đã Thanh Toán On-Chain</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Details Grid: Customer Info & Order Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4">
+                  {/* Customer Info Box (5 cols) */}
+                  <div className="lg:col-span-5 bg-white p-3.5 rounded-xl border border-[#EDE9E0] space-y-2 text-xs">
+                    <div className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-[#264939]" />
+                      <span>THÔNG TIN KHÁCH HÀNG</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Họ tên người nhận:</span>
+                        <strong className="text-[#1A2820] font-serif font-bold text-sm">{ord.customerName}</strong>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Số điện thoại:</span>
+                        <strong className="text-[#264939] font-mono font-bold">{ord.customerPhone}</strong>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#EDE9E0]">
+                      <span className="text-gray-500 block text-[10px] mb-0.5">Địa chỉ giao hàng đầy đủ:</span>
+                      <div className="bg-[#FAF9F5] p-2 rounded-lg border border-[#EDE9E0] text-[11px] text-[#1A2820] font-medium leading-relaxed flex items-start gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#C29B38] shrink-0 mt-0.5" />
+                        <span>{ord.fullAddress}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Purchased Items & Payment Details (7 cols) */}
+                  <div className="lg:col-span-7 bg-white p-3.5 rounded-xl border border-[#EDE9E0] space-y-2 text-xs flex flex-col justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold text-[#8A9D92] uppercase tracking-wider flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1">
+                          <ShoppingBag className="w-3.5 h-3.5 text-[#264939]" />
+                          <span>SẢN PHẨM ĐÃ ĐẶT</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-gray-500">{ord.items?.length || 0} sản phẩm</span>
+                      </div>
+
+                      <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                        {ord.items?.map((it: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center text-[11px] bg-[#FAF9F5] p-2 rounded-lg border border-[#EDE9E0]">
+                            <div className="min-w-0 flex-1 pr-2">
+                              <span className="font-bold text-[#1A2820] block truncate">{it.product?.name}</span>
+                              <span className="text-[10px] text-gray-500">Số lượng: {it.quantity} | {it.product?.ocopStandard}</span>
+                            </div>
+                            <div className="text-right font-mono font-bold text-[#264939] shrink-0">
+                              {(it.product?.priceVnd * it.quantity).toLocaleString('vi-VN')} đ
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-[#EDE9E0] space-y-1.5 text-[11px]">
+                      <div className="flex flex-wrap items-center justify-between gap-1">
+                        <span className="text-gray-500">Thanh toán On-Chain:</span>
+                        <span className="font-mono font-bold text-[#264939]">
+                          {ord.finalTotalEth ? ord.finalTotalEth.toFixed(4) : ord.totalEth?.toFixed(4) || '0.002'} ETH
+                          <span className="text-gray-400 font-sans font-normal ml-1">({ord.totalVnd?.toLocaleString('vi-VN')} đ)</span>
+                        </span>
+                      </div>
+
+                      {ord.txHash && (
+                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-[#EDE9E0]/60">
+                          <span className="text-gray-500 text-[10px]">Mã Giao Dịch Sepolia (Tx Hash):</span>
+                          <a
+                            href={`${ETHERSCAN_BASE_URL}/tx/${ord.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-[10px] text-[#264939] font-bold underline hover:text-[#C29B38] flex items-center gap-1"
+                          >
+                            <span>{ord.txHash.slice(0, 10)}...{ord.txHash.slice(-8)}</span>
+                            <ExternalLink className="w-3 h-3 shrink-0" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
