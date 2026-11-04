@@ -25,8 +25,19 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({
   onConnectWallet,
   onAddCheckpoint
 }) => {
-  // Chi loc cac lo hang DA DUOC KIEM DINH OCOP
-  const verifiedBatches = Object.values(batches).filter((b) => b.isVerified);
+  // Chi loc cac lo hang DA DUOC KIEM DINH OCOP va CHUA GHI CHANG VAN CHUYEN (ROLE_LOGISTICS)
+  const verifiedBatches = Object.values(batches).filter((b) => {
+    if (!b.isVerified) return false;
+    // Kiem tra xem lo hang da co chang van chuyen truoc do hay chua
+    const hasLogisticsCheckpoint = b.checkpoints?.some(
+      (cp) =>
+        cp.role === 'ROLE_LOGISTICS' ||
+        cp.role === '0x3a067087f94c037f37478d1f7c5417ae41168579d46cddb32231b402be47b59e' ||
+        cp.roleTitle === 'Đơn Vị Vận Chuyển' ||
+        (cp.stepName && (cp.stepName.toLowerCase().includes('chặng 3') || cp.stepName.toLowerCase().includes('vận chuyển') || cp.stepName.toLowerCase().includes('kho vận')))
+    );
+    return !hasLogisticsCheckpoint;
+  });
   const verifiedBatchCodes = verifiedBatches.map((b) => b.batchCode);
 
   const [selectedBatchCode, setSelectedBatchCode] = useState('');
@@ -54,6 +65,12 @@ export const CheckpointTab: React.FC<CheckpointTabProps> = ({
       // Tu dong tao metadata URI cho chang van chuyen neu chua co
       const finalMetadataURI = metadataURI || `ipfs://huelegend/logistics/${selectedBatchCode}/${Date.now()}`;
       await onAddCheckpoint(selectedBatchCode, role, location, action, finalMetadataURI, stepName, conditionNote);
+      setSelectedBatchCode('');
+      setStepName('');
+      setLocation('');
+      setAction('');
+      setConditionNote('');
+      setMetadataURI('');
     } catch (err) {
       console.error(err);
     } finally {
