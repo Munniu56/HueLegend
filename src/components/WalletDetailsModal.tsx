@@ -148,6 +148,39 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     logisticsFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
   }
 
+  // Doc so du ETH thuc te trong vi khach hang (Customer wallet balance)
+  const [customerWalletBalanceEth, setCustomerWalletBalanceEth] = React.useState<string>('0.0000');
+
+  React.useEffect(() => {
+    if (!isOpen || !account) return;
+
+    let isMounted = true;
+    const fetchCustomerBalance = async () => {
+      try {
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+          const provider = new ethers.BrowserProvider((window as any).ethereum);
+          const balWei = await provider.getBalance(account);
+          const formatted = parseFloat(ethers.formatEther(balWei)).toFixed(4);
+          if (isMounted) setCustomerWalletBalanceEth(formatted);
+        } else {
+          const provider = new ethers.JsonRpcProvider('https://ethereum-sepolia-rpc.publicnode.com');
+          const balWei = await provider.getBalance(account);
+          const formatted = parseFloat(ethers.formatEther(balWei)).toFixed(4);
+          if (isMounted) setCustomerWalletBalanceEth(formatted);
+        }
+      } catch (e) {
+        console.warn('Loi khi doc so du vi khach hang:', e);
+      }
+    };
+
+    fetchCustomerBalance();
+    const interval = setInterval(fetchCustomerBalance, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isOpen, account]);
+
   // Xac dinh nhan va so du ETH tich luy theo vai tro vi
   let roleLabel = 'On-Chain';
   let roleSubtext = 'Số dư ETH tích lũy tương tác Smart Contract';
@@ -173,6 +206,14 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleLabel = 'Quản Trị Viên (Admin)';
     roleSubtext = 'Tổng phí tích lũy Treasury Smart Contract';
     roleBalance = contractBalanceEth;
+  } else if (userRole === 'CUSTOMER') {
+    roleLabel = 'Khách Hàng';
+    roleSubtext = 'Số dư ETH hiện có trong ví kết nối (Tự động cập nhật sau khi mua sản phẩm)';
+    roleBalance = customerWalletBalanceEth;
+  } else {
+    roleLabel = 'Khách Hàng';
+    roleSubtext = 'Số dư ETH hiện có trong ví kết nối';
+    roleBalance = customerWalletBalanceEth !== '0.0000' ? customerWalletBalanceEth : contractBalanceEth;
   }
 
   let balanceBoxTitle = 'SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT';
