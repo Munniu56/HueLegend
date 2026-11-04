@@ -338,6 +338,24 @@ export const StoreTab: React.FC<StoreTabProps> = ({
         retailerAddress: targetRetailerAddress
       };
 
+      // Luu danh sach don hang va cap nhat SO DU ETH KHACH HANG MUA SAN PHAM TRONG SMART CONTRACT cua Dai ly
+      try {
+        if (typeof window !== 'undefined') {
+          const savedOrders = localStorage.getItem('huelegend_customer_orders_v1');
+          const parsedOrders = savedOrders ? JSON.parse(savedOrders) : [];
+          parsedOrders.push(newOrder);
+          localStorage.setItem('huelegend_customer_orders_v1', JSON.stringify(parsedOrders));
+
+          if ('BroadcastChannel' in window) {
+            try {
+              const channel = new BroadcastChannel('huelegend_auto_sync');
+              channel.postMessage({ type: 'ORDER_COMPLETED', order: newOrder, timestamp: Date.now() });
+              channel.close();
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
       // Hoan tat: Khong ghi chang hanh trinh theo yeu cau ("popup khong ghi chang")
       setConfirmedOrder(newOrder);
       setCart([]);

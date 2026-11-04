@@ -157,6 +157,41 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     logisticsFeePaidEth = feeVal > 0 ? feeVal.toFixed(3) : '0.000';
   }
 
+  // Tinh tong so ETH Khach hang da thanh toan mua san pham cua Dai ly ban hang nay
+  let retailerCustomerSalesEth = '0.0000';
+  if (cleanAccountStr) {
+    try {
+      const cleanAccount = safeGetAddress(cleanAccountStr).toLowerCase();
+      let totalSalesWei = 0n;
+
+      if (typeof window !== 'undefined') {
+        const savedOrders = localStorage.getItem('huelegend_customer_orders_v1');
+        if (savedOrders) {
+          const orders = JSON.parse(savedOrders);
+          if (Array.isArray(orders)) {
+            orders.forEach((ord: any) => {
+              if (!ord) return;
+              const ordRetailer = ord.retailerAddress ? safeGetAddress(ord.retailerAddress).toLowerCase() : '';
+              if (!ordRetailer || ordRetailer === cleanAccount || userRole === 'RETAILER' || userRole === 'COMMERCE') {
+                const ethVal = ord.finalTotalEth || ord.totalEth;
+                if (ethVal && !isNaN(parseFloat(ethVal))) {
+                  totalSalesWei += ethers.parseEther(parseFloat(ethVal).toFixed(6));
+                }
+              }
+            });
+          }
+        }
+      }
+
+      const formatted = ethers.formatEther(totalSalesWei);
+      if (parseFloat(formatted) > 0) {
+        retailerCustomerSalesEth = parseFloat(formatted).toFixed(4);
+      }
+    } catch (e) {
+      console.warn('Loi tinh so du khach hang mua san pham:', e);
+    }
+  }
+
   // Doc so du ETH thuc te trong vi khach hang (Customer wallet balance)
   const [customerWalletBalanceEth, setCustomerWalletBalanceEth] = React.useState<string>('0.0000');
 
@@ -208,9 +243,9 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleSubtext = 'Chỉ tăng 0.002 ETH/lần khi ví Quản trị viên thực hiện giao dịch trả phí vận chuyển (chưa trả phí = 0)';
     roleBalance = logisticsFeePaidEth;
   } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
-    roleLabel = 'Đại Lý Thương Mại';
-    roleSubtext = 'Tích lũy giao dịch niêm yết & nhập kho';
-    roleBalance = contractBalanceEth;
+    roleLabel = 'Đại Lý Phân Phối';
+    roleSubtext = 'Tổng số ETH Khách hàng đã thanh toán mua sản phẩm đặc sản OCOP On-Chain';
+    roleBalance = retailerCustomerSalesEth;
   } else if (userRole === 'ADMIN') {
     roleLabel = 'Quản Trị Viên (Admin)';
     roleSubtext = 'Tổng phí tích lũy Treasury Smart Contract';
@@ -230,6 +265,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ THẨM ĐỊNH';
   } else if (userRole === 'LOGISTICS') {
     balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ VẬN CHUYỂN';
+  } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
+    balanceBoxTitle = 'SỐ DƯ ETH KHÁCH HÀNG MUA SẢN PHẨM TRONG SMART CONTRACT';
   }
 
   return (
@@ -317,31 +354,29 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
             <p className="text-[10px] text-emerald-700 font-medium">Đã xác thực</p>
           </div>
 
-          {/* Accumulated ETH Balance in Smart Contract (Categorized by Role - Hidden for Retailer role) */}
-          {!(userRole === 'RETAILER' || userRole === 'COMMERCE') && (
-            <div className="col-span-2 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/90 space-y-2 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
-                    {balanceBoxTitle}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
-                  {roleLabel}
+          {/* Accumulated ETH Balance in Smart Contract (Categorized by Role) */}
+          <div className="col-span-2 bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200/90 space-y-2 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Coins className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-black text-[#264939] uppercase tracking-wider">
+                  {balanceBoxTitle}
                 </span>
               </div>
+              <span className="text-[10px] font-bold bg-white text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs shrink-0">
+                {roleLabel}
+              </span>
+            </div>
 
-              <div className="flex items-baseline justify-between pt-1 border-t border-emerald-200/60">
-                <div className="text-xs text-[#5E7166] font-medium">
-                  {roleSubtext}
-                </div>
-                <div className="text-base font-mono font-black text-[#264939]">
-                  {roleBalance} ETH
-                </div>
+            <div className="flex items-baseline justify-between pt-1 border-t border-emerald-200/60">
+              <div className="text-xs text-[#5E7166] font-medium">
+                {roleSubtext}
+              </div>
+              <div className="text-base font-mono font-black text-[#264939]">
+                {roleBalance} ETH
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Action: Disconnect Button */}
