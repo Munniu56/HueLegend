@@ -68,46 +68,83 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with Imperial Hue Motif */}
-      <div className="relative bg-gradient-to-r from-[#264939] via-[#1c372b] to-[#12251c] text-white rounded-3xl p-5 sm:p-8 shadow-xl overflow-hidden border border-[#CCD8CF]/20">
+      {/* Top Banner voi phong cach Hoang Gia Co Do Hue & Glassmorphism */}
+      <div className="relative bg-gradient-to-br from-[#1b382b] via-[#12281e] to-[#0a1811] text-white rounded-3xl p-6 sm:p-9 shadow-2xl overflow-hidden border border-[#D4AF37]/30 group">
+        {/* Hieu ung vang phat sang ambient background */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        {/* Anh nen Hue Landscape voi lop phu gradient */}
         <img
           src="/assets/hue_landscape_banner.png"
           alt="Huế Landscape"
-          className="absolute right-0 top-0 bottom-0 w-1/2 object-cover opacity-20 pointer-events-none mix-blend-overlay"
+          className="absolute right-0 top-0 bottom-0 w-full sm:w-2/3 object-cover opacity-20 pointer-events-none mix-blend-luminosity group-hover:scale-105 transition-transform duration-700 ease-out"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0a1811] via-[#12281e]/90 to-transparent pointer-events-none"></div>
 
-        <div className="relative z-10 max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C29B38]/20 text-[#C29B38] text-[11px] sm:text-xs font-sans font-bold border border-[#C29B38]/30">
-            <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span className="tracking-wide">QUẢN TRỊ & TRUY XUẤT NGUỒN GỐC ĐẶC SẢN CỐ ĐÔ</span>
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+          <div className="max-w-2xl space-y-4">
+            {/* Tag Badge Glassmorphism */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D4AF37]/15 text-[#E5B842] text-[11px] sm:text-xs font-sans font-extrabold border border-[#D4AF37]/40 shadow-sm backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#E5B842] animate-pulse" />
+              <span className="tracking-wider uppercase">QUẢN TRỊ & TRUY XUẤT NGUỒN GỐC ĐẶC SẢN CỐ ĐÔ</span>
+            </div>
+
+            {/* Tieu de chinh */}
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-black tracking-tight leading-tight text-white drop-shadow-md">
+              Hệ Thống Truy Xuất Nguồn Gốc <span className="bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#E5B842] bg-clip-text text-transparent">Đặc Sản Huế</span>
+            </h1>
+
+            {/* Mo ta ngan */}
+            <p className="text-emerald-100/90 text-xs sm:text-sm font-sans leading-relaxed max-w-xl">
+              Số hóa minh bạch 100% từng chặng chăn nuôi, chế biến, vận chuyển kho lạnh và phân phối OCOP trên nền tảng <span className="font-bold text-amber-300 underline decoration-amber-400/50 underline-offset-4">Ethereum Sepolia Testnet</span>.
+            </p>
+
+            {/* Cac nut hanh dong */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => onNavigateTab('create-batch')}
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#C29B38] to-[#A37F28] text-white font-sans font-extrabold text-xs hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 border border-amber-300/30"
+              >
+                <span>+ Tạo Lô Hàng Mới On-Chain</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button
+                onClick={() => onNavigateTab('lookup')}
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-sans font-extrabold text-xs backdrop-blur-md transition-all duration-200 border border-white/25 hover:border-amber-300/50 shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <QrCode className="w-4 h-4 text-amber-300" />
+                <span>Tra Cứu / Quét Mã QR</span>
+              </button>
+            </div>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-extrabold tracking-tight leading-tight text-white">
-            Hệ Thống Truy Xuất Nguồn Gốc Đặc Sản Huế
-          </h1>
+          {/* Khoi Widget ben phai hien thi thong tin OCOP & Sepolia */}
+          <div className="hidden lg:flex flex-col gap-3 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-amber-400/20 shadow-xl shrink-0 min-w-[240px]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <div className="text-[11px] font-sans font-bold text-amber-200">Sepolia Smart Contract</div>
+                <div className="text-[10px] font-sans text-emerald-200/80">Xác minh tự động 100%</div>
+              </div>
+            </div>
 
-          <p className="text-emerald-100/90 text-sm font-sans leading-relaxed">
-            Số hóa minh bạch 100% từng chặng chăn nuôi, chế biến, vận chuyển kho lạnh và phân phối OCOP trên Ethereum Sepolia Testnet.
-          </p>
+            <div className="h-px bg-white/10 w-full"></div>
 
-          <div className="pt-2 flex flex-wrap gap-3">
-            <button
-              onClick={() => onNavigateTab('create-batch')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C29B38] text-white font-sans font-bold text-xs hover:bg-[#8C6D1F] transition-all shadow-md"
-            >
-              <span>+ Tạo Lô Hàng Mới On-Chain</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onNavigateTab('lookup')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 text-white font-sans font-bold text-xs hover:bg-white/20 transition-all border border-white/20"
-            >
-              <QrCode className="w-4 h-4" />
-              <span>Tra Cứu / Quét Mã QR</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+                <Package className="w-5 h-5 text-emerald-300" />
+              </div>
+              <div>
+                <div className="text-[11px] font-sans font-bold text-emerald-100">Chuẩn OCOP 3 - 5 Sao</div>
+                <div className="text-[10px] font-sans text-emerald-200/80">Cố đô Thừa Thiên Huế</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
