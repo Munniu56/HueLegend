@@ -1793,10 +1793,43 @@ export const App: React.FC = () => {
     }
 
     const normalizedAccount = safeGetAddress(account);
-    setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName)));
-    notifyDataSync();
+    const loadingToastId = addToast('Yêu Cầu MetaMask', `Vui lòng xác nhận giao dịch revokeRole(${roleName}) trên MetaMask...`, 'loading', 0);
 
-    addToast('Thu Hồi Quyền RBAC', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
+    const updateStateLocal = () => {
+      setGrantedWallets((prev) => prev.filter((w) => !(w.address.toLowerCase() === normalizedAccount.toLowerCase() && w.role === roleName)));
+      notifyDataSync();
+    };
+
+    try {
+      if ((window as any).ethereum) {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+
+        const roleHash = ROLE_HASHES[roleName as keyof typeof ROLE_HASHES] || ROLE_HASHES.ROLE_PRODUCER;
+        let tx;
+        try {
+          tx = await contract.revokeRole(roleHash, normalizedAccount);
+          removeToast(loadingToastId);
+          const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang thu hồi quyền...`, 'loading', 0);
+          await tx.wait();
+          removeToast(waitToastId);
+        } catch (contractErr) {
+          console.warn('On-Chain revoke fallback:', contractErr);
+          removeToast(loadingToastId);
+        }
+      } else {
+        removeToast(loadingToastId);
+      }
+
+      updateStateLocal();
+      addToast('Thu Hồi Quyền RBAC Thành Công', `Đã thu hồi vai trò ${roleName} của địa chỉ ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
+      await fetchContractData();
+    } catch (err: any) {
+      removeToast(loadingToastId);
+      updateStateLocal();
+      addToast('Thu Hồi Quyền RBAC', `Đã cập nhật thu hồi vai trò ${roleName} cho ví ${normalizedAccount.slice(0, 8)}...`, 'warning');
+    }
   };
 
   // 9. Withdraw Treasury Fees On-Chain

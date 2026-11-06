@@ -439,8 +439,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                         <td className="py-3 px-3 text-right">
                           <button
                             onClick={() => handleRevokeWallet(wallet.address, wallet.role)}
-                            disabled={isSubmitting || !isAdminRole || wallet.role === 'ROLE_ADMIN'}
-                            className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-[11px] font-bold transition-all disabled:opacity-40 inline-flex items-center gap-1"
+                            disabled={isSubmitting || !isAdminRole}
+                            className="px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-[11px] font-bold transition-all disabled:opacity-40 inline-flex items-center gap-1 cursor-pointer"
+                            title="Thu hồi quyền vai trò RBAC này"
                           >
                             <UserMinus className="w-3 h-3" />
                             <span>Thu Hồi</span>
