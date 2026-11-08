@@ -1778,7 +1778,8 @@ export const App: React.FC = () => {
       ROLE_ADMIN: 'Quản Trị Viên',
       ROLE_PRODUCER: 'Chủ Cơ Sở Sản Xuất',
       ROLE_RETAILER: 'Đại Lý Phân Phối',
-      ROLE_INSPECTOR: 'Kiểm Định Viên OCOP'
+      ROLE_INSPECTOR: 'Kiểm Định Viên OCOP',
+      ROLE_LOGISTICS: 'Đơn Vị Vận Chuyển'
     };
 
     const newGrantedWallet: GrantedWallet = {
