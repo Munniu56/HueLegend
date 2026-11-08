@@ -74,7 +74,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   onPaySingleLogisticsFee,
 }) => {
   const [accountAddress, setAccountAddress] = useState('');
-  const [roleSelect, setRoleSelect] = useState('ROLE_PRODUCER');
+  const [roleSelect, setRoleSelect] = useState('ROLE_LOGISTICS');
   const [newFee, setNewFee] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchRoleQuery, setSearchRoleQuery] = useState('');
@@ -344,9 +344,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                     onChange={(e) => setRoleSelect(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-[#E6E1D7] text-xs font-bold focus:outline-none focus:border-[#264939]"
                   >
-                    <option value="ROLE_PRODUCER">ROLE_PRODUCER (Chủ Cơ Sở Sản Xuất)</option>
                     <option value="ROLE_LOGISTICS">ROLE_LOGISTICS (Đơn Vị Vận Chuyển / Logistics)</option>
-                    <option value="ROLE_RETAILER">ROLE_RETAILER (Đại Lý Phân Phối / Retailer)</option>
                     <option value="ROLE_INSPECTOR">ROLE_INSPECTOR (Kiểm Định Viên OCOP)</option>
                     <option value="ROLE_ADMIN">ROLE_ADMIN (Quản Trị Viên Hệ Thống)</option>
                   </select>
