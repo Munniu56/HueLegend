@@ -264,14 +264,23 @@ export const App: React.FC = () => {
             isLogistics = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_LOGISTICS);
           } catch (e) {}
 
-          const isSpecifiedAdmin = Boolean(
-            normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase()
+          const isGrantedAdminInList = grantedWallets.some(
+            (w) =>
+              w.address.toLowerCase() === normalizedActiveAccount.toLowerCase() &&
+              (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
           );
 
-          setIsCurrentAccountAdmin(isSpecifiedAdmin);
+          const isEffectiveAdmin = Boolean(
+            isOwner ||
+            isAdmin ||
+            isGrantedAdminInList ||
+            (normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase())
+          );
+
+          setIsCurrentAccountAdmin(isEffectiveAdmin);
           setIsCurrentAccountRetailer(true);
-          setIsCurrentAccountInspector(isOwner || isAdmin || isInspector || isSpecifiedAdmin || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
-          setIsCurrentAccountLogistics(isOwner || isAdmin || isLogistics || isSpecifiedAdmin || simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
+          setIsCurrentAccountInspector(isOwner || isEffectiveAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
+          setIsCurrentAccountLogistics(isOwner || isEffectiveAdmin || isLogistics || simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
         } catch (roleErr) {
           console.warn('Khong the kiem tra vai tro on-chain:', roleErr);
         }
@@ -828,14 +837,30 @@ export const App: React.FC = () => {
           setCurrentAccount(connectedAddr);
           setIsDemoMode(false);
 
+          const currentGrantedWallets = grantedWallets;
+
           const isDefaultAdmin = connectedAddr.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase();
+          const isGrantedAdminInList = currentGrantedWallets.some(
+            (w) =>
+              w.address.toLowerCase() === connectedAddr.toLowerCase() &&
+              (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+          );
+
+          let isOnChainAdmin = false;
+          try {
+            const provider = new ethers.BrowserProvider((window as any).ethereum);
+            const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, provider);
+            isOnChainAdmin = await contract.hasRole(safeGetAddress(connectedAddr), ROLE_HASHES.ROLE_ADMIN);
+          } catch (e) {}
+
+          const isAdminAuthorized = isDefaultAdmin || isGrantedAdminInList || isOnChainAdmin;
 
           let activeRole = targetRole || simulatedRole;
 
-          if (activeRole === 'ADMIN' && !isDefaultAdmin) {
+          if (activeRole === 'ADMIN' && !isAdminAuthorized) {
             addToast(
               'Từ Chối Quyền Quản Trị Viên',
-              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} không phải ví Admin mặc định (${DEFAULT_ADMIN_ADDRESS.slice(0, 6)}...${DEFAULT_ADMIN_ADDRESS.slice(-4)}). Đã chuyển về vai trò Khách Hàng.`,
+              `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} chưa được cấp quyền Quản Trị Viên (ROLE_ADMIN) trong danh sách RBAC. Đã chuyển về vai trò Khách Hàng.`,
               'warning',
               7000
             );
@@ -843,14 +868,13 @@ export const App: React.FC = () => {
             if (activeTab === 'admin') {
               setActiveTab('overview');
             }
+          } else if (isAdminAuthorized && (!targetRole || targetRole === 'ADMIN')) {
+            activeRole = 'ADMIN';
           }
-
-          // Lay danh sach vi da duoc cap quyen RBAC tu state
-          const currentGrantedWallets = grantedWallets;
 
           // Kiem tra quyen Kiem Dinh Vien (INSPECTOR) & Don Vi Van Chuyen (LOGISTICS)
           const isInspectorAuthorized =
-            isDefaultAdmin ||
+            isAdminAuthorized ||
             currentGrantedWallets.some(
               (w) =>
                 w.address.toLowerCase() === connectedAddr.toLowerCase() &&
@@ -871,7 +895,7 @@ export const App: React.FC = () => {
           }
 
           const isLogisticsAuthorized =
-            isDefaultAdmin ||
+            isAdminAuthorized ||
             currentGrantedWallets.some(
               (w) =>
                 w.address.toLowerCase() === connectedAddr.toLowerCase() &&
@@ -892,9 +916,10 @@ export const App: React.FC = () => {
           }
 
           setSimulatedRole(activeRole);
-          setIsCurrentAccountAdmin(isDefaultAdmin);
+          setIsCurrentAccountAdmin(isAdminAuthorized);
           setIsCurrentAccountRetailer(activeRole === 'RETAILER' || activeRole === 'ALL');
-          setIsCurrentAccountLogistics(isDefaultAdmin || isLogisticsAuthorized || activeRole === 'LOGISTICS' || activeRole === 'ALL');
+          setIsCurrentAccountInspector(isAdminAuthorized || isInspectorAuthorized || activeRole === 'INSPECTOR' || activeRole === 'ALL');
+          setIsCurrentAccountLogistics(isAdminAuthorized || isLogisticsAuthorized || activeRole === 'LOGISTICS' || activeRole === 'ALL');
 
           addToast('Đăng Nhập Thành Công', `Đã xác nhận ví Sepolia: ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)}`, 'success');
           await fetchContractData(connectedAddr);

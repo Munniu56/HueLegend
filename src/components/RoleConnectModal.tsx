@@ -26,7 +26,7 @@ export const RoleConnectModal: React.FC<RoleConnectModalProps> = ({
       id: 'ADMIN',
       icon: '👑',
       title: 'Quản Trị Hệ Thống',
-      description: `Dành riêng cho Ví Admin (${DEFAULT_ADMIN_ADDRESS.slice(0, 6)}...${DEFAULT_ADMIN_ADDRESS.slice(-4)})`,
+      description: 'Phần quyền RBAC, quản lý phí & rút quỹ Treasury dành cho Ví Admin',
       badge: 'ROLE_ADMIN',
       badgeColor: 'bg-amber-100 text-amber-900 border-amber-300'
     },
