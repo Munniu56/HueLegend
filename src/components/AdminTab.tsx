@@ -251,7 +251,11 @@ export const AdminTab: React.FC<AdminTabProps> = ({
   let allocatedSubtext = 'Vui lòng đăng nhập ví để xem số dư tích lũy thật theo vai trò.';
 
   if (currentAccount) {
-    if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
+    if (isAdminRole || userRole === 'ADMIN') {
+      allocatedRoleLabel = 'Quản Trị Viên (Admin)';
+      allocatedSubtext = 'Tổng số dư ETH tích lũy Quỹ Treasury Smart Contract';
+      allocatedBalanceDisplay = contractBalanceEth || '0.00';
+    } else if (userRole === 'PRODUCER' || userRole === 'SUPPLY_CHAIN') {
       allocatedRoleLabel = 'Chủ Cơ Sở Sản Xuất';
       allocatedSubtext = 'Số dư ETH ký quỹ sản xuất & đảm bảo chất lượng OCOP';
       allocatedBalanceDisplay = producerStakeBalance && producerStakeBalance !== '0.00' ? producerStakeBalance : '0.000';
@@ -262,10 +266,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
     } else if (userRole === 'RETAILER' || userRole === 'COMMERCE') {
       allocatedRoleLabel = 'Đại Lý Phân Phối';
       allocatedSubtext = 'Số dư ETH tích lũy niêm yết thương mại';
-      allocatedBalanceDisplay = contractBalanceEth || '0.00';
-    } else if (userRole === 'ADMIN') {
-      allocatedRoleLabel = 'Quản Trị Viên (Admin)';
-      allocatedSubtext = 'Tổng số dư ETH tích lũy Quỹ Treasury Smart Contract';
       allocatedBalanceDisplay = contractBalanceEth || '0.00';
     } else {
       allocatedRoleLabel = 'Khách Hàng';

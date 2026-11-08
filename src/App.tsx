@@ -264,11 +264,25 @@ export const App: React.FC = () => {
             isLogistics = await contract.hasRole(normalizedActiveAccount, ROLE_HASHES.ROLE_LOGISTICS);
           } catch (e) {}
 
-          const isGrantedAdminInList = grantedWallets.some(
+          let isGrantedAdminInList = grantedWallets.some(
             (w) =>
               w.address.toLowerCase() === normalizedActiveAccount.toLowerCase() &&
               (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
           );
+
+          if (!isGrantedAdminInList) {
+            try {
+              const saved = localStorage.getItem('huelegend_local_wallets_v2');
+              if (saved) {
+                const parsed: GrantedWallet[] = JSON.parse(saved);
+                isGrantedAdminInList = parsed.some(
+                  (w) =>
+                    w.address.toLowerCase() === normalizedActiveAccount.toLowerCase() &&
+                    (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+                );
+              }
+            } catch (e) {}
+          }
 
           const isEffectiveAdmin = Boolean(
             isOwner ||
@@ -281,6 +295,10 @@ export const App: React.FC = () => {
           setIsCurrentAccountRetailer(true);
           setIsCurrentAccountInspector(isOwner || isEffectiveAdmin || isInspector || simulatedRole === 'INSPECTOR' || simulatedRole === 'ALL');
           setIsCurrentAccountLogistics(isOwner || isEffectiveAdmin || isLogistics || simulatedRole === 'LOGISTICS' || simulatedRole === 'ALL');
+
+          if (isEffectiveAdmin && simulatedRole !== 'ALL' && simulatedRole !== 'ADMIN') {
+            setSimulatedRole('ADMIN');
+          }
         } catch (roleErr) {
           console.warn('Khong the kiem tra vai tro on-chain:', roleErr);
         }
@@ -2377,14 +2395,14 @@ export const App: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#F4F1EA]/30 backdrop-blur-[1px] bg-cover bg-fixed bg-center text-[#1A2820]">
       {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} userRole={simulatedRole} currentAccount={currentAccount} onTabChange={(tab) => handleNavigateTab(tab)} />
+      <Sidebar activeTab={activeTab} userRole={isCurrentAccountAdmin ? 'ADMIN' : simulatedRole} currentAccount={currentAccount} onTabChange={(tab) => handleNavigateTab(tab)} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           currentAccount={currentAccount}
           isDemoMode={isDemoMode}
-          simulatedRole={simulatedRole}
+          simulatedRole={isCurrentAccountAdmin ? 'ADMIN' : simulatedRole}
           onConnectWallet={handleOpenRoleConnectModal}
           onToggleDemoMode={() => {
             setIsDemoMode(!isDemoMode);
@@ -2429,7 +2447,7 @@ export const App: React.FC = () => {
             <CreateBatchTab
               batchCreationFeeEth={batchCreationFeeEth}
               producerStakeBalance={producerStakeBalance}
-              isProducerRole={simulatedRole === 'ALL' || simulatedRole === 'PRODUCER'}
+              isProducerRole={isCurrentAccountAdmin || simulatedRole === 'ALL' || simulatedRole === 'PRODUCER' || simulatedRole === 'ADMIN'}
               currentAccount={currentAccount}
               onConnectWallet={handleOpenRoleConnectModal}
               onCreateBatch={handleCreateBatch}
@@ -2511,7 +2529,7 @@ export const App: React.FC = () => {
       {/* Mobile Sticky Navigation & Full Drawer */}
       <MobileNav
         activeTab={activeTab}
-        userRole={simulatedRole}
+        userRole={isCurrentAccountAdmin ? 'ADMIN' : simulatedRole}
         onTabChange={(tab) => handleNavigateTab(tab)}
         isOpenMobileMenu={isOpenMobileMenu}
         onToggleMobileMenu={() => setIsOpenMobileMenu(!isOpenMobileMenu)}
@@ -2537,8 +2555,9 @@ export const App: React.FC = () => {
           isOpen={isWalletDetailsModalOpen}
           onClose={() => setIsWalletDetailsModalOpen(false)}
           account={currentAccount || ''}
-          userRole={simulatedRole}
+          userRole={isCurrentAccountAdmin ? 'ADMIN' : simulatedRole}
           roleTitle={
+            isCurrentAccountAdmin ? 'Quản Trị Viên (Admin)' :
             simulatedRole === 'ADMIN' ? 'Quản Trị Viên (Admin)' :
             simulatedRole === 'PRODUCER' ? 'Cơ Sở Sản Xuất' :
             simulatedRole === 'RETAILER' ? 'Đại Lý Phân Phối' :
