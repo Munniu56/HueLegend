@@ -154,6 +154,44 @@ export const App: React.FC = () => {
   const [isCurrentAccountRetailer, setIsCurrentAccountRetailer] = useState(true);
   const [isCurrentAccountInspector, setIsCurrentAccountInspector] = useState(true);
   const [isCurrentAccountLogistics, setIsCurrentAccountLogistics] = useState(true);
+
+  // Auto-enforce Admin role persistence for any granted Admin wallet
+  useEffect(() => {
+    if (currentAccount) {
+      const cleanAddr = safeGetAddress(currentAccount).toLowerCase();
+      const isDefault = cleanAddr === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase();
+
+      let isGranted = grantedWallets.some(
+        (w) =>
+          w.address.toLowerCase() === cleanAddr &&
+          (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+      );
+
+      if (!isGranted) {
+        try {
+          const saved = localStorage.getItem('huelegend_local_wallets_v2');
+          if (saved) {
+            const parsed: GrantedWallet[] = JSON.parse(saved);
+            isGranted = parsed.some(
+              (w) =>
+                w.address.toLowerCase() === cleanAddr &&
+                (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+            );
+          }
+        } catch (e) {}
+      }
+
+      if (isDefault || isGranted) {
+        setIsCurrentAccountAdmin(true);
+        setIsCurrentAccountRetailer(true);
+        setIsCurrentAccountInspector(true);
+        setIsCurrentAccountLogistics(true);
+        if (simulatedRole !== 'ADMIN') {
+          setSimulatedRole('ADMIN');
+        }
+      }
+    }
+  }, [currentAccount, grantedWallets, simulatedRole]);
   const [producerStakeBalance, setProducerStakeBalance] = useState('0.00');
   const [batchCreationFeeEth, setBatchCreationFeeEth] = useState('0.001');
   const [contractBalanceEth, setContractBalanceEth] = useState('0.00');
@@ -875,7 +913,9 @@ export const App: React.FC = () => {
 
           let activeRole = targetRole || simulatedRole;
 
-          if (activeRole === 'ADMIN' && !isAdminAuthorized) {
+          if (isAdminAuthorized) {
+            activeRole = 'ADMIN';
+          } else if (activeRole === 'ADMIN' && !isAdminAuthorized) {
             addToast(
               'Từ Chối Quyền Quản Trị Viên',
               `Ví ${connectedAddr.slice(0, 6)}...${connectedAddr.slice(-4)} chưa được cấp quyền Quản Trị Viên (ROLE_ADMIN) trong danh sách RBAC. Đã chuyển về vai trò Khách Hàng.`,
@@ -886,8 +926,6 @@ export const App: React.FC = () => {
             if (activeTab === 'admin') {
               setActiveTab('overview');
             }
-          } else if (isAdminAuthorized && (!targetRole || targetRole === 'ADMIN')) {
-            activeRole = 'ADMIN';
           }
 
           // Kiem tra quyen Kiem Dinh Vien (INSPECTOR) & Don Vi Van Chuyen (LOGISTICS)
