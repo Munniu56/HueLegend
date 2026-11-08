@@ -8,6 +8,7 @@ import {
   ROLE_HASHES,
   ETHERSCAN_BASE_URL,
   DEFAULT_ADMIN_ADDRESS,
+  isDefaultAdminAddress,
   safeGetAddress,
   RPC_URL
 } from './constants';
@@ -65,13 +66,42 @@ export const App: React.FC = () => {
   });
 
   const [grantedWallets, setGrantedWallets] = useState<GrantedWallet[]>(() => {
+    const defaultAdminWallets: GrantedWallet[] = [
+      {
+        address: safeGetAddress('0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5'),
+        role: 'ROLE_ADMIN',
+        roleTitle: 'Quản Trị Viên',
+        grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        status: 'Active'
+      },
+      {
+        address: safeGetAddress('0x2e4216e1BCA81d308b25adaD6ef5Ea92E2e42F8c'),
+        role: 'ROLE_ADMIN',
+        roleTitle: 'Quản Trị Viên',
+        grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        status: 'Active'
+      }
+    ];
+
     try {
       if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('huelegend_local_wallets_v2');
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const parsed: GrantedWallet[] = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const merged = [...parsed];
+            defaultAdminWallets.forEach((def) => {
+              if (!merged.some((w) => w.address.toLowerCase() === def.address.toLowerCase())) {
+                merged.unshift(def);
+              }
+            });
+            return merged;
+          }
+        }
       }
     } catch (e) {}
-    return [];
+
+    return defaultAdminWallets;
   });
 
   // Luu thay doi cua batches va grantedWallets vao LocalStorage lam ban sao du phong
@@ -159,7 +189,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (currentAccount) {
       const cleanAddr = safeGetAddress(currentAccount).toLowerCase();
-      const isDefault = cleanAddr === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase();
+      const isDefault = isDefaultAdminAddress(currentAccount);
 
       let isGranted = grantedWallets.some(
         (w) =>
@@ -326,7 +356,7 @@ export const App: React.FC = () => {
             isOwner ||
             isAdmin ||
             isGrantedAdminInList ||
-            (normalizedActiveAccount && normalizedActiveAccount.toLowerCase() === safeGetAddress(DEFAULT_ADMIN_ADDRESS).toLowerCase())
+            isDefaultAdminAddress(normalizedActiveAccount)
           );
 
           setIsCurrentAccountAdmin(isEffectiveAdmin);
@@ -895,7 +925,7 @@ export const App: React.FC = () => {
 
           const currentGrantedWallets = grantedWallets;
 
-          const isDefaultAdmin = connectedAddr.toLowerCase() === DEFAULT_ADMIN_ADDRESS.toLowerCase();
+          const isDefaultAdmin = isDefaultAdminAddress(connectedAddr);
           const isGrantedAdminInList = currentGrantedWallets.some(
             (w) =>
               w.address.toLowerCase() === connectedAddr.toLowerCase() &&

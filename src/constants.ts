@@ -21,8 +21,18 @@ export const SEPOLIA_CHAIN_ID = "0xaa36a7"; // 11155111
 export const SEPOLIA_DECIMAL_ID = 11155111;
 export const ETHERSCAN_BASE_URL = "https://sepolia.etherscan.io";
 
-// Vi quan tri vien mac dinh
-export const DEFAULT_ADMIN_ADDRESS = safeGetAddress("0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5");
+// Vi quan tri vien mac dinh he thong
+export const DEFAULT_ADMIN_ADDRESSES = [
+  safeGetAddress("0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5"),
+  safeGetAddress("0x2e4216e1BCA81d308b25adaD6ef5Ea92E2e42F8c")
+];
+export const DEFAULT_ADMIN_ADDRESS = DEFAULT_ADMIN_ADDRESSES[0];
+
+export const isDefaultAdminAddress = (address: string | null | undefined): boolean => {
+  if (!address || typeof address !== 'string') return false;
+  const clean = safeGetAddress(address).toLowerCase();
+  return DEFAULT_ADMIN_ADDRESSES.some((adm) => safeGetAddress(adm).toLowerCase() === clean);
+};
 
 export const ROLE_HASHES = {
   ROLE_ADMIN: "0xdf8b4c520ffe197c5343c6f5aec59570151ef9a492f2c624fd45ddde6135ec42",
