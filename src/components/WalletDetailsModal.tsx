@@ -248,8 +248,8 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
     roleBalance = retailerCustomerSalesEth;
   } else if (userRole === 'ADMIN') {
     roleLabel = 'Quản Trị Viên (Admin)';
-    roleSubtext = 'Tổng phí tích lũy Treasury Smart Contract';
-    roleBalance = contractBalanceEth;
+    roleSubtext = 'Tổng số dư ví';
+    roleBalance = customerWalletBalanceEth !== '0.0000' ? customerWalletBalanceEth : contractBalanceEth;
   } else if (userRole === 'CUSTOMER') {
     roleLabel = 'Khách Hàng';
     roleSubtext = 'Số dư ETH hiện có trong ví kết nối (Tự động cập nhật sau khi mua sản phẩm)';
@@ -261,7 +261,9 @@ export const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   }
 
   let balanceBoxTitle = 'SỐ DƯ ETH TÍCH LŨY TRONG SMART CONTRACT';
-  if (userRole === 'INSPECTOR') {
+  if (userRole === 'ADMIN') {
+    balanceBoxTitle = 'SỐ DƯ ETH TRONG VÍ';
+  } else if (userRole === 'INSPECTOR') {
     balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ THẨM ĐỊNH';
   } else if (userRole === 'LOGISTICS') {
     balanceBoxTitle = 'SỐ DƯ ETH QUẢN TRỊ VIÊN TRẢ PHÍ VẬN CHUYỂN';
