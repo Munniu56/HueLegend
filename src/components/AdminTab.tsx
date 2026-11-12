@@ -423,9 +423,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   </thead>
                   <tbody className="divide-y divide-[#EDE9E0]">
                     {filteredWallets.map((wallet) => {
-                      const isMasterAdmin = wallet.address.toLowerCase() === '0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5'.toLowerCase();
+                      const isTargetAdmin = wallet.role === 'ROLE_ADMIN' || wallet.role === 'ADMIN' || (wallet.roleTitle && wallet.roleTitle.toLowerCase().includes('quản trị'));
                       const isGrantedByMe = wallet.granter && currentAccount && wallet.granter.toLowerCase() === currentAccount.toLowerCase();
-                      const canRevoke = !isMasterAdmin && isGrantedByMe;
+                      const canRevoke = !isTargetAdmin && isGrantedByMe;
 
                       return (
                         <tr key={`${wallet.address}-${wallet.role}`} className="hover:bg-[#FAF9F5]/80 transition-colors">
@@ -453,7 +453,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                                   ? 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200 cursor-pointer' 
                                   : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-60'
                               }`}
-                              title={isMasterAdmin ? "Không thể thu hồi ví Admin mặc định" : !isGrantedByMe ? "Bạn chỉ có thể thu hồi ví do chính bạn cấp quyền" : "Thu hồi quyền vai trò RBAC này"}
+                              title={isTargetAdmin ? "Không thể thu hồi vai trò Quản Trị Viên" : !isGrantedByMe ? "Bạn chỉ có thể thu hồi ví do chính bạn cấp quyền" : "Thu hồi quyền vai trò RBAC này"}
                             >
                               <UserMinus className="w-3 h-3" />
                               <span>Thu Hồi</span>
