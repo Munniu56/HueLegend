@@ -81,7 +81,8 @@ contract ProjectCore is Ownable, ReentrancyGuard {
         uint256 feeToCollect = msg.sender == owner() ? 0 : batchCreationFee;
         uint256 excess = msg.value > feeToCollect ? msg.value - feeToCollect : 0;
         if (feeToCollect > 0) {
-            (bool okFund, ) = payable(ecosystemFund).call{value: feeToCollect}(""); if (!okFund) revert TransferFailed();
+            // Phi duoc giu lai trong Smart Contract Treasury de chi tra cho Kiem dinh/Van chuyen
+            // (bool okFund, ) = payable(ecosystemFund).call{value: feeToCollect}(""); if (!okFund) revert TransferFailed();
             emit BatchFeeCollected(msg.sender, batchCode, feeToCollect);
         }
         if (excess > 0) {
@@ -117,6 +118,23 @@ contract ProjectCore is Ownable, ReentrancyGuard {
         _batchCheckpoints[batchCode].push(Checkpoint(block.timestamp, msg.sender, ROLE_INSPECTOR, "Trung tam Kiem dinh OCOP Thua Thien Hue", act, ""));
         emit BatchVerificationRevoked(batchCode, msg.sender, reason, block.timestamp);
         emit CheckpointAdded(batchCode, msg.sender, ROLE_INSPECTOR, act, "Trung tam Kiem dinh OCOP Thua Thien Hue", block.timestamp);
+    }
+
+    // Ham Admin chi tra phi dich vu tu Quy Treasury trong Smart Contract
+    function payServiceFee(address payable to, uint256 amount) external onlyRole(ROLE_ADMIN) nonReentrant {
+        if (to == address(0)) revert InvalidAddress();
+        if (amount == 0) revert ZeroAmount();
+        if (address(this).balance < amount) revert NothingToWithdraw();
+        (bool ok, ) = to.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+    }
+
+    // Rut tien lai tu Quy Treasury (Sau khi da tra het phi dich vu)
+    function withdrawFees() external onlyOwner {
+        uint256 bal = address(this).balance;
+        if (bal == 0) revert NothingToWithdraw();
+        (bool ok, ) = payable(owner()).call{value: bal}("");
+        if (!ok) revert TransferFailed();
     }
 
     // Truy van du lieu doc (Khach mua quet QR)

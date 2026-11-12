@@ -97,7 +97,8 @@ export const PROJECT_CORE_ABI = [
   "function pause()",
   "function unpause()",
   "function paused() view returns (bool)",
-  "function withdrawFees()"
+  "function withdrawFees()",
+  "function payServiceFee(address to, uint256 amount)"
 ];
 
 // Zero hardcoded mock products. Live data is read directly from Sepolia Smart Contract.

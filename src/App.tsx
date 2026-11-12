@@ -2076,7 +2076,7 @@ export const App: React.FC = () => {
 
       const loadingToastId = addToast(
         'Yêu Cầu MetaMask',
-        `Vui lòng xác nhận giao dịch chuyển ${totalFeeEth} ETH phí thẩm định OCOP tới ví Kiểm định viên (${targetInspectorAddr.slice(0, 6)}...${targetInspectorAddr.slice(-4)})...`,
+        `Vui lòng xác nhận lệnh trích xuất từ Quỹ Treasury: Hệ thống sẽ chuyển ${totalFeeEth} ETH từ Smart Contract tới ví Kiểm định viên.`,
         'loading',
         0
       );
@@ -2085,15 +2085,14 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         const signer = await provider.getSigner();
+        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
         const valueWei = ethers.parseEther(totalFeeEth);
 
-        const tx = await signer.sendTransaction({
-          to: targetInspectorAddr,
-          value: valueWei
-        });
+        // Goi ham payServiceFee tren Smart Contract de lay tien tu contract balance
+        const tx = await contract.payServiceFee(targetInspectorAddr, valueWei);
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang được xử lý trên Sepolia Testnet...`, 'loading', 0);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt Smart Contract trích xuất ${totalFeeEth} ETH từ Quỹ Treasury tới Kiểm định viên...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2113,12 +2112,12 @@ export const App: React.FC = () => {
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
               location: 'Treasury Smart Contract',
-              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${targetInspectorAddr.slice(0, 6)}...)`,
+              action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${targetInspectorAddr.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
               txHash: txHash,
-              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+              conditionNote: `Đã trích xuất 0.002 ETH từ Quỹ Treasury cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
             };
             const updatedBatchObj = {
               ...updated[b.batchCode],
@@ -2134,7 +2133,7 @@ export const App: React.FC = () => {
 
       addToast(
         'Trả Phí Kiểm Định Viên Thành Công!',
-        `Đã chuyển ${totalFeeEth} ETH từ ví Quản trị viên cho Kiểm Định Viên OCOP (${unpaidBatches.length} lô hàng, Tx: ${txHash.slice(0, 10)}...).`,
+        `Đã trích xuất ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Kiểm Định Viên OCOP (${unpaidBatches.length} lô hàng, Tx: ${txHash.slice(0, 10)}...).`,
         'success'
       );
       await fetchContractData();
@@ -2184,7 +2183,7 @@ export const App: React.FC = () => {
 
       const loadingToastId = addToast(
         'Yêu Cầu MetaMask',
-        `Vui lòng xác nhận giao dịch chuyển ${totalFeeEth} ETH phí vận chuyển tới ví Đơn vị Vận chuyển (${targetLogisticsAddr.slice(0, 6)}...${targetLogisticsAddr.slice(-4)})...`,
+        `Vui lòng xác nhận lệnh trích xuất từ Quỹ Treasury: Hệ thống sẽ chuyển ${totalFeeEth} ETH từ Smart Contract tới ví Đơn vị vận chuyển.`,
         'loading',
         0
       );
@@ -2193,15 +2192,14 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         const signer = await provider.getSigner();
+        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
         const valueWei = ethers.parseEther(totalFeeEth);
 
-        const tx = await signer.sendTransaction({
-          to: targetLogisticsAddr,
-          value: valueWei
-        });
+        // Goi ham payServiceFee tren Smart Contract de lay tien tu contract balance (Treasury)
+        const tx = await contract.payServiceFee(targetLogisticsAddr, valueWei);
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang được xử lý trên Sepolia Testnet...`, 'loading', 0);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt Smart Contract trích xuất ${totalFeeEth} ETH từ Quỹ Treasury tới Đơn vị vận chuyển...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2221,12 +2219,12 @@ export const App: React.FC = () => {
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
               location: 'Treasury Smart Contract',
-              action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${targetLogisticsAddr.slice(0, 6)}...)`,
+              action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${targetLogisticsAddr.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
               txHash: txHash,
-              conditionNote: `Đã chi trả 0.002 ETH phí vận chuyển cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+              conditionNote: `Đã trích xuất 0.002 ETH phí vận chuyển từ Quỹ Treasury cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
             };
             const updatedBatchObj = {
               ...updated[b.batchCode],
@@ -2242,7 +2240,7 @@ export const App: React.FC = () => {
 
       addToast(
         'Trả Phí Vận Chuyển Thành Công!',
-        `Đã chuyển ${totalFeeEth} ETH từ ví Quản trị viên cho Đơn Vị Vận Chuyển (${unpaidLogisticsBatches.length} chặng, Tx: ${txHash.slice(0, 10)}...).`,
+        `Đã trích xuất ${totalFeeEth} ETH từ Quỹ Treasury Smart Contract cho Đơn Vị Vận Chuyển (${unpaidLogisticsBatches.length} chặng, Tx: ${txHash.slice(0, 10)}...).`,
         'success'
       );
       await fetchContractData();
@@ -2281,7 +2279,7 @@ export const App: React.FC = () => {
 
     const loadingToastId = addToast(
       'Yêu Cầu MetaMask',
-      `Vui lòng xác nhận giao dịch chuyển 0.0020 ETH phí thẩm định lô ${batchCode} tới ví Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...${cleanInspectorAddr.slice(-4)})...`,
+      `Xác nhận Lệnh Trích Quỹ: Smart Contract sẽ chuyển 0.002 ETH tới Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...).`,
       'loading',
       0
     );
@@ -2293,13 +2291,11 @@ export const App: React.FC = () => {
         const signer = await provider.getSigner();
         const valueWei = ethers.parseEther('0.002');
 
-        const tx = await signer.sendTransaction({
-          to: cleanInspectorAddr,
-          value: valueWei
-        });
+        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+        const tx = await contract.payServiceFee(cleanInspectorAddr, valueWei);
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chuyển 0.002 ETH tới ví Kiểm định viên...`, 'loading', 0);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt lệnh trích xuất 0.002 ETH từ Quỹ Treasury cho Kiểm định viên...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2319,12 +2315,12 @@ export const App: React.FC = () => {
           role: 'ROLE_ADMIN',
           roleTitle: 'Quản Trị Viên (Admin)',
           location: 'Treasury Smart Contract',
-          action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...)`,
+          action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...)`,
           timestamp: Math.floor(Date.now() / 1000),
           recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
           metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
           txHash: txHash,
-          conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+          conditionNote: `Đã trích xuất 0.002 ETH từ Quỹ Treasury cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
         };
 
         const updatedBatchObj = {
@@ -2376,7 +2372,7 @@ export const App: React.FC = () => {
 
     const loadingToastId = addToast(
       'Yêu Cầu MetaMask',
-      `Vui lòng xác nhận giao dịch chuyển 0.0020 ETH phí vận chuyển lô ${batchCode} tới ví Đơn vị Vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...${cleanLogisticsAddr.slice(-4)})...`,
+      `Xác nhận Lệnh Trích Quỹ: Smart Contract sẽ chuyển 0.002 ETH tới Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...).`,
       'loading',
       0
     );
@@ -2388,13 +2384,11 @@ export const App: React.FC = () => {
         const signer = await provider.getSigner();
         const valueWei = ethers.parseEther('0.002');
 
-        const tx = await signer.sendTransaction({
-          to: cleanLogisticsAddr,
-          value: valueWei
-        });
+        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
+        const tx = await contract.payServiceFee(cleanLogisticsAddr, valueWei);
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Giao dịch ${tx.hash.slice(0, 10)}... đang chuyển 0.002 ETH tới ví Vận chuyển...`, 'loading', 0);
+        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt lệnh trích xuất 0.002 ETH từ Quỹ Treasury cho Đơn vị vận chuyển...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2414,12 +2408,12 @@ export const App: React.FC = () => {
           role: 'ROLE_ADMIN',
           roleTitle: 'Quản Trị Viên (Admin)',
           location: 'Treasury Smart Contract',
-          action: `Ví Quản trị viên đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...)`,
+          action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...)`,
           timestamp: Math.floor(Date.now() / 1000),
           recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
           metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
           txHash: txHash,
-          conditionNote: `Đã chi trả 0.002 ETH phí vận chuyển cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+          conditionNote: `Đã trích xuất 0.002 ETH phí vận chuyển từ Quỹ Treasury cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
         };
 
         const updatedBatchObj = {
