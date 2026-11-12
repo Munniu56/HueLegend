@@ -15,7 +15,7 @@ import {
   Users,
   Search
 } from 'lucide-react';
-import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress, ROLE_HASHES } from '../constants';
+import { ETHERSCAN_BASE_URL, CONTRACT_ADDRESS, safeGetAddress, ROLE_HASHES, isDefaultAdminAddress } from '../constants';
 
 import { Batch, Checkpoint, GrantedWallet } from '../types';
 
@@ -424,7 +424,16 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   <tbody className="divide-y divide-[#EDE9E0]">
                     {filteredWallets.map((wallet) => {
                       const isTargetAdmin = wallet.role === 'ROLE_ADMIN' || wallet.role === 'ADMIN' || (wallet.roleTitle && wallet.roleTitle.toLowerCase().includes('quản trị'));
-                      const isGrantedByMe = wallet.granter && currentAccount && wallet.granter.toLowerCase() === currentAccount.toLowerCase();
+                      
+                      // Kiem tra xem nguoi dang dang nhap co phai la Master Admin khong
+                      const isMasterAdminConnecting = isDefaultAdminAddress(currentAccount);
+
+                      // Quyen thu hoi: 
+                      // 1. Neu toi la nguoi truc tiep cap quyen (wallet.granter match)
+                      // 2. Neu ví do 'He thong' cap (null granter) VA toi la Master Admin
+                      const isGrantedByMe = (wallet.granter && currentAccount && wallet.granter.toLowerCase() === currentAccount.toLowerCase()) ||
+                                            (!wallet.granter && isMasterAdminConnecting);
+                      
                       const canRevoke = !isTargetAdmin && isGrantedByMe;
 
                       return (
