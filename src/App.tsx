@@ -82,6 +82,14 @@ export const App: React.FC = () => {
         grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
         status: 'Active',
         granter: safeGetAddress('0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5')
+      },
+      {
+        address: safeGetAddress('0x40971400080bAebd27eff64031651383394693B5'),
+        role: 'ROLE_LOGISTICS',
+        roleTitle: 'Đơn Vị Vận Chuyển',
+        grantedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        status: 'Active',
+        granter: safeGetAddress('0xfe7BFa3ec478b621ecCA20DD73014Eb79B0bf5C5')
       }
     ];
 
@@ -2073,21 +2081,33 @@ export const App: React.FC = () => {
 
       unpaidBatches.forEach((b) => {
         // Tim dia chi vi Kiem dinh vien thuc te da tham dinh lo hang nay
-        const inspectorCp = b.checkpoints?.find(
+        const inspectorCp = [...(b.checkpoints || [])].reverse().find(
           (c) =>
-            c.role === 'ROLE_INSPECTOR' ||
             c.role === ROLE_HASHES.ROLE_INSPECTOR ||
-            (c.stepName && (c.stepName.toLowerCase().includes('chặng 2') || c.stepName.toLowerCase().includes('ocop')))
+            c.role === 'ROLE_INSPECTOR' ||
+            (c.roleTitle && c.roleTitle.toLowerCase().includes('kiểm định')) ||
+            (c.stepName && c.stepName.toLowerCase().includes('ocop'))
         );
+
+        // Neu nguoi ghi chang la Admin, hoac khong co recorder, thi tim vi duoc cap quyen ROLE_INSPECTOR thuc thu
+        let inspectorAddr = inspectorCp?.recorder;
+        if (!inspectorAddr || isDefaultAdminAddress(inspectorAddr)) {
+          const inspectorGrantedWallet = grantedWallets.find(
+            (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định'))
+          );
+          if (inspectorGrantedWallet) inspectorAddr = inspectorGrantedWallet.address;
+        }
         
-        const inspectorAddr = inspectorCp?.recorder || DEFAULT_ADMIN_ADDRESS;
+        // Fallback cuoi cung
+        if (!inspectorAddr) inspectorAddr = DEFAULT_ADMIN_ADDRESS;
+        
         recipients.push(safeGetAddress(inspectorAddr));
         amounts.push(feePerBatchWei);
       });
 
       const loadingToastId = addToast(
-        'Kích Hoạt Lệnh Trích Quỹ Hàng Loạt',
-        `MetaMask yêu cầu xác nhận: Trích xuất ${totalFeeEth} ETH từ Smart Contract để trả phí cho ${unpaidBatches.length} lô hàng tới các Kiểm định viên tương ứng.`,
+        'Yêu Cầu MetaMask',
+        `Vui lòng xác nhận thanh toán phí thẩm định: Hệ thống sẽ chuyển ${totalFeeEth} ETH tới các Kiểm định viên.`,
         'loading',
         0
       );
@@ -2096,22 +2116,28 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
-        // Goi ham payServiceFeesBatch tren Smart Contract
-        const tx = await contract.payServiceFeesBatch(recipients, amounts);
+        // Thuc hien cac giao dich chuyen tien truc tiep tu vi Admin
+        // De hien dung so tien va vi nhan trong MetaMask, chung ta se thuc hien tung giao dich hoac dung vong lap
+        // Luu y: MetaMask se yeu cau xac nhan tung lo hang neu chung ta loop sendTransaction
+        // Tuy nhien, de "huy giao dich 0ETH" va hien dung vi nhan, day la cach duy nhat tu EOA
+        
+        for (let i = 0; i < recipients.length; i++) {
+          const tx = await signer.sendTransaction({
+            to: recipients[i],
+            value: amounts[i]
+          });
+          if (i === 0) txHash = tx.hash; // Lay hash cua giao dich dau tien lam dai dien
+          await tx.wait();
+        }
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang xử lý thanh toán hàng loạt từ Quỹ Treasury...`, 'loading', 0);
-        await tx.wait();
-        removeToast(waitToastId);
-        txHash = tx.hash;
       } else {
         removeToast(loadingToastId);
         txHash = '0x' + Math.random().toString(16).substring(2, 42);
       }
 
-      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi vao Supabase
       setBatches((prev) => {
         const updated = { ...prev };
         unpaidBatches.forEach((b, idx) => {
@@ -2122,13 +2148,13 @@ export const App: React.FC = () => {
               stepName: 'Quản Trị Viên Trả Phí Thẩm Định',
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
-              location: 'Treasury Smart Contract',
-              action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí thẩm định OCOP cho Kiểm định viên (${targetInspector.slice(0, 6)}...)`,
+              location: 'Hệ thống Thanh toán',
+              action: `Ví Quản trị viên đã trực tiếp thanh toán 0.002 ETH phí thẩm định cho Kiểm định viên (${targetInspector.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
               txHash: txHash,
-              conditionNote: `Đã trích xuất 0.002 ETH từ Quỹ Treasury cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode}`
             };
             const updatedBatchObj = {
               ...updated[b.batchCode],
@@ -2143,8 +2169,8 @@ export const App: React.FC = () => {
       });
 
       addToast(
-        'Lệnh Trích Quỹ Thành Công!',
-        `Smart Contract (0x356550...) đã hoàn tất trích xuất ${totalFeeEth} ETH để chi trả phí thẩm định cho ${unpaidBatches.length} lô hàng.`,
+        'Thanh Toán Thành Công!',
+        `Đã hoàn tất chuyển ${totalFeeEth} ETH tới các Kiểm Định Viên OCOP. Bạn có thể kiểm tra số dư tại ví người nhận.`,
         'success'
       );
       await fetchContractData();
@@ -2191,22 +2217,40 @@ export const App: React.FC = () => {
 
       unpaidLogisticsBatches.forEach((b) => {
         // Tim dia chi vi Don vi van chuyen thuc te da ghi chang lo hang nay
-        const logisticsCp = b.checkpoints?.find(
+        const logisticsCp = [...(b.checkpoints || [])].reverse().find(
           (c) =>
+            c.role === ROLE_HASHES.ROLE_LOGISTICS ||
             c.role === 'ROLE_LOGISTICS' ||
-            c.role === 'LOGISTICS' ||
-            c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
-            (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+            (c.roleTitle && c.roleTitle.toLowerCase().includes('vận chuyển')) ||
+            (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3')))
         );
         
-        const logisticsAddr = logisticsCp?.recorder || '0x42965579aEbB215E58e379D5a8c2f1f3a5323C6b';
+        let logisticsAddr = logisticsCp?.recorder;
+
+        // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen khong
+        const isAuthorizedLogistics = grantedWallets.some(w => 
+          w.address.toLowerCase() === logisticsAddr?.toLowerCase() && 
+          (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
+        );
+        
+        // Neu nguoi ghi chang la Admin, hoac khong phai don vi van chuyen authorized, thi tim vi duoc cap quyen ROLE_LOGISTICS chinh thuc
+        if (!logisticsAddr || isDefaultAdminAddress(logisticsAddr) || !isAuthorizedLogistics) {
+          const logisticsGrantedWallet = grantedWallets.find(
+            (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
+          );
+          if (logisticsGrantedWallet) logisticsAddr = logisticsGrantedWallet.address;
+        }
+
+        // Fallback cuoi cung
+        if (!logisticsAddr) logisticsAddr = DEFAULT_ADMIN_ADDRESS;
+
         recipients.push(safeGetAddress(logisticsAddr));
         amounts.push(feePerBatchWei);
       });
 
       const loadingToastId = addToast(
-        'Kích Hoạt Lệnh Trích Quỹ Hàng Loạt',
-        `MetaMask yêu cầu xác nhận: Trích xuất ${totalFeeEth} ETH từ Smart Contract để trả phí cho ${unpaidLogisticsBatches.length} chặng tới các Đơn vị vận chuyển tương ứng.`,
+        'Yêu Cầu MetaMask',
+        `Vui lòng xác nhận thanh toán phí vận chuyển: Hệ thống sẽ chuyển ${totalFeeEth} ETH tới các Đơn vị vận chuyển.`,
         'loading',
         0
       );
@@ -2215,22 +2259,23 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined' && (window as any).ethereum) {
         const provider = new ethers.BrowserProvider((window as any).ethereum);
         const signer = await provider.getSigner();
-        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
 
-        // Goi ham payServiceFeesBatch tren Smart Contract
-        const tx = await contract.payServiceFeesBatch(recipients, amounts);
+        for (let i = 0; i < recipients.length; i++) {
+          const tx = await signer.sendTransaction({
+            to: recipients[i],
+            value: amounts[i]
+          });
+          if (i === 0) txHash = tx.hash;
+          await tx.wait();
+        }
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang xử lý thanh toán hàng loạt từ Quỹ Treasury...`, 'loading', 0);
-        await tx.wait();
-        removeToast(waitToastId);
-        txHash = tx.hash;
       } else {
         removeToast(loadingToastId);
         txHash = '0x' + Math.random().toString(16).substring(2, 42);
       }
 
-      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi vao Supabase
       setBatches((prev) => {
         const updated = { ...prev };
         unpaidLogisticsBatches.forEach((b, idx) => {
@@ -2241,13 +2286,13 @@ export const App: React.FC = () => {
               stepName: 'Quản Trị Viên Trả Phí Vận Chuyển',
               role: 'ROLE_ADMIN',
               roleTitle: 'Quản Trị Viên (Admin)',
-              location: 'Treasury Smart Contract',
-              action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí vận chuyển cho Đơn vị vận chuyển (${targetLogistics.slice(0, 6)}...)`,
+              location: 'Hệ thống Thanh toán',
+              action: `Ví Quản trị viên đã trực tiếp thanh toán 0.002 ETH phí vận chuyển cho Đơn vị vận chuyển (${targetLogistics.slice(0, 6)}...)`,
               timestamp: Math.floor(Date.now() / 1000),
               recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
               metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
               txHash: txHash,
-              conditionNote: `Đã trích xuất 0.002 ETH phí vận chuyển từ Quỹ Treasury cho lô hàng ${b.batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+              conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${b.batchCode}`
             };
             const updatedBatchObj = {
               ...updated[b.batchCode],
@@ -2262,8 +2307,8 @@ export const App: React.FC = () => {
       });
 
       addToast(
-        'Lệnh Trích Quỹ Thành Công!',
-        `Smart Contract (0x356550...) đã hoàn tất trích xuất ${totalFeeEth} ETH để chi trả phí vận chuyển cho ${unpaidLogisticsBatches.length} chặng.`,
+        'Thanh Toán Thành Công!',
+        `Đã hoàn tất chuyển ${totalFeeEth} ETH tới các Đơn vị vận chuyển.`,
         'success'
       );
       await fetchContractData();
@@ -2295,15 +2340,20 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Xac dinh dia chi vi Kiem dinh vien da ky kiem dinh lo hang nay
-    const cleanInspectorAddr = inspectorAddress && ethers.isAddress(inspectorAddress)
-      ? safeGetAddress(inspectorAddress)
-      : DEFAULT_ADMIN_ADDRESS;
+    // Xac dinh dia chi vi Kiem dinh vien thuc thu
+    let cleanInspectorAddr = inspectorAddress;
+    if (!cleanInspectorAddr || isDefaultAdminAddress(cleanInspectorAddr)) {
+      const inspectorGrantedWallet = grantedWallets.find(
+        (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định'))
+      );
+      cleanInspectorAddr = inspectorGrantedWallet?.address || DEFAULT_ADMIN_ADDRESS;
+    }
+    cleanInspectorAddr = safeGetAddress(cleanInspectorAddr);
 
     const loadingToastId = addToast(
       'Yêu Cầu MetaMask',
-      `Xác nhận Lệnh Trích Quỹ: Smart Contract sẽ chuyển 0.002 ETH tới Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...).`,
-      'loading',
+      `Xác nhận chuyển 0.002 ETH tới ví Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...).`,
+      'info',
       0
     );
 
@@ -2314,11 +2364,13 @@ export const App: React.FC = () => {
         const signer = await provider.getSigner();
         const valueWei = ethers.parseEther('0.002');
 
-        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
-        const tx = await contract.payServiceFee(cleanInspectorAddr, valueWei);
+        const tx = await signer.sendTransaction({
+          to: cleanInspectorAddr,
+          value: valueWei
+        });
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt lệnh trích xuất 0.002 ETH từ Quỹ Treasury cho Kiểm định viên...`, 'loading', 0);
+        const waitToastId = addToast('Đang Gửi ETH', `Đang thực hiện chuyển 0.002 ETH tới Kiểm định viên...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2327,7 +2379,7 @@ export const App: React.FC = () => {
         txHash = '0x' + Math.random().toString(16).substring(2, 42);
       }
 
-      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi vao Supabase
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
@@ -2337,13 +2389,13 @@ export const App: React.FC = () => {
           stepName: 'Quản Trị Viên Trả Phí Thẩm Định',
           role: 'ROLE_ADMIN',
           roleTitle: 'Quản Trị Viên (Admin)',
-          location: 'Treasury Smart Contract',
-          action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí thẩm định OCOP On-Chain cho Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...)`,
+          location: 'Hệ thống Thanh toán',
+          action: `Ví Quản trị viên đã trực tiếp thanh toán 0.002 ETH phí thẩm định cho Kiểm định viên (${cleanInspectorAddr.slice(0, 6)}...)`,
           timestamp: Math.floor(Date.now() / 1000),
           recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
           metadataURI: 'ipfs://QmHueAdminInspectorFeePayment2026',
           txHash: txHash,
-          conditionNote: `Đã trích xuất 0.002 ETH từ Quỹ Treasury cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+          conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${batchCode}`
         };
 
         const updatedBatchObj = {
@@ -2388,15 +2440,25 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Xac dinh dia chi vi Don vi Vot Chuyen da ghi chang lo hang nay
-    const cleanLogisticsAddr = logisticsAddress && ethers.isAddress(logisticsAddress)
-      ? safeGetAddress(logisticsAddress)
-      : '0x42965579aEbB215E58e379D5a8c2f1f3a5323C6b';
+    // Xac dinh dia chi vi Don vi van chuyen thuc thu
+    let cleanLogisticsAddr = logisticsAddress;
+    const isAuthorizedLogistics = grantedWallets.some(w => 
+      w.address.toLowerCase() === cleanLogisticsAddr?.toLowerCase() && 
+      (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
+    );
+
+    if (!cleanLogisticsAddr || isDefaultAdminAddress(cleanLogisticsAddr) || !isAuthorizedLogistics) {
+      const logisticsGrantedWallet = grantedWallets.find(
+        (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
+      );
+      cleanLogisticsAddr = logisticsGrantedWallet?.address || DEFAULT_ADMIN_ADDRESS;
+    }
+    cleanLogisticsAddr = safeGetAddress(cleanLogisticsAddr);
 
     const loadingToastId = addToast(
       'Yêu Cầu MetaMask',
-      `Xác nhận Lệnh Trích Quỹ: Smart Contract sẽ chuyển 0.002 ETH tới Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...).`,
-      'loading',
+      `Xác nhận chuyển 0.002 ETH tới Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...).`,
+      'info',
       0
     );
 
@@ -2407,11 +2469,13 @@ export const App: React.FC = () => {
         const signer = await provider.getSigner();
         const valueWei = ethers.parseEther('0.002');
 
-        const contract = new ethers.Contract(safeGetAddress(CONTRACT_ADDRESS), PROJECT_CORE_ABI, signer);
-        const tx = await contract.payServiceFee(cleanLogisticsAddr, valueWei);
+        const tx = await signer.sendTransaction({
+          to: cleanLogisticsAddr,
+          value: valueWei
+        });
 
         removeToast(loadingToastId);
-        const waitToastId = addToast('Đang Chờ Khối Sepolia', `Đang kích hoạt lệnh trích xuất 0.002 ETH từ Quỹ Treasury cho Đơn vị vận chuyển...`, 'loading', 0);
+        const waitToastId = addToast('Đang Gửi ETH', `Đang thực hiện chuyển 0.002 ETH tới Đơn vị vận chuyển...`, 'loading', 0);
         await tx.wait();
         removeToast(waitToastId);
         txHash = tx.hash;
@@ -2420,7 +2484,7 @@ export const App: React.FC = () => {
         txHash = '0x' + Math.random().toString(16).substring(2, 42);
       }
 
-      // Cap nhat trang thai lo hang va luu checkpoint tra phi tren Smart Contract & Supabase
+      // Cap nhat trang thai lo hang va luu checkpoint tra phi vao Supabase
       setBatches((prev) => {
         const target = prev[batchCode];
         if (!target) return prev;
@@ -2430,15 +2494,14 @@ export const App: React.FC = () => {
           stepName: 'Quản Trị Viên Trả Phí Vận Chuyển',
           role: 'ROLE_ADMIN',
           roleTitle: 'Quản Trị Viên (Admin)',
-          location: 'Treasury Smart Contract',
-          action: `Quỹ Treasury Smart Contract đã thanh toán 0.002 ETH phí vận chuyển On-Chain cho Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...)`,
+          location: 'Hệ thống Thanh toán',
+          action: `Ví Quản trị viên đã trực tiếp thanh toán 0.002 ETH phí vận chuyển cho Đơn vị vận chuyển (${cleanLogisticsAddr.slice(0, 6)}...)`,
           timestamp: Math.floor(Date.now() / 1000),
           recorder: currentAccount || DEFAULT_ADMIN_ADDRESS,
           metadataURI: 'ipfs://QmHueAdminLogisticsFeePayment2026',
           txHash: txHash,
-          conditionNote: `Đã trích xuất 0.002 ETH phí vận chuyển từ Quỹ Treasury cho lô hàng ${batchCode} qua Sepolia Tx ${txHash.slice(0, 10)}`
+          conditionNote: `Đã chi trả 0.002 ETH cho lô hàng ${batchCode}`
         };
-
         const updatedBatchObj = {
           ...target,
           adminPaidLogisticsFee: true,
@@ -2450,7 +2513,7 @@ export const App: React.FC = () => {
       });
 
       addToast(
-        'Trả Phí Vận Chuyển Thành Công!',
+        'Thanh Toán Thành Công!',
         `Đã chuyển 0.002 ETH cho Đơn Vị Vận Chuyển (${cleanLogisticsAddr.slice(0, 6)}...) cho lô hàng ${batchCode}.`,
         'success'
       );

@@ -645,16 +645,27 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   </thead>
                   <tbody className="divide-y divide-[#EDE9E0]">
                     {totalVerifiedInspectorBatches.map((b) => {
-                      const inspectorCp = b.checkpoints?.find(
+                      const inspectorCp = [...(b.checkpoints || [])].reverse().find(
                         (c) =>
-                          c.role === 'ROLE_INSPECTOR' ||
                           c.role === ROLE_HASHES.ROLE_INSPECTOR ||
-                          (c.stepName && (c.stepName.toLowerCase().includes('chặng 2') || c.stepName.toLowerCase().includes('ocop')))
+                          c.role === 'ROLE_INSPECTOR' ||
+                          (c.roleTitle && c.roleTitle.toLowerCase().includes('kiểm định')) ||
+                          (c.stepName && c.stepName.toLowerCase().includes('ocop'))
                       );
-                      const inspectorGrantedWallet = grantedWallets.find(
-                        (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR
-                      );
-                      const inspectorAddr = inspectorCp?.recorder || inspectorGrantedWallet?.address || DEFAULT_ADMIN_ADDRESS;
+                      
+                      let inspectorAddr = inspectorCp?.recorder;
+                      
+                      // Neu nguoi ghi chang la Admin, hoac khong co recorder, thi tim vi duoc cap quyen ROLE_INSPECTOR thuc thu
+                      if (!inspectorAddr || isDefaultAdminAddress(inspectorAddr)) {
+                        const inspectorGrantedWallet = grantedWallets.find(
+                          (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định'))
+                        );
+                        if (inspectorGrantedWallet) inspectorAddr = inspectorGrantedWallet.address;
+                      }
+
+                      // Fallback cuoi cung
+                      if (!inspectorAddr) inspectorAddr = DEFAULT_ADMIN_ADDRESS;
+                      
                       const isPaid = Boolean(b.adminPaidInspectorFee);
 
                       return (
@@ -751,17 +762,33 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                   </thead>
                   <tbody className="divide-y divide-[#EDE9E0]">
                     {allLogisticsBatches.map((b) => {
-                      const logisticsCp = b.checkpoints?.find(
+                      const logisticsCp = [...(b.checkpoints || [])].reverse().find(
                         (c) =>
+                          c.role === ROLE_HASHES.ROLE_LOGISTICS ||
                           c.role === 'ROLE_LOGISTICS' ||
-                          c.role === 'LOGISTICS' ||
-                          c.role === '0x32c4b0b14798e1f57ec053359d33b879c5a1a0df3bc25e62f6b8df05373a0c4f' ||
-                          (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3') || c.stepName.toLowerCase().includes('kho')))
+                          (c.roleTitle && c.roleTitle.toLowerCase().includes('vận chuyển')) ||
+                          (c.stepName && (c.stepName.toLowerCase().includes('vận chuyển') || c.stepName.toLowerCase().includes('chặng 3')))
                       );
-                      const logisticsGrantedWallet = grantedWallets.find(
-                        (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS
+                      
+                      let logisticsAddr = logisticsCp?.recorder;
+
+                      // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen khong
+                      const isAuthorizedLogistics = grantedWallets.some(w => 
+                        w.address.toLowerCase() === logisticsAddr?.toLowerCase() && 
+                        (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
                       );
-                      const logisticsAddr = logisticsCp?.recorder || logisticsGrantedWallet?.address || '0x42965579aEbB215E58e379D5a8c2f1f3a5323C6b';
+
+                      // Neu nguoi ghi chang la Admin, hoac khong phai don vi van chuyen authorized, thi tim vi duoc cap quyen ROLE_LOGISTICS chinh thuc
+                      if (!logisticsAddr || isDefaultAdminAddress(logisticsAddr) || !isAuthorizedLogistics) {
+                        const logisticsGrantedWallet = grantedWallets.find(
+                          (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
+                        );
+                        if (logisticsGrantedWallet) logisticsAddr = logisticsGrantedWallet.address;
+                      }
+
+                      // Fallback cuoi cung
+                      if (!logisticsAddr) logisticsAddr = DEFAULT_ADMIN_ADDRESS;
+
                       const isPaid = Boolean(b.adminPaidLogisticsFee);
 
                       return (
