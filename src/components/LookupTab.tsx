@@ -415,9 +415,6 @@ export const LookupTab: React.FC<LookupTabProps> = ({
             <p className="text-xs font-sans text-[#5E7166]">
               Nhập mã định danh lô hàng hoặc quét mã tem QR niêm phong để đọc nhật ký minh bạch từ Sepolia Testnet.
             </p>
-            <p className="text-[10px] text-[#264939] font-bold mt-1 bg-[#E0ECE4]/50 px-2 py-0.5 rounded-lg border border-[#CCD8CF] inline-block">
-              Mọi giao dịch và cập nhật trạng thái đều được ghi nhận minh bạch trên Smart Contract: <span className="font-mono">{CONTRACT_ADDRESS}</span>
-            </p>
           </div>
 
           {/* Tag Hien Thi Loi Blockchain Neu Co */}

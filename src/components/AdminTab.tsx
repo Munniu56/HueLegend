@@ -865,9 +865,6 @@ export const AdminTab: React.FC<AdminTabProps> = ({
               Nhật Ký Sự Kiện Giao Dịch On-Chain
             </h3>
           </div>
-          <p className="text-[11px] text-[#5E7166] mt-1 font-medium italic">
-            Mọi giao dịch thanh toán và cập nhật trạng thái đều được ghi nhận minh bạch trên Smart Contract: <span className="font-mono text-[#264939] font-bold">{CONTRACT_ADDRESS}</span>
-          </p>
           <a
             href={`${ETHERSCAN_BASE_URL}/address/${CONTRACT_ADDRESS}`}
             target="_blank"
