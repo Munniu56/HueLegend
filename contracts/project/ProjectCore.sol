@@ -31,7 +31,7 @@ contract ProjectCore is Ownable, ReentrancyGuard {
     event RoleAssigned(address indexed account, bytes32 indexed role); event RoleRevoked(address indexed account, bytes32 indexed role);
     event StakeDeposited(address indexed producer, uint256 amount, uint256 unlockTime); event StakeWithdrawn(address indexed producer, uint256 amount);
     event StakeLockDurationUpdated(uint256 oldDuration, uint256 newDuration); event BatchFeeCollected(address indexed producer, string indexed batchCode, uint256 feeAmount);
-    event ExcessFeeRefunded(address indexed producer, uint256 refundAmount); event BatchCreationFeeUpdated(uint256 oldFee, uint256 newFee); event EcosystemFundUpdated(address indexed oldFund, address indexed newFund);
+    event ExcessFeeRefunded(address indexed producer, uint256 refundAmount); event BatchCreationFeeUpdated(uint256 oldFee, uint256 newFee); event EcosystemFundUpdated(address indexed oldFund, address indexed newFund); event ServiceFeePaid(address indexed recipient, uint256 amount, string feeType, uint256 timestamp);
 
     constructor() Ownable(msg.sender) {
         _roles[msg.sender][ROLE_ADMIN] = true; _roles[msg.sender][ROLE_PRODUCER] = true; ecosystemFund = msg.sender;
@@ -120,13 +120,17 @@ contract ProjectCore is Ownable, ReentrancyGuard {
         emit CheckpointAdded(batchCode, msg.sender, ROLE_INSPECTOR, act, "Trung tam Kiem dinh OCOP Thua Thien Hue", block.timestamp);
     }
 
-    // Ham Admin chi tra phi dich vu tu Quy Treasury trong Smart Contract
-    function payServiceFee(address payable to, uint256 amount) external onlyRole(ROLE_ADMIN) nonReentrant {
-        if (to == address(0)) revert InvalidAddress();
-        if (amount == 0) revert ZeroAmount();
-        if (address(this).balance < amount) revert NothingToWithdraw();
-        (bool ok, ) = to.call{value: amount}("");
-        if (!ok) revert TransferFailed();
+    // Ham Admin chi tra phi dich vu cho nhieu nguoi cung luc tu Quy Treasury
+    function payServiceFeesBatch(address payable[] calldata to, uint256[] calldata amounts) external onlyRole(ROLE_ADMIN) nonReentrant {
+        if (to.length != amounts.length) revert("Length mismatch");
+        for (uint256 i = 0; i < to.length; i++) {
+            if (to[i] == address(0)) revert InvalidAddress();
+            if (amounts[i] == 0) continue;
+            if (address(this).balance < amounts[i]) revert NothingToWithdraw();
+            (bool ok, ) = to[i].call{value: amounts[i]}("");
+            if (!ok) revert TransferFailed();
+            emit ServiceFeePaid(to[i], amounts[i], "Batch Service Fee", block.timestamp);
+        }
     }
 
     // Rut tien lai tu Quy Treasury (Sau khi da tra het phi dich vu)
