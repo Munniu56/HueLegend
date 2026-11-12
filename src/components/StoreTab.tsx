@@ -392,6 +392,9 @@ export const StoreTab: React.FC<StoreTabProps> = ({
 
             <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed font-sans">
               Điểm bán niêm phong sản phẩm OCOP Thừa Thiên Huế. Khách hàng mua sắm trực tuyến với chứng nhận nguồn gốc Blockchain minh bạch 100%.
+              <span className="block mt-1 text-[10px] text-amber-200 font-bold">
+                Mọi giao dịch thanh toán và cập nhật trạng thái đều được ghi nhận minh bạch trên Smart Contract: 0x35655079Aebb215E58E379D5A8c2F1F3a5323C6b
+              </span>
             </p>
           </div>
 

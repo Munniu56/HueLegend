@@ -772,21 +772,32 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                       
                       let logisticsAddr = logisticsCp?.recorder;
 
-                      // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen khong
-                      const isAuthorizedLogistics = grantedWallets.some(w => 
+                      // Helper function to check if an address is an Admin (Default or Granted)
+                      const isAddrAdmin = (addr: string) => {
+                        if (!addr) return false;
+                        const clean = safeGetAddress(addr).toLowerCase();
+                        if (isDefaultAdminAddress(clean)) return true;
+                        return (grantedWallets || []).some(w => 
+                          w.address.toLowerCase() === clean && 
+                          (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+                        );
+                      };
+
+                      // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen thuc thu khong
+                      const isAuthorizedLogistics = !isAddrAdmin(logisticsAddr || '') && (grantedWallets || []).some(w => 
                         w.address.toLowerCase() === logisticsAddr?.toLowerCase() && 
                         (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
                       );
 
                       // Neu nguoi ghi chang la Admin, hoac khong phai don vi van chuyen authorized, thi tim vi duoc cap quyen ROLE_LOGISTICS chinh thuc
-                      if (!logisticsAddr || isDefaultAdminAddress(logisticsAddr) || !isAuthorizedLogistics) {
-                        const logisticsGrantedWallet = grantedWallets.find(
+                      if (!logisticsAddr || isAddrAdmin(logisticsAddr) || !isAuthorizedLogistics) {
+                        const logisticsGrantedWallet = (grantedWallets || []).find(
                           (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
                         );
                         if (logisticsGrantedWallet) logisticsAddr = logisticsGrantedWallet.address;
                       }
 
-                      // Fallback cuoi cung
+                      // Fallback cuoi cung neu van khong tim thay
                       if (!logisticsAddr) logisticsAddr = DEFAULT_ADMIN_ADDRESS;
 
                       const isPaid = Boolean(b.adminPaidLogisticsFee);
@@ -826,7 +837,7 @@ export const AdminTab: React.FC<AdminTabProps> = ({
                             ) : (
                               <button
                                 type="button"
-                                onClick={() => handlePaySingleLogistics(b.batchCode, logisticsAddr)}
+                                onClick={() => handlePaySingleLogistics(b.batchCode, logisticsAddr!)}
                                 disabled={isSubmitting || !isAdminRole}
                                 className="px-3 py-1.5 rounded-lg bg-[#C29B38] text-white font-bold text-[11px] hover:bg-[#8C6D1F] transition-all shadow-2xs disabled:opacity-40"
                               >
@@ -854,6 +865,9 @@ export const AdminTab: React.FC<AdminTabProps> = ({
               Nhật Ký Sự Kiện Giao Dịch On-Chain
             </h3>
           </div>
+          <p className="text-[11px] text-[#5E7166] mt-1 font-medium italic">
+            Mọi giao dịch thanh toán và cập nhật trạng thái đều được ghi nhận minh bạch trên Smart Contract: <span className="font-mono text-[#264939] font-bold">{CONTRACT_ADDRESS}</span>
+          </p>
           <a
             href={`${ETHERSCAN_BASE_URL}/address/${CONTRACT_ADDRESS}`}
             target="_blank"

@@ -101,6 +101,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {/* Mo ta ngan */}
             <p className="text-emerald-100/90 text-xs sm:text-sm font-sans leading-relaxed max-w-xl">
               Số hóa minh bạch 100% từng chặng chăn nuôi, chế biến, vận chuyển kho lạnh và phân phối OCOP trên nền tảng <span className="font-bold text-amber-300 underline decoration-amber-400/50 underline-offset-4">Ethereum Sepolia Testnet</span>.
+              <span className="block mt-2 text-[10px] sm:text-xs text-[#D4AF37] font-bold opacity-90">
+                Mọi giao dịch thanh toán và cập nhật trạng thái đều được ghi nhận minh bạch trên Smart Contract: 0x35655079Aebb215E58E379D5A8c2F1F3a5323C6b
+              </span>
             </p>
 
             {/* Cac nut hanh dong */}

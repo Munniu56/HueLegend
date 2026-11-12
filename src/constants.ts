@@ -28,6 +28,10 @@ export const DEFAULT_ADMIN_ADDRESSES = [
 ];
 export const DEFAULT_ADMIN_ADDRESS = DEFAULT_ADMIN_ADDRESSES[0];
 
+// Dia chi mac dinh cho Don vi van chuyen va Kiem dinh vien (Dung de fallback neu khong tim thay recorder)
+export const LOGISTICS_MASTER_ADDRESS = safeGetAddress("0x40971400080bAebd27eff64031651383394693B5");
+export const INSPECTOR_MASTER_ADDRESS = safeGetAddress("0x0042dE8f747C85a3C02B90f0550B59a224091038");
+
 export const isDefaultAdminAddress = (address: string | null | undefined): boolean => {
   if (!address || typeof address !== 'string') return false;
   const clean = safeGetAddress(address).toLowerCase();

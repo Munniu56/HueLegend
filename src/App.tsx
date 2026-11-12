@@ -2080,6 +2080,17 @@ export const App: React.FC = () => {
       const feePerBatchWei = ethers.parseEther('0.002');
 
       unpaidBatches.forEach((b) => {
+        // Helper function to check if an address is an Admin (Default or Granted)
+        const isAddrAdmin = (addr: string) => {
+          if (!addr) return false;
+          const clean = safeGetAddress(addr).toLowerCase();
+          if (isDefaultAdminAddress(clean)) return true;
+          return (grantedWallets || []).some(w => 
+            w.address.toLowerCase() === clean && 
+            (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+          );
+        };
+
         // Tim dia chi vi Kiem dinh vien thuc te da tham dinh lo hang nay
         const inspectorCp = [...(b.checkpoints || [])].reverse().find(
           (c) =>
@@ -2089,9 +2100,16 @@ export const App: React.FC = () => {
             (c.stepName && c.stepName.toLowerCase().includes('ocop'))
         );
 
-        // Neu nguoi ghi chang la Admin, hoac khong co recorder, thi tim vi duoc cap quyen ROLE_INSPECTOR thuc thu
         let inspectorAddr = inspectorCp?.recorder;
-        if (!inspectorAddr || isDefaultAdminAddress(inspectorAddr)) {
+
+        // Kiem tra xem nguoi ghi chang co phai la Kiem dinh vien duoc cap quyen thuc thu khong
+        const isAuthorizedInspector = !isAddrAdmin(inspectorAddr || '') && (grantedWallets || []).some(w => 
+          w.address.toLowerCase() === inspectorAddr?.toLowerCase() && 
+          (w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định')))
+        );
+
+        // Neu nguoi ghi chang la Admin, hoac khong co recorder, hoac khong authorized, thi tim vi duoc cap quyen ROLE_INSPECTOR thuc thu
+        if (!inspectorAddr || isAddrAdmin(inspectorAddr) || !isAuthorizedInspector) {
           const inspectorGrantedWallet = grantedWallets.find(
             (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định'))
           );
@@ -2216,6 +2234,17 @@ export const App: React.FC = () => {
       const feePerBatchWei = ethers.parseEther('0.002');
 
       unpaidLogisticsBatches.forEach((b) => {
+        // Helper function to check if an address is an Admin (Default or Granted)
+        const isAddrAdmin = (addr: string) => {
+          if (!addr) return false;
+          const clean = safeGetAddress(addr).toLowerCase();
+          if (isDefaultAdminAddress(clean)) return true;
+          return (grantedWallets || []).some(w => 
+            w.address.toLowerCase() === clean && 
+            (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+          );
+        };
+
         // Tim dia chi vi Don vi van chuyen thuc te da ghi chang lo hang nay
         const logisticsCp = [...(b.checkpoints || [])].reverse().find(
           (c) =>
@@ -2227,14 +2256,14 @@ export const App: React.FC = () => {
         
         let logisticsAddr = logisticsCp?.recorder;
 
-        // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen khong
-        const isAuthorizedLogistics = grantedWallets.some(w => 
+        // Kiem tra xem nguoi ghi chang co phai la Don vi van chuyen duoc cap quyen thuc thu khong
+        const isAuthorizedLogistics = !isAddrAdmin(logisticsAddr || '') && (grantedWallets || []).some(w => 
           w.address.toLowerCase() === logisticsAddr?.toLowerCase() && 
           (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
         );
         
         // Neu nguoi ghi chang la Admin, hoac khong phai don vi van chuyen authorized, thi tim vi duoc cap quyen ROLE_LOGISTICS chinh thuc
-        if (!logisticsAddr || isDefaultAdminAddress(logisticsAddr) || !isAuthorizedLogistics) {
+        if (!logisticsAddr || isAddrAdmin(logisticsAddr) || !isAuthorizedLogistics) {
           const logisticsGrantedWallet = grantedWallets.find(
             (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
           );
@@ -2340,9 +2369,25 @@ export const App: React.FC = () => {
       return;
     }
 
+    // Helper function to check if an address is an Admin (Default or Granted)
+    const isAddrAdmin = (addr: string) => {
+      if (!addr) return false;
+      const clean = safeGetAddress(addr).toLowerCase();
+      if (isDefaultAdminAddress(clean)) return true;
+      return (grantedWallets || []).some(w => 
+        w.address.toLowerCase() === clean && 
+        (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+      );
+    };
+
     // Xac dinh dia chi vi Kiem dinh vien thuc thu
     let cleanInspectorAddr = inspectorAddress;
-    if (!cleanInspectorAddr || isDefaultAdminAddress(cleanInspectorAddr)) {
+    const isAuthorizedInspector = !isAddrAdmin(cleanInspectorAddr || '') && (grantedWallets || []).some(w => 
+      w.address.toLowerCase() === cleanInspectorAddr?.toLowerCase() && 
+      (w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định')))
+    );
+
+    if (!cleanInspectorAddr || isAddrAdmin(cleanInspectorAddr) || !isAuthorizedInspector) {
       const inspectorGrantedWallet = grantedWallets.find(
         (w) => w.role === 'ROLE_INSPECTOR' || w.role === ROLE_HASHES.ROLE_INSPECTOR || (w.roleTitle && w.roleTitle.toLowerCase().includes('kiểm định'))
       );
@@ -2440,14 +2485,25 @@ export const App: React.FC = () => {
       return;
     }
 
+    // Helper function to check if an address is an Admin (Default or Granted)
+    const isAddrAdmin = (addr: string) => {
+      if (!addr) return false;
+      const clean = safeGetAddress(addr).toLowerCase();
+      if (isDefaultAdminAddress(clean)) return true;
+      return (grantedWallets || []).some(w => 
+        w.address.toLowerCase() === clean && 
+        (w.role === 'ROLE_ADMIN' || w.role === 'ADMIN' || w.role === ROLE_HASHES.ROLE_ADMIN || (w.roleTitle && w.roleTitle.toLowerCase().includes('quản trị')))
+      );
+    };
+
     // Xac dinh dia chi vi Don vi van chuyen thuc thu
     let cleanLogisticsAddr = logisticsAddress;
-    const isAuthorizedLogistics = grantedWallets.some(w => 
+    const isAuthorizedLogistics = !isAddrAdmin(cleanLogisticsAddr || '') && (grantedWallets || []).some(w => 
       w.address.toLowerCase() === cleanLogisticsAddr?.toLowerCase() && 
       (w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển')))
     );
 
-    if (!cleanLogisticsAddr || isDefaultAdminAddress(cleanLogisticsAddr) || !isAuthorizedLogistics) {
+    if (!cleanLogisticsAddr || isAddrAdmin(cleanLogisticsAddr) || !isAuthorizedLogistics) {
       const logisticsGrantedWallet = grantedWallets.find(
         (w) => w.role === 'ROLE_LOGISTICS' || w.role === ROLE_HASHES.ROLE_LOGISTICS || (w.roleTitle && w.roleTitle.toLowerCase().includes('vận chuyển'))
       );
